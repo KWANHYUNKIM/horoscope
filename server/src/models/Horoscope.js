@@ -3,6 +3,8 @@
 const mongoose = require('mongoose');
 
 const HoroscopeSchema = new mongoose.Schema({
+  date: { type: String, required: true },
+  weekday: { type: String, required: true },
   zodiac: { type: String, required: true },
   year: { type: Number, required: true },
   general_horoscope: { type: String, required: true },
