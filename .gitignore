@@ -6,6 +6,9 @@ yarn-error.log*
 package-lock.json
 yarn.lock
 
+# Ignore Python virtual environments
+venv/
+
 # 환경 변수 파일
 .env
 
