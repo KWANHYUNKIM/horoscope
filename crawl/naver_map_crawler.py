@@ -6,6 +6,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 import pandas as pd
 import time
+from bs4 import BeautifulSoup
 
 # 크롬 드라이버 설정
 service = Service(ChromeDriverManager().install())
@@ -55,38 +56,176 @@ for hosp_type in hospital_types:
 
         # 병원 선택 처리
         if hosp_type["id"] == "gubun111294":
-            # 상급종합병원은 기본 선택 상태이므로 처리 필요
             print("Default 병원(상급종합병원) 처리 중...")
-            # 전체선택 클릭
-            select_all = WebDriverWait(driver, 10).until(
-                EC.element_to_be_clickable((By.ID, "chkAll_shwSbjtCds"))
+            select_all_label = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, "label[for='chkAll_shwSbjtCds']"))
             )
-            select_all.click()
+            select_all_label.click()
             time.sleep(2)
+            
+            # 검색 버튼 클릭
+            search_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, ".btn_black"))
+            )
+            search_button.click()
 
+            time.sleep(2)
+            
+            hospitals = WebDriverWait(driver, 10).until(
+            EC.visibility_of_all_elements_located((By.CSS_SELECTOR, "ul.mapResult li"))
+            )
+            
+            print(f"병원 목록 로드 완료: {len(hospitals)}개 병원")
+
+            time.sleep(2);
+            for hospital in hospitals:
+                title_tag = hospital.find_element(By.CSS_SELECTOR, "a.tit")
+                title_text = title_tag.text.strip()
+                # 병원 상세 페이지 이동
+                driver.execute_script("arguments[0].click();", title_tag)
+
+                original_window = driver.current_window_handle # 기존 창 저장 
+
+                WebDriverWait(driver, 10).until(EC.new_window_is_opened)
+
+                # 새 창 핸들로 전환
+                for handle in driver.window_handles:
+                    if handle != original_window:
+                        driver.switch_to.window(handle)
+                        break
+                
+                # 상세 페이지 로드 대기
+                WebDriverWait(driver, 10).until(
+                    EC.visibility_of_element_located((By.CSS_SELECTOR, "ul.pop_hos_list li"))
+                )
+                # 기본 정보 가져오기
+                details_list = driver.find_elements(By.CSS_SELECTOR, "ul.pop_hos_list li")
+                
+                # 요소가 비어 있는지 확인
+                if details_list:
+                    print(f"디테일 값의 개수: {len(details_list)}")
+                    address, phone, homepage, grade = None, None, None, None
+                    for idx, detail in enumerate(details_list):
+                        try:
+                            span_elements = detail.find_elements(By.CSS_SELECTOR, "span")
+                            p_elements = detail.find_elements(By.CSS_SELECTOR, "p")
+
+                            if span_elements and p_elements:
+                                label = span_elements[0].text.strip()
+                                value = p_elements[0].text.strip()
+                                print(f"디테일 {idx + 1}: {label} - {value}")
+                                # 필요한 정보만 저장
+                                if "주소" in label:
+                                    address = value
+                                elif "전화번호" in label:
+                                    phone = value
+                                elif "홈페이지" in label:
+                                    homepage = value
+                                elif "병원구분" in label:
+                                    grade = value
+                            else:
+                                print(f"디테일 {idx + 1}: 비어 있는 항목입니다.")
+                        except Exception as e:
+                            print(f"디테일 {idx + 1}: 처리 중 오류 발생 - {e}")
+                else:
+                    print("디테일 값을 찾을 수 없습니다.")
+
+                # 이후 로직에서 추가 DOM 탐색 방지
+                print("모든 항목 처리가 완료되었습니다.")
+                # 진료 시간 클릭
+                link_element = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, "a[href='#stab01-2']"))
+                )
+                driver.execute_script("arguments[0].click();", link_element)
+                # 진료시간 크롤링
+                
+                # 진료시간 정보를 가져오기 위한 딕셔너리
+                schedule_info = {
+                    "월요일": "trmtMon",
+                    "화요일": "trmtTue",
+                    "수요일": "trmtWed",
+                    "목요일": "trmtThu",
+                    "금요일": "trmtFri",
+                    "토요일": "trmtSat",
+                    "일요일": "trmtSun",
+                }
+
+                # 점심시간 정보를 가져오기 위한 딕셔너리
+                lunch_info = {
+                    "월~금": "lunchWeek",
+                    "토요일": "lunchSat",
+                    "일요일": "lunchSun",
+                }
+
+                # 접수시간 정보를 가져오기 위한 딕셔너리
+                reception_info = {
+                    "월~금": "rcvWeek",
+                    "토요일": "rcvSat",
+                    "일요일": "rcvSun",
+                }
+
+                # 진료시간 가져오기
+                print("진료시간:")
+                for day, element_id in schedule_info.items():
+                    try:
+                        time_element = driver.find_element(By.ID, element_id)
+                        time_text = time_element.text.strip() if time_element.text.strip() else "-"
+                    except Exception as e:
+                        time_text = "-"  # 요소가 없거나 에러 발생 시 기본값 '-'
+                    print(f"{day}: {time_text}")
+
+                # 점심시간 가져오기
+                print("\n점심시간:")
+                for day, element_id in lunch_info.items():
+                    try:
+                        lunch_element = driver.find_element(By.ID, element_id)
+                        lunch_text = lunch_element.text.strip() if lunch_element.text.strip() else "-"
+                    except Exception as e:
+                        lunch_text = "-"
+                    print(f"{day}: {lunch_text}")
+
+                # 접수시간 가져오기
+                print("\n접수시간:")
+                for day, element_id in reception_info.items():
+                    try:
+                        reception_element = driver.find_element(By.ID, element_id)
+                        reception_text = reception_element.text.strip() if reception_element.text.strip() else "-"
+                    except Exception as e:
+                        # 요소가 없거나 예외 발생 시 빈 값으로 처리
+                        print(f"오류 발생 (day: {day}, element_id: {element_id}) - {e}")
+                        reception_text = "-"
+                    print(f"{day}: {reception_text}")
+                    
+                # 데이터 저장
+                data.append({
+                    "병원명": title_text,
+                    "종류": grade,
+                    "전화번호": phone,
+                    "주소": address,
+                    "홈페이지": homepage
+                })
+                print(data);
+                # 뒤로가기
+                driver.back()
+                
+                # 방문한 병원 ID 추가
+                #visited.append(hosp_type["id"])
         else:
-            # 다른 병원 선택 (label 클릭)
             label = WebDriverWait(driver, 10).until(
                 EC.element_to_be_clickable((By.CSS_SELECTOR, f"label[for='{hosp_type['id']}']"))
             )
             label.click()
             time.sleep(2)
 
-            # 선택 상태 확인
             is_selected = driver.find_element(By.ID, hosp_type["id"]).is_selected()
-            print(f"병원 선택 여부: {is_selected}")
-
-            # 선택되지 않았다면 다시 클릭 (예외 처리)
             if not is_selected:
                 label.click()
                 time.sleep(2)
 
-            # 전체선택 클릭
             select_all_label = WebDriverWait(driver, 10).until(
                 EC.element_to_be_clickable((By.CSS_SELECTOR, "label[for='chkAll_shwSbjtCds']"))
             )
             select_all_label.click()
-
             time.sleep(2)
 
         # 검색 버튼 클릭
@@ -97,50 +236,60 @@ for hosp_type in hospital_types:
         time.sleep(5)
 
         # 데이터 크롤링 (검색 결과)
-        hospital_list = driver.find_elements(By.CSS_SELECTOR, ".mapResult.homeResult li")
+        soup = BeautifulSoup(driver.page_source, "html.parser")
+        hospitals = soup.select("ul.mapResult li")
 
-        for hospital in hospital_list:
-            try:
-                name = hospital.find_element(By.CLASS_NAME, "tit").text
-                address_element = hospital.find_element(By.CSS_SELECTOR, "span.icon-home")
-                address = address_element.text if address_element else "주소 없음"
+        for hospital in hospitals:
+            title_tag = hospital.select_one("a.tit")
+            title = title_tag.text.strip()
 
-                # 상세보기 클릭
-                hospital.find_element(By.CLASS_NAME, "tit").click()
-                time.sleep(3)
+            # 세부정보 추출
+            info_tag = hospital.select_one("p.subInfo")
+            details = info_tag.find_all("span")
+            grade = details[1].text.strip()
+            phone = details[3].text.strip()
+            address = details[5].text.strip()
 
-                # 상세 정보 추출
-                details = driver.find_element(By.CLASS_NAME, "pop_hos_list").text
+            # 병원 상세 페이지 이동
+            driver.execute_script("arguments[0].click();", title_tag)
+            time.sleep(3)
 
-                # 데이터 저장
-                data.append({
-                    "종류": hosp_type["name"],
-                    "병원명": name,
-                    "주소": address,
-                    "상세정보": details
-                })
+            # 진료시간 크롤링
+            detail_soup = BeautifulSoup(driver.page_source, "html.parser")
+            time_table = detail_soup.select("table.tbl_default tbody tr")
+            treatment_times = {}
 
-                # 뒤로가기
-                driver.back()
-                time.sleep(3)
+            for row in time_table:
+                columns = row.find_all("td")
+                if len(columns) == 2:
+                    day = row.find("th").text.strip()
+                    time_info = columns[1].text.strip()
+                    treatment_times[day] = time_info
 
-            except Exception as e:
-                print(f"Error with hospital details: {e}")
-                driver.back()
-                time.sleep(3)
-                continue
+            # 데이터 저장
+            data.append({
+                "병원명": title,
+                "종류": grade,
+                "전화번호": phone,
+                "주소": address,
+                "진료시간": treatment_times
+            })
 
-        # 방문 리스트에 추가
+            # 뒤로가기
+            driver.back()
+            time.sleep(2)
+
+        # 방문한 병원 ID 추가
         visited.append(hosp_type["id"])
 
     except Exception as e:
-        print(f"Error with hospital type {hosp_type['name']}: {e}")
-        continue
+        print(f"오류 발생: {e}")
 
 # 드라이버 종료
 driver.quit()
 
-# DataFrame으로 변환 후 엑셀 저장
+# DataFrame으로 변환 후 엑셀 저장# DataFrame으로 변환 후 CSV 저장
 df = pd.DataFrame(data)
-df.to_excel("hira_hospitals_details.xlsx", index=False, encoding="utf-8")
-print("크롤링 완료, 데이터가 hira_hospitals_details.xlsx에 저장되었습니다.")
+df.to_csv("hira_hospitals_details.csv", index=False, encoding="utf-8-sig")  # UTF-8 인코딩으로 CSV 저장
+print("크롤링 완료, 데이터가 hira_hospitals_details.csv에 저장되었습니다.")
+
