@@ -1,55 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 
-const dummyHospitals = [
-  {
-    id: 1,
-    name: "서울 메디컬 센터",
-    location: "서울특별시 강남구 테헤란로 123",
-    region: "서울",
-    image: "https://via.placeholder.com/300x200",
-    schedule: {
-      Monday: "09:00 - 18:00",
-      Tuesday: "09:00 - 18:00",
-      Wednesday: "09:00 - 18:00",
-      Thursday: "09:00 - 18:00",
-      Friday: "09:00 - 18:00",
-      Saturday: "10:00 - 14:00",
-      Sunday: "휴무",
-    },
-  },
-  {
-    id: 2,
-    name: "부산 종합병원",
-    location: "부산광역시 해운대구 센텀로 456",
-    region: "부산",
-    image: "https://via.placeholder.com/300x200",
-    schedule: {
-      Monday: "08:00 - 17:00",
-      Tuesday: "08:00 - 17:00",
-      Wednesday: "08:00 - 17:00",
-      Thursday: "08:00 - 17:00",
-      Friday: "08:00 - 17:00",
-      Saturday: "09:00 - 13:00",
-      Sunday: "휴무",
-    },
-  },
-  {
-    id: 3,
-    name: "제주 건강 클리닉",
-    location: "제주특별자치도 제주시 노형로 123",
-    region: "제주",
-    image: "https://via.placeholder.com/300x200",
-    schedule: {
-      Monday: "09:30 - 18:30",
-      Tuesday: "09:30 - 18:30",
-      Wednesday: "09:30 - 18:30",
-      Thursday: "09:30 - 18:30",
-      Friday: "09:30 - 18:30",
-      Saturday: "휴무",
-      Sunday: "휴무",
-    },
-  },
-];
 const regions = [
   { label: "전국", icon: "🌍" },
   { label: "서울", icon: "🏙️" },
@@ -60,7 +11,7 @@ const regions = [
   { label: "강원", icon: "⛰️" },
   { label: "경상", icon: "🌾" },
   { label: "전라", icon: "🌻" },
-  { label: "충청", icon: "🌳" }
+  { label: "충청", icon: "🌳" },
 ];
 
 const subjects = [
@@ -82,35 +33,110 @@ const additionalFilters = [
   { label: "야간 진료", icon: "🌙" },
   { label: "24시간 진료", icon: "⏰" },
   { label: "주말 진료", icon: "📅" },
-  { label: "일반 진료", icon: "🏥" }
+  { label: "일반 진료", icon: "🏥" },
 ];
 
 const HospitalListPage = () => {
   const [selectedRegion, setSelectedRegion] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
   const [selectedAdditionalFilter, setSelectedAdditionalFilter] = useState("전체");
+  
+  const [hospitals, setHospitals] = useState([]); // 서버에서 받아온 병원 목록
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const today = new Date().toLocaleDateString("en-US", { weekday: "long" });
 
-  const filteredHospitals = dummyHospitals.filter((hospital) => {
-    const matchesRegion = selectedRegion === "전국" || !selectedRegion || hospital.region === selectedRegion;
-    const matchesSubject = selectedSubject === "전체" || !selectedSubject;
+  // 1) 서버에서 병원 목록 가져오기
+  // - region, subject 등을 사용해 서버 API에 쿼리 파라미터로 보낼 수도 있음.
+  const fetchHospitalsFromServer = async (regionParam, subjectParam) => {
+    try {
+      setLoading(true);
+      setError(null);
 
-    let matchesAdditionalFilter = true;
-    if (selectedAdditionalFilter === "야간 진료") {
-      matchesAdditionalFilter = today in hospital.schedule && hospital.schedule[today].includes("18:00");
-    } else if (selectedAdditionalFilter === "24시간 진료") {
-      matchesAdditionalFilter = today in hospital.schedule && hospital.schedule[today] === "24시간";
-    } else if (selectedAdditionalFilter === "주말 진료") {
-      matchesAdditionalFilter = ("Saturday" in hospital.schedule && hospital.schedule["Saturday"] !== "휴무") || ("Sunday" in hospital.schedule && hospital.schedule["Sunday"] !== "휴무");
+      // 서버 쪽에서 region, subject로 필터하도록 쿼리 파라미터 전송
+      const response = await axios.get("/api/hospitals/list", {
+        params: {
+          region: regionParam,
+          subject: subjectParam,
+        },
+      });
+
+      // 서버 응답: 병원 배열
+      setHospitals(response.data);
+    } catch (err) {
+      console.error(err);
+      setError("서버에서 병원 목록을 불러오는 중 오류가 발생했습니다.");
+    } finally {
+      setLoading(false);
     }
+  };
 
-    return matchesRegion && matchesSubject && matchesAdditionalFilter;
+  // 2) 컴포넌트 초기 렌더 시 전체/전국 목록을 불러옴(또는 원하는 기본 조건)
+  useEffect(() => {
+    fetchHospitalsFromServer("", "");
+  }, []);
+
+  // 3) 클릭 시, region/subject를 바꾸고 서버 재요청 (또는 클라이언트 필터)
+  // 여기서는 간단히 "선택했을 때 서버에다 새로 요청" 방식을 예시
+  // 만약 모든 필터를 한 번에 사용해야 한다면, useEffect + dependency 배열로 묶을 수도 있음.
+  const handleRegionClick = (regionLabel) => {
+    setSelectedRegion(regionLabel);
+    // 다시 서버에 요쳥
+    fetchHospitalsFromServer(regionLabel, selectedSubject);
+  };
+
+  const handleSubjectClick = (subjectLabel) => {
+    setSelectedSubject(subjectLabel);
+    // 다시 서버에 요쳥
+    fetchHospitalsFromServer(selectedRegion, subjectLabel);
+  };
+
+  // --- 추가필터(야간진료 등)는 서버/클라이언트 중 어디서 필터링할지 결정 ---
+  // 여기서는 예시로 클라이언트단에서만 처리 (hospitals 데이터 받았다 가정)
+  // 실제로는 서버 파라미터로 `additionalFilter` 전달해도 좋음.
+  const handleAdditionalFilterClick = (filterLabel) => {
+    setSelectedAdditionalFilter(filterLabel);
+  };
+
+  // 4) 실제 화면에 뿌릴 "최종 필터된 병원"
+  //   - region/subject는 이미 서버 필터로 걸러졌다고 가정
+  //   - additionalFilter만 클라이언트에서 추가적으로 거른다고 예시
+  const finalFilteredHospitals = hospitals.filter((hospital) => {
+    let matchesAdditionalFilter = true;
+    
+    // schedule 필드가 있다고 가정
+    const schedule = hospital.schedule || {};
+    const currentHours = schedule[today] || "운영 시간 정보 없음";
+
+    if (selectedAdditionalFilter === "야간 진료") {
+      // 여기선 "18시 이후 영업"이라는 조건 예시
+      // 실제 DB 정보, 구조에 맞게 조건을 바꿔야 함.
+      matchesAdditionalFilter = currentHours.includes("18:00");
+    } else if (selectedAdditionalFilter === "24시간 진료") {
+      matchesAdditionalFilter = currentHours === "24시간";
+    } else if (selectedAdditionalFilter === "주말 진료") {
+      // 주말(토/일) 중 하나라도 "휴무" 아니면 OK
+      const sat = schedule["Saturday"];
+      const sun = schedule["Sunday"];
+      matchesAdditionalFilter =
+        (sat && sat !== "휴무") || (sun && sun !== "휴무");
+    } 
+    // etc. "전체", "일반 진료"는 필터 X
+
+    return matchesAdditionalFilter;
   });
+
+  // --- 렌더링 ---
+  if (loading) {
+    return <div>로딩 중...</div>;
+  }
+  if (error) {
+    return <div>{error}</div>;
+  }
 
   return (
     <div className="bg-gray-50 min-h-screen">
-      {/* 헤더 */}
       <header className="bg-gradient-to-r from-blue-400 to-purple-500 text-white p-6 shadow-md">
         <div className="container mx-auto flex flex-col items-center">
           <h1 className="text-3xl font-bold">삐뽀삐뽀119</h1>
@@ -125,12 +151,16 @@ const HospitalListPage = () => {
             <div
               key={region.label}
               className={`text-center cursor-pointer transition ${
-                selectedRegion === region.label ? "bg-blue-100 border-blue-500" : "bg-gray-100 border-gray-300"
+                selectedRegion === region.label
+                  ? "bg-blue-100 border-blue-500"
+                  : "bg-gray-100 border-gray-300"
               } rounded-lg shadow-md hover:shadow-lg p-4 border`}
-              onClick={() => setSelectedRegion(region.label)}
+              onClick={() => handleRegionClick(region.label)}
             >
               <div className="text-4xl mb-2">{region.icon}</div>
-              <p className="text-sm font-medium text-gray-700">{region.label}</p>
+              <p className="text-sm font-medium text-gray-700">
+                {region.label}
+              </p>
             </div>
           ))}
         </div>
@@ -147,7 +177,7 @@ const HospitalListPage = () => {
                   ? "bg-green-500 text-white border-green-500"
                   : "bg-gray-200 text-gray-700 border-gray-300 hover:bg-green-100"
               }`}
-              onClick={() => setSelectedSubject(subject.label)}
+              onClick={() => handleSubjectClick(subject.label)}
             >
               <span>{subject.icon}</span>
               <span>{subject.label}</span>
@@ -167,7 +197,7 @@ const HospitalListPage = () => {
                   ? "bg-yellow-500 text-white border-yellow-500"
                   : "bg-gray-200 text-gray-700 border-gray-300 hover:bg-yellow-100"
               }`}
-              onClick={() => setSelectedAdditionalFilter(filter.label)}
+              onClick={() => handleAdditionalFilterClick(filter.label)}
             >
               <span>{filter.icon}</span>
               <span>{filter.label}</span>
@@ -178,32 +208,27 @@ const HospitalListPage = () => {
 
       {/* 병원 리스트 */}
       <section className="container mx-auto mt-10 p-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredHospitals.length > 0 ? (
-            filteredHospitals.map((hospital) => {
-              const currentHours =
-                hospital.schedule[today] || "운영 시간 정보 없음";
-              const isOpen =
-                currentHours !== "휴무" &&
-                currentHours !== "운영 시간 정보 없음";
+        {finalFilteredHospitals.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {finalFilteredHospitals.map((hospital) => {
+              // 스케줄/영업여부 표시 로직
+              const schedule = hospital.schedule || {};
+              const currentHours = schedule[today] || "운영 시간 정보 없음";
+              const isOpen = currentHours !== "휴무" && currentHours !== "운영 시간 정보 없음";
 
               return (
                 <div
-                  key={hospital.id}
+                  key={hospital._id} // DB에서 온 _id 사용
                   className="bg-white shadow-lg rounded-lg overflow-hidden hover:shadow-2xl transition"
                 >
                   <img
-                    src={hospital.image}
+                    src={hospital.image || "https://via.placeholder.com/300x200"}
                     alt={hospital.name}
                     className="w-full h-48 object-cover"
                   />
                   <div className="p-4">
-                    <h3 className="text-lg font-bold text-gray-800">
-                      {hospital.name}
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      {hospital.location}
-                    </p>
+                    <h3 className="text-lg font-bold text-gray-800">{hospital.yadmNm || hospital.name}</h3>
+                    <p className="text-sm text-gray-500">{hospital.addr || hospital.location}</p>
                     <p
                       className={`mt-2 font-bold ${
                         isOpen ? "text-green-500" : "text-red-500"
@@ -214,13 +239,13 @@ const HospitalListPage = () => {
                   </div>
                 </div>
               );
-            })
-          ) : (
-            <p className="text-center text-gray-500">
-              선택한 조건에 맞는 병원이 없습니다.
-            </p>
-          )}
-        </div>
+            })}
+          </div>
+        ) : (
+          <p className="text-center text-gray-500">
+            선택한 조건에 맞는 병원이 없습니다.
+          </p>
+        )}
       </section>
     </div>
   );
