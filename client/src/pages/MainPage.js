@@ -4,10 +4,10 @@ import Slider from "../components/Slider"; // 슬라이더 컴포넌트 가져�
 
 const MainPage = () => {
   const categories = [
-    { label: "야간 진료", icon: "🌙" },
-    { label: "24시간 진료", icon: "⏰" },
-    { label: "주말 진료", icon: "📅" },
-    { label: "일반 진료", icon: "🏥" },
+    { label: "야간진료", icon: "🌙" },
+    { label: "24시간진료", icon: "⏰" },
+    { label: "주말진료", icon: "📅" },
+    { label: "일반진료", icon: "🏥" },
   ];
 
   return (
