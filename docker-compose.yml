@@ -1,0 +1,36 @@
+version: '3.7'
+services:
+  elasticsearch:
+    image: elasticsearch:7.17.13
+    container_name: es_container
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+    networks:
+      - esnet
+
+  kibana:
+    image: kibana:7.17.13
+    container_name: kibana_container
+    ports:
+      - "5601:5601"
+    environment:
+      ELASTICSEARCH_HOSTS: "http://elasticsearch:9200"
+    networks:
+      - esnet
+
+  # 예: 서버도 dockerize 하는 경우
+  server:
+    build: ./server  # Dockerfile 있는 곳
+    container_name: express_server
+    ports:
+      - "3001:3001"
+    depends_on:
+      - elasticsearch
+    networks:
+      - esnet
+
+networks:
+  esnet:

@@ -1,7 +1,7 @@
 // controllers/hospitalController.js
 const axios = require('axios');
-const Hospital = require('../models/hospital');
-const HospitalDetail = require('../models/hospitalTime');
+const Hospital = require('../models/Hospital');
+const HospitalDetail = require('../models/HospitalTime');
 
 const fetchHospitalsTime = async (req, res) => {
   // 첫 번째 API

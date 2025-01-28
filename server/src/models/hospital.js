@@ -33,4 +33,4 @@ const HospitalSchema = new mongoose.Schema({
   ykiho: { type: String, required: false },
 });
 
-module.exports = mongoose.model('Hospital', HospitalSchema);
+module.exports = mongoose.model('hospital', HospitalSchema);

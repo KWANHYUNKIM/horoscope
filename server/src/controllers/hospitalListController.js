@@ -1,5 +1,5 @@
-const Hospital = require('../models/hospital');
-const HospitalDetail = require('../models/hospitalTime');
+const Hospital = require('../models/Hospital');
+const HospitalDetail = require('../models/HospitalTime');
 
 /**
  * 병원 목록을 가져오되,
