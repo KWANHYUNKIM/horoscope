@@ -8,11 +8,36 @@ const client = new Client({ node: ES_NODE });
 
 router.get('/', async (req, res) => {
   try {
-    const { page = 1, limit = 10, region, subject, category, major } = req.query;
+    const { 
+      page = 1, 
+      limit = 10, 
+      region, 
+      subject, 
+      category, 
+      major, 
+      query, 
+      x, 
+      y, 
+      distance = "10km" // 기본 거리 설정
+    } = req.query;
+
+    console.log("Received query parameters:", req.query); // 추가된 로그
+    console.log("Distance parameter:", distance); // 추가된 로그
 
     // Elasticsearch 쿼리 구성
     const must = [];
     const filter = [];
+
+    // 검색 쿼리 추가
+    if (query && query.trim() !== "") {
+      must.push({
+        multi_match: {
+          query: query.trim(),
+          fields: ["yadmNm^3", "addr", "major"], // 검색할 필드와 가중치 설정
+          fuzziness: "AUTO" // 오타 허용 (선택 사항)
+        }
+      });
+    }
 
     // 지역 필터
     if (region && region !== "전국") {
@@ -38,39 +63,61 @@ router.get('/', async (req, res) => {
       filter.push({ term: { weekendCare: true } });
     }
 
-    const query = {
+    // 위치 기반 검색 추가
+    if (x && y) {
+      const userLocation = {
+        lat: parseFloat(y),
+        lon: parseFloat(x)
+      };
+      filter.push({
+        geo_distance: {
+          distance: distance, // 클라이언트에서 전달된 반경 사용
+          location: userLocation // 'location' 필드는 Elasticsearch 인덱스의 Geo Point 필드명이어야 합니다.
+        }
+      });
+    }
+
+    const queryBody = {
       bool: {
-        must,
-        filter
+        must: must.length > 0 ? must : [{ match_all: {} }],
+        filter: filter
       }
     };
 
-    console.log("Elasticsearch 쿼리:", JSON.stringify(query, null, 2));
+    console.log("Elasticsearch 쿼리:", JSON.stringify(queryBody, null, 2));
 
-    const response = await client.search({
-      index: 'hospitals',
+    const searchParams = {
+      index: 'hospitals', // 인덱스명
       from: (page - 1) * limit,
       size: parseInt(limit),
       body: {
-        query
+        query: queryBody,
+        // 위치 기반 검색 시 거리 순 정렬 추가
+        sort: (x && y) ? [
+          {
+            "_geo_distance": {
+              "location": { "lat": parseFloat(y), "lon": parseFloat(x) },
+              "order": "asc",
+              "unit": "km",
+              "distance_type": "arc"
+            }
+          }
+        ] : []
       }
-    });
+    };
+
+    const response = await client.search(searchParams);
 
     // 전체 응답 로그 출력
-    console.log("Full search response:", JSON.stringify(response, null, 2));
+    console.log("Full search response:", JSON.stringify(response.body, null, 2));
 
     // 응답 구조에 맞게 hits 접근
     let hits, totalCount;
-    if (response.body && response.body.hits) {
-      // @elastic/elasticsearch v7.x
+    if (response.body && response.body.hits) { // 수정된 부분
       hits = response.body.hits.hits.map(hit => hit._source);
       totalCount = response.body.hits.total.value;
-    } else if (response.hits && response.hits.hits) {
-      // @elastic/elasticsearch v8.x 이상 또는 다른 구조
-      hits = response.hits.hits.map(hit => hit._source);
-      totalCount = response.hits.total.value;
     } else {
-      console.error("검색 응답 구조가 예상과 다릅니다:", response);
+      console.error("검색 응답 구조가 예상과 다릅니다:", response.body);
       throw new Error("검색 응답 구조가 예상과 다릅니다.");
     }
 

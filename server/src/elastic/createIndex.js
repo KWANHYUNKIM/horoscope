@@ -26,7 +26,8 @@ async function createHospitalIndex() {
             major : {type: 'keyword'},
             nightCare: { type: 'boolean' },
             twentyfourCare: { type: 'boolean' },
-            weekendCare: { type: 'boolean' }
+            weekendCare: { type: 'boolean' },
+            location: { type: "geo_point" }
             // 필요한 다른 필드들도 추가
           }
         }

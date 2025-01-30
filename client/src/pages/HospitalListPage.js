@@ -1,10 +1,9 @@
-// HospitalListPage.jsx
 import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";  // 쿼리 파라미터 받기
 import axios from "axios";
+import FilterDropdown from "../components/FilterDropdown";
 
-// 지역/과목/추가필터 목록 (기존 유지)
-const regions = [
+const filterRegions = [
   { label: "전국", icon: "🌍" },
   { label: "서울", icon: "🏙️" },
   { label: "경기", icon: "🏞️" },
@@ -25,7 +24,7 @@ const regions = [
   { label: "세종시", icon: "🏢" },
 ];
 
-const subjects = [
+const filterSubjects = [
   { label: "상급종합", icon: "🏥" },
   { label: "보건의료원", icon: "🏥" },
   { label: "보건진료소", icon: "🏥" },
@@ -41,7 +40,8 @@ const subjects = [
   { label: "정신병원", icon: "🧠" },
   { label: "조산원", icon: "👶" }
 ];
-const major = [
+
+const filterMajor = [
   { label: "전체", icon: "📋" },
   { label: "내과", icon: "💊" },
   { label: "외과", icon: "🔪" },
@@ -92,6 +92,28 @@ const major = [
   { label: "핵의학과", icon: "☢️🔬" }
 ];
 
+const filterAdditionFilters =[
+  { label: "전체", icon: "📌" },
+  { label: "야간 진료", icon: "🌙" },
+  { label: "24시간 진료", icon: "⏰" },
+  { label: "주말 진료", icon: "📅" },
+  { label: "일반 진료", icon: "🏥" },
+]
+
+
+const Major = [
+  { label: "전체", icon: "📋" },
+  { label: "내과", icon: "💊" },
+  { label: "외과", icon: "🔪" },
+  { label: "소아과", icon: "👶" },
+  { label: "산부인과", icon: "🤰" },
+  { label: "정신건강의학과", icon: "🧠" },
+  { label: "정형외과", icon: "🦴" },
+  { label: "이비인후과", icon: "👂" },
+  { label: "가정의학과", icon: "🏡" },
+  { label: "소아청소년과", icon: "🧒" },
+];
+
 const additionalFilters = [
   { label: "전체", icon: "📌" },
   { label: "야간 진료", icon: "🌙" },
@@ -101,11 +123,18 @@ const additionalFilters = [
 ];
 
 const HospitalListPage = () => {
-  // 필터 상태
+  
   const [selectedRegion, setSelectedRegion] = useState("전국");
   const [selectedSubject, setSelectedSubject] = useState("전체");
   const [selectedAdditionalFilter, setSelectedAdditionalFilter] = useState("전체");
   const [selectedMajor, setSelectedMajor] = useState("전체");
+
+  // 검색 쿼리 상태
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // 위치 기반 검색 상태
+  const [locationBased, setLocationBased] = useState(false);
+  const [userLocation, setUserLocation] = useState({ x: null, y: null });
 
   // 병원 목록 + 페이징 정보
   const [hospitals, setHospitals] = useState([]);  // 실제 아이템 배열
@@ -118,15 +147,62 @@ const HospitalListPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // URL에서 category 읽어오기 (필요 시)
+  const filterCategories = [
+    { name: "지역", options: filterRegions, state: selectedRegion, setState: setSelectedRegion },
+    { name: "타입", options: filterSubjects, state: selectedSubject, setState: setSelectedSubject },
+    { name: "전공", options: filterMajor, state: selectedMajor, setState: setSelectedMajor },
+    { name: "진료시간", options: filterAdditionFilters, state: selectedAdditionalFilter, setState: setSelectedAdditionalFilter },
+  ];
+
+  const handleFilterChange = (categoryName, option) => {
+    console.log(`${categoryName}: ${option}`);
+  
+    if (categoryName === "지역") {
+      setSelectedRegion(option);
+    } else if (categoryName === "타입") {
+      setSelectedSubject(option);
+    } else if (categoryName === "전공") {
+      setSelectedMajor(option);
+    } else if (categoryName === "진료시간") {
+      setSelectedAdditionalFilter(option);
+    }
+  
+    setCurrentPage(1); // 페이지 초기화
+  };
+  
+  // URL에서 쿼리 파라미터 읽어오기
   const location = useLocation();
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const category = params.get("category");
+    const query = params.get("query");
+    const x = params.get("x");
+    const y = params.get("y");
+    const distance = params.get("distance") || "10km"; // 기본 거리 설정
+
     if (category) {
       setSelectedAdditionalFilter(category);
     } else {
       setSelectedAdditionalFilter("전체");
+    }
+
+    if (query) {
+      setSearchQuery(query);
+      setLocationBased(false);
+    } else {
+      setSearchQuery("");
+    }
+
+    if (x && y) {
+      setUserLocation({ x: parseFloat(x), y: parseFloat(y) });
+      setLocationBased(true);
+      // 선택된 필터 초기화
+      setSelectedRegion("전국");
+      setSelectedSubject("전체");
+      setSelectedMajor("전체");
+      setSelectedAdditionalFilter("전체");
+    } else {
+      setLocationBased(false);
     }
   }, [location]);
 
@@ -142,6 +218,18 @@ const HospitalListPage = () => {
         limit: limit,
       };
 
+      // 검색 쿼리 추가
+      if (searchQuery.trim() !== "") {
+        params.query = searchQuery.trim();
+      }
+
+      // 위치 기반 검색 추가
+      if (locationBased && userLocation.x !== null && userLocation.y !== null) {
+        params.x = userLocation.x;
+        params.y = userLocation.y;
+        params.distance = "10km"; // 필요 시 동적으로 설정
+      }
+
       // 필터가 '전체'가 아닐 경우에만 해당 파라미터 추가
       if (selectedRegion !== "전국") {
         params.region = selectedRegion;
@@ -156,14 +244,14 @@ const HospitalListPage = () => {
       }
 
       if (selectedAdditionalFilter === "야간진료") {
-        params.nightCare = true;
+        params.category = "야간진료";
       } else if (selectedAdditionalFilter === "24시간진료") {
-        params.twentyfourCare = true;
+        params.category = "24시간진료";
       } else if (selectedAdditionalFilter === "주말진료") {
-        params.weekendCare = true;
+        params.category = "주말진료";
       }
 
-      const response = await axios.get("/api/hospitals/search", { // 'filter'에서 'search'로 변경
+      const response = await axios.get("/api/hospitals/search", {
         params: params,
       });
 
@@ -192,7 +280,7 @@ const HospitalListPage = () => {
   useEffect(() => {
     fetchHospitalsFromServer();
     // eslint-disable-next-line
-  }, [selectedRegion, selectedSubject, selectedAdditionalFilter, selectedMajor, currentPage, limit]);
+  }, [selectedRegion, selectedSubject, selectedAdditionalFilter, selectedMajor, currentPage, limit, searchQuery, locationBased, userLocation]);
 
   // 클릭 핸들러
   const handleRegionClick = (regionLabel) => {
@@ -237,94 +325,74 @@ const HospitalListPage = () => {
         <div className="container mx-auto flex flex-col items-center">
           <h1 className="text-3xl font-bold">삐뽀삐뽀119</h1>
           <p className="text-lg mt-2">선택한 지역의 병원을 쉽게 찾아보세요</p>
+          {/* 검색어 표시 */}
+          {searchQuery && (
+            <p className="text-md mt-1">검색어: <strong>{searchQuery}</strong></p>
+          )}
+          {/* 위치 기반 검색 표시 */}
+          {locationBased && userLocation.x !== null && userLocation.y !== null && (
+            <p className="text-md mt-1">내 주변 병원 검색 중...</p>
+          )}
         </div>
       </header>
-
-      {/* 지역 선택 */}
-      <section className="container mx-auto mt-4 p-2">
-      <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 justify-center">
-        {regions.map((region) => (
-          <div
-            key={region.label}
-            onClick={() => handleRegionClick(region.label)}
-            className={`text-center cursor-pointer transition ${
-              selectedRegion === region.label
-                ? "bg-blue-100 border-blue-500"
-                : "bg-gray-100 border-gray-300"
-            } rounded-lg shadow-md hover:shadow-lg p-2 border`}
-          >
-            <div className="text-2xl mb-1">{region.icon}</div>
-            <p className="text-xs font-medium text-gray-700">{region.label}</p>
-          </div>
-        ))}
-      </div>
-    </section>
-
-      {/* 진료과목 선택 */}
-      <section className="container mx-auto mt-8 p-4">
-        <div className="flex flex-wrap justify-center gap-2">
-          {subjects.map((subject) => (
-            <button
-              key={subject.label}
-              onClick={() => handleSubjectClick(subject.label)}
-              className={`px-6 py-3 rounded-full transition border flex items-center gap-2 ${
-                selectedSubject === subject.label
-                  ? "bg-green-500 text-white border-green-500"
-                  : "bg-gray-200 text-gray-700 border-gray-300 hover:bg-green-100"
-              }`}
-            >
-              <span>{subject.icon}</span>
-              <span>{subject.label}</span>
-            </button>
-          ))}
-        </div>
-      </section>
-
+      
+      {/* 필터 컨테이너 (고정형) */}
+      <div className="sticky top-0 z-50 bg-white shadow-md py-4">
       {/* Major 선택 */}
-      <section className="container mx-auto mt-8 p-4">
-        <div className="flex flex-wrap justify-center gap-2">
-          {major.map((m) => (
-            <button
-              key={m.label}
-              onClick={() => handleMajorClick(m.label)}
-              className={`px-6 py-3 rounded-full transition border flex items-center gap-2 ${
-                selectedMajor === m.label
-                  ? "bg-purple-500 text-white border-purple-500"
-                  : "bg-gray-200 text-gray-700 border-gray-300 hover:bg-purple-100"
-              }`}
-            >
-              <span>{m.icon}</span>
-              <span>{m.label}</span>
-            </button>
-          ))}
-        </div>
-      </section>
+        <section className="container mx-auto mt-8 p-4">
+          <div className="flex flex-wrap justify-center gap-2">
+            {Major.map((m) => (
+              <button
+                key={m.label}
+                onClick={() => handleMajorClick(m.label)}
+                className={`px-6 py-3 rounded-full transition border flex items-center gap-2 ${
+                  selectedMajor === m.label
+                    ? "bg-purple-500 text-white border-purple-500"
+                    : "bg-gray-200 text-gray-700 border-gray-300 hover:bg-purple-100"
+                }`}
+              >
+                <span>{m.icon}</span>
+                <span>{m.label}</span>
+              </button>
+            ))}
+          </div>
+        </section>
 
-      {/* 추가 필터 */}
-      <section className="container mx-auto mt-8 p-4">
-        <div className="flex flex-wrap justify-center gap-2">
-          {additionalFilters.map((filter) => (
-            <button
-              key={filter.label}
-              onClick={() => handleAdditionalFilterClick(filter.label)}
-              className={`px-6 py-3 rounded-full transition border flex items-center gap-2 ${
-                selectedAdditionalFilter === filter.label
-                  ? "bg-yellow-500 text-white border-yellow-500"
-                  : "bg-gray-200 text-gray-700 border-gray-300 hover:bg-yellow-100"
-              }`}
-            >
-              <span>{filter.icon}</span>
-              <span>{filter.label}</span>
-            </button>
-          ))}
+        {/* 근무 시간*/}
+        <section className="container mx-auto mt-8 p-4">
+          <div className="flex flex-wrap justify-center gap-2">
+            {additionalFilters.map((filter) => (
+              <button
+                key={filter.label}
+                onClick={() => handleAdditionalFilterClick(filter.label)}
+                className={`px-6 py-3 rounded-full transition border flex items-center gap-2 ${
+                  selectedAdditionalFilter === filter.label
+                    ? "bg-yellow-500 text-white border-yellow-500"
+                    : "bg-gray-200 text-gray-700 border-gray-300 hover:bg-yellow-100"
+                }`}
+              >
+                <span>{filter.icon}</span>
+                <span>{filter.label}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* 필터  */}
+        <div className="container mx-auto mt-8 p-4">
+          <div className="container mx-auto flex justify-center">
+            <FilterDropdown categories={filterCategories} 
+                            onFilterChange={handleFilterChange}
+            />
+          </div>
         </div>
-      </section>
+      </div>
 
       {/* 병원 리스트 */}
       <section className="container mx-auto mt-10 p-6">
         {hospitals && hospitals.length > 0 ? (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="grid grid-cols-2 gap-6">
               {hospitals.map((hospital) => (
                 <div
                   key={hospital._id} // Elasticsearch 검색 결과에서는 '_id'가 아닌 'ykiho' 등으로 설정될 수 있습니다.

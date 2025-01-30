@@ -68,7 +68,10 @@ async function bulkIndex() {
           nightCare: h.times && h.times.emyNgtYn === 'Y' ? true : false,
           twentyfourCare: h.times && h.times.trmtMonEnd === '2400' ? true : false,
           weekendCare: h.times && (h.times.noTrmtSat !== '휴무' || h.times.noTrmtSun !== '휴무') ? true : false,
-          // 필요한 다른 필드들도 추가
+          location: {
+            lat: h.YPos,
+            lon: h.XPos
+          }
         });
       }
 
