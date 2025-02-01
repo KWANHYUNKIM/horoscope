@@ -1,0 +1,42 @@
+steps:
+# server 이미지 빌드
+- name: 'gcr.io/cloud-builders/docker'
+  args: [
+    'build',
+    '-f', 'server/Dockerfile',
+    '-t', 'gcr.io/$PROJECT_ID/server:$SHORT_SHA',
+    'server'
+  ]
+
+# client 이미지 빌드
+- name: 'gcr.io/cloud-builders/docker'
+  args: [
+    'build',
+    '-f', 'client/Dockerfile',
+    '-t', 'gcr.io/$PROJECT_ID/client:$SHORT_SHA',
+    'client'
+  ]
+
+# server Cloud Run 배포
+- name: 'gcr.io/cloud-builders/gcloud'
+  args: [
+    'run', 'deploy', 'server-service',
+    '--image', 'gcr.io/$PROJECT_ID/server:$SHORT_SHA',
+    '--region', 'us-central1',         # 원하는 리전으로 수정
+    '--platform', 'managed',
+    '--allow-unauthenticated'
+  ]
+
+# client Cloud Run 배포
+- name: 'gcr.io/cloud-builders/gcloud'
+  args: [
+    'run', 'deploy', 'client-service',
+    '--image', 'gcr.io/$PROJECT_ID/client:$SHORT_SHA',
+    '--region', 'us-central1',
+    '--platform', 'managed',
+    '--allow-unauthenticated'
+  ]
+
+images:
+- 'gcr.io/$PROJECT_ID/server:$SHORT_SHA'
+- 'gcr.io/$PROJECT_ID/client:$SHORT_SHA'

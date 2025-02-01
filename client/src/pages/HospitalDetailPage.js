@@ -38,7 +38,12 @@ const dummyHospitals = [
 
 const HospitalDetailPage = () => {
   const { id } = useParams();
-  const hospital = dummyHospitals.find((h) => h.id === parseInt(id));
+  
+  // 주석처리된 부분
+  // const hospital = dummyHospitals.find((h) => h.id === parseInt(id));
+
+  // 더미 데이터에서 id 1번 병원만 사용하도록 변경
+  const hospital = dummyHospitals[0]; // id가 1인 병원만 표시되도록 설정
 
   if (!hospital) return <div>병원을 찾을 수 없습니다.</div>;
 
