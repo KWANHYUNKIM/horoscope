@@ -145,8 +145,8 @@ const HospitalListPage = () => {
   const [limit, setLimit] = useState(10);          // 페이지당 표시 개수
 
   // 로딩/에러
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [, setLoading] = useState(false);
+  const [, setError] = useState(null);
 
   const filterCategories = [
     { name: "지역", options: filterRegions, state: selectedRegion, setState: setSelectedRegion },
@@ -179,7 +179,6 @@ const HospitalListPage = () => {
     const query = params.get("query");
     const x = params.get("x");
     const y = params.get("y");
-    const distance = params.get("distance") || "10km"; // 기본 거리 설정
 
     if (category) {
       setSelectedAdditionalFilter(category);
@@ -284,15 +283,6 @@ const HospitalListPage = () => {
   }, [selectedRegion, selectedSubject, selectedAdditionalFilter, selectedMajor, currentPage, limit, searchQuery, locationBased, userLocation]);
 
   // 클릭 핸들러
-  const handleRegionClick = (regionLabel) => {
-    setSelectedRegion(regionLabel);
-    // 페이지를 1로 초기화해서 새 검색
-    setCurrentPage(1);
-  };
-  const handleSubjectClick = (subjectLabel) => {
-    setSelectedSubject(subjectLabel);
-    setCurrentPage(1);
-  };
   const handleAdditionalFilterClick = (filterLabel) => {
     setSelectedAdditionalFilter(filterLabel);
     setCurrentPage(1);
@@ -378,7 +368,7 @@ const HospitalListPage = () => {
         {/* 필터  */}
         <div className="container mx-auto mt-6 p-2 px-40">
           <div className="container mx-auto flex justify-center">
-            <FilterDropdown categories={filterCategories} 
+            <FilterDropdown categories={filterCategories}
                             onFilterChange={handleFilterChange}
             />
           </div>
@@ -387,6 +377,12 @@ const HospitalListPage = () => {
 
       {/* 병원 리스트 */}
       <section className="container mx-auto mt-10 p-6 px-40">
+        <div className="flex justify-between items-center mb-6">
+          <div className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-sm font-semibold">
+            총 {totalCount} 개의 병원
+          </div>
+        </div>
+        
         {hospitals && hospitals.length > 0 ? (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">

@@ -8,21 +8,25 @@ const client = new Client({ node: ES_NODE });
 
 router.get('/', async (req, res) => {
   try {
-    const { 
-      page = 1, 
-      limit = 10, 
-      region, 
-      subject, 
-      category, 
-      major, 
-      query, 
-      x, 
-      y, 
+    // 쿼리 파라미터를 받아올 때 숫자형은 parseInt로 변환
+    const {
+      page = "1",
+      limit = "10",
+      region,
+      subject,
+      category,
+      major,
+      query,
+      x,
+      y,
       distance = "10km" // 기본 거리 설정
     } = req.query;
 
-    console.log("Received query parameters:", req.query); // 추가된 로그
-    console.log("Distance parameter:", distance); // 추가된 로그
+    const pageNumber = parseInt(page, 10) || 1;
+    const limitNumber = parseInt(limit, 10) || 10;
+
+    console.log("Received query parameters:", req.query);
+    console.log("Distance parameter:", distance);
 
     // Elasticsearch 쿼리 구성
     const must = [];
@@ -88,8 +92,8 @@ router.get('/', async (req, res) => {
 
     const searchParams = {
       index: 'hospitals', // 인덱스명
-      from: (page - 1) * limit,
-      size: parseInt(limit),
+      from: (pageNumber - 1) * limitNumber,
+      size: limitNumber,
       body: {
         query: queryBody,
         // 위치 기반 검색 시 거리 순 정렬 추가
@@ -108,29 +112,35 @@ router.get('/', async (req, res) => {
 
     const response = await client.search(searchParams);
 
-    // 전체 응답 로그 출력
-    console.log("Full search response:", JSON.stringify(response.body, null, 2));
+    // response.body가 undefined라면 response 전체를 사용
+    const result = (typeof response.body !== 'undefined') ? response.body : response;
+    console.log("Full search response:", JSON.stringify(result, null, 2));
 
-    // 응답 구조에 맞게 hits 접근
     let hits, totalCount;
-    if (response.body && response.body.hits) { // 수정된 부분
-      hits = response.body.hits.hits.map(hit => hit._source);
-      totalCount = response.body.hits.total.value;
+    if (result && result.hits) {
+      hits = result.hits.hits.map(hit => hit._source);
+      // total은 버전에 따라 다르게 반환될 수 있습니다.
+      totalCount = typeof result.hits.total === 'number'
+        ? result.hits.total
+        : result.hits.total.value;
     } else {
-      console.error("검색 응답 구조가 예상과 다릅니다:", response.body);
+      console.error("검색 응답 구조가 예상과 다릅니다:", result);
       throw new Error("검색 응답 구조가 예상과 다릅니다.");
     }
 
-    const totalPages = Math.ceil(totalCount / limit);
+    const totalPages = Math.ceil(totalCount / limitNumber);
 
     res.json({
       data: hits,
       totalCount,
-      currentPage: parseInt(page),
+      currentPage: pageNumber,
       totalPages
     });
   } catch (error) {
-    console.error("검색 라우트 오류:", error.meta ? JSON.stringify(error.meta.body.error, null, 2) : error);
+    console.error(
+      "검색 라우트 오류:",
+      error.meta ? JSON.stringify(error.meta.body.error, null, 2) : error
+    );
     res.status(500).json({ message: "검색 중 오류가 발생했습니다." });
   }
 });

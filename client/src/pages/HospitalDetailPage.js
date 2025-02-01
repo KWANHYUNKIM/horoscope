@@ -1,5 +1,5 @@
 import React from "react";
-import { useParams } from "react-router-dom";
+//import { useParams } from "react-router-dom";
 
 const dummyHospitals = [
   {
@@ -37,7 +37,7 @@ const dummyHospitals = [
 ];
 
 const HospitalDetailPage = () => {
-  const { id } = useParams();
+  //const { id } = useParams();
   
   // 주석처리된 부분
   // const hospital = dummyHospitals.find((h) => h.id === parseInt(id));
