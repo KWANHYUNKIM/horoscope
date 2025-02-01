@@ -21,21 +21,21 @@ jobs:
       - name: 🔧 Set up Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
         with:
-          project_id: ${{ secrets.PROJECT_ID }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
 
       - name: 🐳 Configure Docker
         run: gcloud auth configure-docker
 
       - name: 📦 Build and Push Docker Image
         run: |
-          echo "Using project ID: ${{ secrets.PROJECT_ID }}"
-          docker build -t gcr.io/${{ secrets.PROJECT_ID }}/my-app .
-          docker push gcr.io/${{ secrets.PROJECT_ID }}/my-app
+          echo "Using project ID: ${{ secrets.GCP_PROJECT_ID }}"
+          docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-app .
+          docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-app
 
       - name: 🚀 Deploy to Cloud Run
         run: |
           gcloud run deploy my-app \
-            --image gcr.io/${{ secrets.PROJECT_ID }}/my-app \
+            --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-app \
             --platform managed \
             --region us-central1 \
             --allow-unauthenticated
