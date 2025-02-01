@@ -3,7 +3,7 @@ name: Deploy to Google Cloud Run
 on:
   push:
     branches:
-      - main  # 🚀 main 브랜치에 push할 때 실행
+      - main
 
 jobs:
   deploy:
@@ -28,6 +28,7 @@ jobs:
 
       - name: 📦 Build and Push Docker Image
         run: |
+          echo "Using project ID: ${{ secrets.GCP_PROJECT_ID }}"
           docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-app .
           docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-app
 
