@@ -25,6 +25,7 @@ const filterRegions = [
 ];
 
 const filterSubjects = [
+  { label: "전체", icon: "🌐"},
   { label: "상급종합", icon: "🏥" },
   { label: "보건의료원", icon: "🏥" },
   { label: "보건진료소", icon: "🏥" },
@@ -314,16 +315,12 @@ const HospitalListPage = () => {
     }
   };
 
-  // 로딩/에러
-  if (loading) return <div>로딩 중...</div>;
-  if (error) return <div>{error}</div>;
-
   return (
     <div className="sticky top-16 z-50 bg-gray-50">
       {/* 헤더 */}
       <header className="bg-gradient-to-r from-blue-400 to-purple-500 text-white p-6 shadow-md">
         <div className="container mx-auto flex flex-col items-center">
-          <h1 className="text-3xl font-bold">삐뽀삐뽀119</h1>
+          <h1 className="text-2xl font-bold">삐뽀삐뽀119</h1>
           <p className="text-lg mt-2">선택한 지역의 병원을 쉽게 찾아보세요</p>
           {/* 검색어 표시 */}
           {searchQuery && (
@@ -337,15 +334,15 @@ const HospitalListPage = () => {
       </header>
       
       {/* 필터 컨테이너 (고정형) */}
-      <div className="sticky top-0 z-50 bg-white shadow-md py-4">
+      <div className="top-0 z-50 bg-white shadow-md py-4">
       {/* Major 선택 */}
-        <section className="container mx-auto mt-8 p-4">
+        <section className="container mx-auto mt-6 p-2 px-40">
           <div className="flex flex-wrap justify-center gap-2">
             {Major.map((m) => (
               <button
                 key={m.label}
                 onClick={() => handleMajorClick(m.label)}
-                className={`px-6 py-3 rounded-full transition border flex items-center gap-2 ${
+                className={`px-3 py-1 rounded-full transition border flex items-center gap-2 ${
                   selectedMajor === m.label
                     ? "bg-purple-500 text-white border-purple-500"
                     : "bg-gray-200 text-gray-700 border-gray-300 hover:bg-purple-100"
@@ -359,13 +356,13 @@ const HospitalListPage = () => {
         </section>
 
         {/* 근무 시간*/}
-        <section className="container mx-auto mt-8 p-4">
+        <section className="container mx-auto mt-6 p-2 px-40">
           <div className="flex flex-wrap justify-center gap-2">
             {additionalFilters.map((filter) => (
               <button
                 key={filter.label}
                 onClick={() => handleAdditionalFilterClick(filter.label)}
-                className={`px-6 py-3 rounded-full transition border flex items-center gap-2 ${
+                className={`px-3 py-1 rounded-full transition border flex items-center gap-2 ${
                   selectedAdditionalFilter === filter.label
                     ? "bg-yellow-500 text-white border-yellow-500"
                     : "bg-gray-200 text-gray-700 border-gray-300 hover:bg-yellow-100"
@@ -379,7 +376,7 @@ const HospitalListPage = () => {
         </section>
 
         {/* 필터  */}
-        <div className="container mx-auto mt-8 p-4">
+        <div className="container mx-auto mt-6 p-2 px-40">
           <div className="container mx-auto flex justify-center">
             <FilterDropdown categories={filterCategories} 
                             onFilterChange={handleFilterChange}
@@ -389,87 +386,165 @@ const HospitalListPage = () => {
       </div>
 
       {/* 병원 리스트 */}
-      <section className="container mx-auto mt-10 p-6">
+      <section className="container mx-auto mt-10 p-6 px-40">
         {hospitals && hospitals.length > 0 ? (
           <>
-            <div class="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {hospitals.map((hospital) => (
                 <div
-                  key={hospital._id} // Elasticsearch 검색 결과에서는 '_id'가 아닌 'ykiho' 등으로 설정될 수 있습니다.
-                  className="bg-white shadow-lg rounded-lg overflow-hidden hover:shadow-2xl transition"
-                >
-                  <img
-                    src={hospital.image || "https://via.placeholder.com/300x200"}
-                    alt={hospital.yadmNm}
-                    className="w-full h-48 object-cover"
-                  />
+                key={hospital._id}
+                className="relative bg-white shadow-md hover:shadow-lg rounded-lg overflow-hidden hover:scale-105 transition-transform duration-300"
+              >
+                {/* 병원 유형 (요양병원, 일반 병원 등) */}
+                {hospital.subject && (
+                  <div className="absolute top-3 left-3 bg-blue-100 text-blue-700 px-3 py-1 rounded-md text-xs font-semibold">
+                    {hospital.subject}
+                  </div>
+                )}
+                  {/* 병원 이미지 */}
+                  <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
+                    {hospital.image ? (
+                      <img
+                        src={hospital.image}
+                        onError={(e) => (e.currentTarget.src = "/image-placeholder.jpg")}
+                        alt={hospital.yadmNm || "병원 이미지"}
+                        className="w-full h-48 object-cover"
+                      />
+                    ) : (
+                      <span className="text-gray-500 text-sm">🖼️ 이미지 준비 중</span>
+                    )}
+                  </div>
+
                   <div className="p-4">
-                    <h3 className="text-lg font-bold text-gray-800">
-                      {hospital.yadmNm}
-                    </h3>
-                    <p className="text-sm text-gray-500">{hospital.addr}</p>
+                    {/* 병원 이름 */}
+                    <h3 className="text-lg font-bold text-gray-800">{hospital.yadmNm}</h3>
+
+                    {/* 주소 & 지도 링크 */}
+                    <div className="flex items-center justify-between text-sm text-gray-500">
+                      <span className="flex-1 truncate">{hospital.addr}</span>
+
+                      <a
+                        href={`https://map.naver.com/v5/search/${encodeURIComponent(hospital.addr)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-2 px-2 py-1 text-blue-500 border border-blue-300 rounded-md flex items-center gap-x-1 hover:bg-blue-100"
+                      >
+                        <span>지도보기</span>
+                        <span role="img" aria-label="map">🗺️</span>
+                      </a>
+                    </div>
 
                     {/* 진료과 정보 */}
                     {hospital.major && hospital.major.length > 0 ? (
                       <div className="mt-2">
                         <p className="font-semibold text-gray-700">진료과:</p>
-                        <ul className="list-disc list-inside text-sm text-gray-500">
+                        <div className="flex flex-wrap gap-2 mt-1">
                           {hospital.major.map((major, index) => (
-                            <li key={index}>{major}</li>
+                            <span
+                              key={index}
+                              className="bg-gray-200 px-3 py-1 text-sm rounded-md"
+                            >
+                              {major}
+                            </span>
                           ))}
-                        </ul>
+                        </div>
                       </div>
                     ) : (
-                      <p className="text-sm text-gray-500 mt-2">진료과 정보 없음</p>
+                      <div className="mt-2">
+                        <p className="font-semibold text-gray-700">진료과:</p>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          <span className="bg-gray-200 px-3 py-1 text-sm rounded-md text-gray-500">
+                            정보 없음
+                          </span>
+                        </div>
+                      </div>
                     )}
 
-                    {/* 야간 여부 */}
-                    <p className={`mt-2 ${hospital.nightCare ? "text-green-500" : "text-red-500"}`}>
-                      야간 진료: {hospital.nightCare ? "가능" : "불가"}
-                    </p>
+                    {/* 진료 여부 */}
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <span
+                        className={`px-3 py-1 rounded-md text-sm ${
+                          hospital.nightCare
+                            ? "bg-green-100 text-green-600"
+                            : "bg-red-100 text-red-600"
+                        }`}
+                      >
+                        야간 진료: {hospital.nightCare ? "가능 ✅" : "불가 ❌"}
+                      </span>
+                      {hospital.twentyfourCare && (
+                        <span className="px-3 py-1 rounded-md text-sm bg-blue-100 text-blue-600">
+                          24시간 진료 가능
+                        </span>
+                      )}
+                      <span
+                        className={`px-3 py-1 rounded-md text-sm ${
+                          hospital.weekendCare
+                            ? "bg-green-100 text-green-600"
+                            : "bg-red-100 text-red-600"
+                        }`}
+                      >
+                        주말 진료: {hospital.weekendCare ? "가능 ✅" : "불가 ❌"}
+                      </span>
+                    </div>
 
-                    {/* 24시간 진료 여부 */}
-                    {hospital.twentyfourCare && (
-                      <p className="text-blue-500">24시간 진료 가능</p>
-                    )}
-
-                    {/* 주말 진료 여부 */}
-                    <p className={`${hospital.weekendCare ? "text-green-500" : "text-red-500"}`}>
-                      주말 진료: {hospital.weekendCare ? "가능" : "불가"}
-                    </p>
+                    {/* 상세보기 버튼 */}
+                    <button
+                      className="mt-2 bg-blue-500 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-600 transition"
+                      onClick={() => window.location.href = `/hospital/details/${hospital._id}`}
+                    >
+                      🔍 자세히 보기
+                    </button>
                   </div>
                 </div>
               ))}
             </div>
 
             {/* 페이지네이션 UI */}
-            <div className="flex justify-center items-center mt-6 gap-4">
+            <div className="flex justify-center items-center mt-6 gap-2">
+              {/* 이전 페이지 버튼 */}
               <button
                 onClick={handlePrevPage}
                 disabled={currentPage === 1}
-                className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+                className="px-4 py-2 bg-gray-300 rounded disabled:opacity-50"
               >
                 이전
               </button>
-              <span>
-                {currentPage} / {totalPages}
-              </span>
+
+              {/* 페이지 번호 (현재 페이지 기준으로 앞뒤 5개만 표시) */}
+              {Array.from({ length: Math.min(10, totalPages) }, (_, i) => {
+                const page = Math.max(1, currentPage - 5) + i;
+                if (page > totalPages) return null; // totalPages 초과 페이지 숨김
+
+                return (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`px-4 py-2 rounded ${
+                      page === currentPage ? "bg-blue-500 text-white" : "bg-gray-200"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                );
+              })}
+
+              {/* 다음 페이지 버튼 */}
               <button
                 onClick={handleNextPage}
                 disabled={currentPage === totalPages}
-                className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+                className="px-4 py-2 bg-gray-300 rounded disabled:opacity-50"
               >
                 다음
               </button>
 
-              {/* 페이지당 표시 개수 선택 */}
+              {/* 페이지당 개수 선택 */}
               <select
                 value={limit}
                 onChange={(e) => {
                   setLimit(Number(e.target.value));
                   setCurrentPage(1); // limit 변경 시 페이지를 1로 초기화
                 }}
-                className="ml-4"
+                className="ml-4 px-2 py-1 bg-white border rounded"
               >
                 <option value={5}>5개씩</option>
                 <option value={10}>10개씩</option>
@@ -479,9 +554,7 @@ const HospitalListPage = () => {
             </div>
           </>
         ) : (
-          <p className="text-center text-gray-500">
-            선택한 조건에 맞는 병원이 없습니다.
-          </p>
+          <p className="text-center text-gray-500">선택한 조건에 맞는 병원이 없습니다.</p>
         )}
       </section>
     </div>

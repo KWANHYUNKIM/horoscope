@@ -11,8 +11,8 @@ const MainPage = () => {
     { label: "야간진료", icon: "🌙" },
     { label: "24시간진료", icon: "⏰" },
     { label: "주말진료", icon: "📅" },
-    { label: "일반진료", icon: "🏥" },
-    { label: "내 주변", icon: "📍" }, // "내 주변" 카테고리 추가
+    { label: "영업중", icon: "🏥" },
+    { label: "내 주변", icon: "📍" },
   ];
 
   const handleSearch = () => {
@@ -43,13 +43,13 @@ const MainPage = () => {
       {/* 헤더 */}
       <header className="bg-gradient-to-r from-blue-400 to-purple-500 text-white p-6 shadow-md">
         <div className="container mx-auto flex flex-col items-center">
-          <h1 className="text-3xl font-bold">삐뽀삐뽀119</h1>
-          <p className="text-lg mt-2">
+          <h1 className="text-2xl font-bold">삐뽀삐뽀119</h1>
+          <p className="text-lg mt-1">
             당신의 근처에서 운영 중인 병원을 쉽게 찾아보세요
           </p>
 
           {/* 검색바 */}
-          <section className="container mx-auto mt-8 p-4">
+          <section className="container mx-auto mt-6 p-2">
             <div className="flex max-w-md mx-auto">
               <input
                 type="text"
@@ -70,7 +70,7 @@ const MainPage = () => {
       </header>
 
       {/* 카테고리 */}
-      <section className="container mx-auto mt-8 p-4">
+      <section className="container mx-auto mt-6 p-4 px-40">
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
           {categories.map((category, index) => (
             category.label !== "내 주변" ? (
@@ -97,7 +97,7 @@ const MainPage = () => {
       </section>
 
       {/* 슬라이더 */}
-      <section className="container mx-auto mt-10 p-6">
+      <section className="container mx-auto mt-6 p-4 px-40">
         <Slider /> {/* 슬라이더 컴포넌트 추가 */}
       </section>
     </div>

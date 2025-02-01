@@ -18,7 +18,7 @@ function App() {
           <Routes>
             <Route path="/" element={<MainPage />} />
             <Route path="/hospitals" element={<HospitalListPage />} />
-            <Route path="/hospital/:id" element={<HospitalDetailPage />} />
+            <Route path="/hospital/details/:id" element={<HospitalDetailPage />} />
           </Routes>
         </div>
         <Footer />
