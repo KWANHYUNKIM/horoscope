@@ -1,31 +1,35 @@
-name: Deploy to Google Cloud Run
+name: CI/CD
 
 on:
   push:
-    branches:
-      - main  # `main` 브랜치에 푸시될 때 실행
+    branches: [ "main" ]
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
+      # 1) GitHub Actions에서 소스코드 체크아웃
       - name: 📥 Checkout Repository
         uses: actions/checkout@v3
 
+      # 2) Google Cloud 인증 (서비스 계정 JSON 사용)
       - name: 🔑 Authenticate with Google Cloud
         uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
+      # 3) gcloud CLI 설치 및 프로젝트 설정
       - name: 🔧 Set up Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
 
+      # 4) Docker 인증 설정
       - name: 🐳 Configure Docker
-        run: gcloud auth configure-docker
+        run: gcloud auth configure-docker asia-northeast3-docker.pkg.dev
 
+      # 5) 서버 이미지 빌드 & 푸시
       - name: 🏗 Build and Push Server Docker Image
         run: |
           echo "Using project ID: ${{ secrets.GCP_PROJECT_ID }}"
@@ -33,28 +37,34 @@ jobs:
             echo "❌ ERROR: GCP_PROJECT_ID is empty!"
             exit 1
           fi
+          
           cd server
-          docker build -t asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server -f Dockerfile .
-          docker push asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server
+          # 서버 이미지를 'my-server' 레포지토리 안의 'server'라는 이름으로 태그 (latest)
+          docker build -t asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/server:latest -f Dockerfile .
+          docker push asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/server:latest
 
+      # 6) 클라이언트 이미지 빌드 & 푸시
       - name: 🏗 Build and Push Client Docker Image
         run: |
           cd client
-          docker build -t asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-client -f Dockerfile .
-          docker push asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-client
+          # 클라이언트 이미지를 'my-server' 레포지토리 안의 'client'라는 이름으로 태그 (latest)
+          docker build -t asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/client:latest -f Dockerfile .
+          docker push asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/client:latest
 
+      # 7) 서버 이미지 Cloud Run에 배포
       - name: 🚀 Deploy Server to Cloud Run
         run: |
           gcloud run deploy my-server \
-            --image asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server \
+            --image asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/server:latest \
             --platform managed \
             --region us-central1 \
             --allow-unauthenticated
 
+      # 8) 클라이언트 이미지 Cloud Run에 배포
       - name: 🚀 Deploy Client to Cloud Run
         run: |
           gcloud run deploy my-client \
-            --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-client \
+            --image asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/client:latest \
             --platform managed \
             --region us-central1 \
             --allow-unauthenticated
