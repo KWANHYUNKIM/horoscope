@@ -34,19 +34,19 @@ jobs:
             exit 1
           fi
           cd server
-          docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-server -f Dockerfile .
-          docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-server
+          docker build -t asia-northeast3/${{ secrets.GCP_PROJECT_ID }}/my-server -f Dockerfile .
+          docker push asia-northeast3/${{ secrets.GCP_PROJECT_ID }}/my-server
 
       - name: 🏗 Build and Push Client Docker Image
         run: |
           cd client
-          docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-client -f Dockerfile .
-          docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-client
+          docker build -t asia-northeast3/${{ secrets.GCP_PROJECT_ID }}/my-client -f Dockerfile .
+          docker push asia-northeast3/${{ secrets.GCP_PROJECT_ID }}/my-client
 
       - name: 🚀 Deploy Server to Cloud Run
         run: |
           gcloud run deploy my-server \
-            --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-server \
+            --image asia-northeast3/${{ secrets.GCP_PROJECT_ID }}/my-server \
             --platform managed \
             --region us-central1 \
             --allow-unauthenticated

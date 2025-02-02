@@ -12,6 +12,13 @@ venv/
 # 환경 변수 파일
 .env
 
+# mongo 백업 폴더 전체 제외
+mongo/backup/
+
+# 예: config 안 올릴 파일들 (예: elasticsearch.js, 또는 민감 정보가 담긴 파일)
+server/src/config/elasticsearch.js
+server/src/config/mongoose.js
+
 # 운영체제별 파일
 .DS_Store
 Thumbs.db
