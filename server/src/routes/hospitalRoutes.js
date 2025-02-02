@@ -4,7 +4,7 @@ const express = require('express');
 const router = express.Router();
 
 // 이미 선언되어 있다고 가정
-const Hospital = require('../models/Hospital');
+const Hospital = require('../models/hospital');
 const HospitalSubject = require('../models/hospitalSubject'); // HospitalSubject 모델 추가
 
 

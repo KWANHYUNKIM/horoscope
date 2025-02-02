@@ -5,11 +5,17 @@ const sequelize = require('./config/database'); // PostgreSQL 연결
 const hospitalRoutes = require('./routes/hospitalRoutes');
 const hospitalSearchRouter = require('./elastic/hospitalSearch');
 const hospitalSubjectRoutes = require('./routes/hospitalSubjectRoutes'); // 새로운 라우터 추가
+const { reindex } = require('./elastic/elastics'); // reindex 불러오기
 
 const app = express();
 
 // MongoDB 연결
 connectDB();
+
+reindex().then(() => {
+    console.log("🚀 Elasticsearch Reindexing Complete!");
+  }).catch(err => console.error("❌ Error in reindexing:", err));
+  
 
 // 미들웨어
 app.use(express.json());

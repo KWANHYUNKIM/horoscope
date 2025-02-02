@@ -1,15 +1,26 @@
 version: '3.7'
+
 services:
   elasticsearch:
+  
     image: elasticsearch:7.17.13
     container_name: es_container
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m  # JVM 힙 메모리 최소·최대 512MB로 제한
+
     ports:
       - "9200:9200"
     networks:
       - esnet
+    volumes:
+      - ./elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml  # 설정 파일 직접 마운트
+    mem_limit : 2g
+    deploy:
+      resources:
+        limits:
+          memory: 1g  # 컨테이너 메모리 최대 1GB 제한
 
   kibana:
     image: kibana:7.17.13
@@ -17,20 +28,51 @@ services:
     ports:
       - "5601:5601"
     environment:
-      ELASTICSEARCH_HOSTS: "http://elasticsearch:9200"
+      ELASTICSEARCH_HOSTS: "http://es_container:9200"
     networks:
       - esnet
 
-  # 예: 서버도 dockerize 하는 경우
+  mongo:
+    build: ./mongo
+    container_name: mongo_container
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    volumes:
+      - mongo_data:/data/db
+      - ./mongo/backup:/data/backup
+    networks:
+      - esnet
+
   server:
-    build: ./server  # Dockerfile 있는 곳
+    build: ./server
     container_name: express_server
     ports:
       - "3001:3001"
     depends_on:
       - elasticsearch
+      - mongo
+    environment:
+      MONGO_URI: "mongodb://root:example@mongo:27017/horoscope_db?authSource=admin"
+      ES_NODE: "http://es_container:9200"
+    networks:
+      - esnet
+
+  client:
+    build: ./client
+    container_name: client_container
+    ports:
+      - "3000:80"  # ✅ 내부 Nginx 80번 포트를 외부 3000번으로 매핑
+    depends_on:
+      - server
     networks:
       - esnet
 
 networks:
   esnet:
+    driver: bridge
+volumes:
+  mongo_data:

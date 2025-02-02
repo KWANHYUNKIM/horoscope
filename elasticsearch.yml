@@ -1,0 +1,5 @@
+cluster.name: "docker-cluster"
+network.host: 0.0.0.0
+http.port: 9200
+network.bind_host: 0.0.0.0
+network.publish_host: 192.168.96.3

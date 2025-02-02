@@ -3,7 +3,7 @@ name: Deploy to Google Cloud Run
 on:
   push:
     branches:
-      - main
+      - main  # `main` 브랜치에 푸시될 때 실행
 
 jobs:
   deploy:
@@ -26,16 +26,35 @@ jobs:
       - name: 🐳 Configure Docker
         run: gcloud auth configure-docker
 
-      - name: 📦 Build and Push Docker Image
+      - name: 🏗 Build and Push Server Docker Image
         run: |
           echo "Using project ID: ${{ secrets.GCP_PROJECT_ID }}"
-          docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-app .
-          docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-app
+          if [[ -z "${{ secrets.GCP_PROJECT_ID }}" ]]; then
+            echo "❌ ERROR: GCP_PROJECT_ID is empty!"
+            exit 1
+          fi
+          cd server
+          docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-server -f Dockerfile .
+          docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-server
 
-      - name: 🚀 Deploy to Cloud Run
+      - name: 🏗 Build and Push Client Docker Image
         run: |
-          gcloud run deploy my-app \
-            --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-app \
+          cd client
+          docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-client -f Dockerfile .
+          docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-client
+
+      - name: 🚀 Deploy Server to Cloud Run
+        run: |
+          gcloud run deploy my-server \
+            --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-server \
+            --platform managed \
+            --region us-central1 \
+            --allow-unauthenticated
+
+      - name: 🚀 Deploy Client to Cloud Run
+        run: |
+          gcloud run deploy my-client \
+            --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/my-client \
             --platform managed \
             --region us-central1 \
             --allow-unauthenticated

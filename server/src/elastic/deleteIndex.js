@@ -1,5 +1,4 @@
-const { Client } = require('@elastic/elasticsearch');
-const client = new Client({ node: 'http://localhost:9200' });
+const client = require('../config/elasticsearch'); // ✅ 클라이언트 가져오기
 
 async function deleteHospitalsIndex() {
   try {
@@ -14,4 +13,4 @@ async function deleteHospitalsIndex() {
   }
 }
 
-deleteHospitalsIndex();
+module.exports = { deleteHospitalsIndex };

@@ -1,21 +1,17 @@
 const mongoose = require('mongoose');
-const { Client } = require('@elastic/elasticsearch');
-const Hospital = require('../models/Hospital'); // MongoDB Model
-const HospitalTime = require('../models/HospitalTime'); // MongoDB HospitalTime Model
+const client = require('../config/elasticsearch'); // ✅ 클라이언트 가져오기
+const Hospital = require('../models/hospital'); // MongoDB Model
+const HospitalTime = require('../models/hospitalTime'); // MongoDB HospitalTime Model
 const HospitalMajor = require('../models/hospitalSubject'); // MongoDB HospitalMajor Model
-const ES_NODE = process.env.ES_NODE || 'http://localhost:9200';
-
-const client = new Client({ node: ES_NODE });
 
 const BULK_SIZE = 500; // 안정성을 위해 500으로 설정
 
 async function bulkIndex() {
   try {
-    // MongoDB 연결
-    await mongoose.connect('mongodb://localhost:27017/horoscope_db', {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    if (mongoose.connection.readyState !== 1) {
+      console.log("⚠️ MongoDB가 아직 연결되지 않음.");
+      return;
+    }
     console.log("MongoDB 연결 성공");
 
     // Hospital과 HospitalTime, HospitalMajor 데이터 병합
@@ -121,4 +117,4 @@ async function bulkIndex() {
   }
 }
 
-bulkIndex();
+module.exports = { bulkIndex };

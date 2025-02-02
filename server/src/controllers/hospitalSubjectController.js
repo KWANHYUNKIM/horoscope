@@ -1,6 +1,6 @@
 const axios = require('axios');
 const Subject = require('../models/hospitalSubject');
-const Hospital = require('../models/Hospital');
+const Hospital = require('../models/hospital');
 
 const fetchSubjects = async (req, res) => {
   const API_KEY = process.env.API_KEY;

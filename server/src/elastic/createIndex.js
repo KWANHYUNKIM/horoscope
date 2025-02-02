@@ -1,8 +1,5 @@
 // server/src/elastic/createIndex.js
-const { Client } = require('@elastic/elasticsearch');
-const ES_NODE = process.env.ES_NODE || 'http://localhost:9200';
-
-const client = new Client({ node: ES_NODE });
+const client = require('../config/elasticsearch'); // ✅ 클라이언트 가져오기
 
 async function createHospitalIndex() {
   try {
@@ -40,4 +37,4 @@ async function createHospitalIndex() {
   }
 }
 
-createHospitalIndex();
+module.exports = { createHospitalIndex } ;
