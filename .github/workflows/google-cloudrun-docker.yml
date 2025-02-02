@@ -57,7 +57,7 @@ jobs:
           gcloud run deploy my-server \
             --image asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/server:latest \
             --platform managed \
-            --region us-central1 \
+            --region asia-northeast3 \
             --allow-unauthenticated
 
       # 8) 클라이언트 이미지 Cloud Run에 배포
@@ -66,5 +66,5 @@ jobs:
           gcloud run deploy my-client \
             --image asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/client:latest \
             --platform managed \
-            --region us-central1 \
+            --region asia-northeast3 \
             --allow-unauthenticated

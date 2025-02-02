@@ -65,11 +65,13 @@ services:
     build: ./client
     container_name: client_container
     ports:
-      - "3000:80"  # ✅ 내부 Nginx 80번 포트를 외부 3000번으로 매핑
+      - "8080:80"  # ✅ 내부 Nginx 80번 포트를 외부 8080번으로 매핑
     depends_on:
       - server
     networks:
       - esnet
+    environment:
+    - API_BACKEND=express_server:3001
 
 networks:
   esnet:
