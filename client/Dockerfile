@@ -23,6 +23,6 @@
     # default.conf (Nginx 설정 파일) 복사
     COPY default.conf /etc/nginx/conf.d/default.conf
     
-    EXPOSE 80
+    EXPOSE 8080
     CMD ["nginx", "-g", "daemon off;"]
     
