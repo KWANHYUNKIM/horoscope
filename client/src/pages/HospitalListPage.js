@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";  // 쿼리 파라미터 받기
-import axios from "axios";
+import { fetchHospitals } from "../service/api";
 import FilterDropdown from "../components/FilterDropdown";
 
 const filterRegions = [
@@ -251,10 +251,9 @@ const HospitalListPage = () => {
         params.category = "주말진료";
       }
 
-      const response = await axios.get("/api/hospitals/search", {
-        params: params,
-      });
+      const response = await fetchHospitals(params);
 
+      
       // 구조분해: { data, totalCount, currentPage, totalPages }
       const {
         data,
