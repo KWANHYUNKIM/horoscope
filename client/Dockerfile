@@ -1,41 +1,37 @@
-# ---- 1) React build 단계 ----
+# ---- 1단계: React 애플리케이션 빌드 ----
     FROM node:18-alpine as builder
 
     WORKDIR /app
     
-    # package.json, package-lock.json 복사
+    # package.json 및 package-lock.json 복사
     COPY package*.json ./
     
+    # 의존성 설치
     RUN npm install
     
-    # 나머지 React 소스 전체 복사
+    # React 소스 전체 복사
     COPY . .
     
-    # 로컬 개발 환경에서 사용할 API URL 설정 (빌드 시 React 내부에 적용됨)
-    ENV REACT_APP_API_URL=http://localhost:3001/api
+    # 빌드 시점에 API 호출 URL 설정 (Express 서버 컨테이너 이름 사용)
+    ENV REACT_APP_API_URL=http://express_server:3001/api
     
     # 프로덕션 빌드
     RUN npm run build
     
-    # ---- 2) Nginx를 사용해 정적 파일 서빙 ----
-    FROM nginx:alpine
+    # ---- 2단계: Node 기반 정적 파일 서버 (serve) 사용 ----
+    FROM node:18-alpine as runner
     
-    # 빌드된 결과물(builder 단계)을 /usr/share/nginx/html/ 에 복사
-    COPY --from=builder /app/build /usr/share/nginx/html
+    WORKDIR /app
     
-    # default.conf.template (템플릿 파일) 복사
-    COPY default.conf.template /etc/nginx/conf.d/default.conf.template
+    # 정적 파일 서빙을 위한 serve 패키지 전역 설치
+    RUN npm install -g serve
     
-    # run.sh 스크립트 복사 및 실행 권한 부여
-    COPY run.sh /run.sh
-    RUN chmod +x /run.sh
+    # 빌드 결과물을 runner 단계로 복사
+    COPY --from=builder /app/build ./build
     
-    # API_BACKEND 환경 변수를 기본값으로 설정 (원하는 값으로 수정 가능)
-    # 예: 로컬에서는 localhost:3002, Docker에서는 express_server:3001 등으로 설정.
-    ENV API_BACKEND=localhost:3002
+    # 컨테이너 내부에서 사용할 포트 (여기서는 3000번 사용)
+    EXPOSE 3000
     
-    EXPOSE 8080
-    
-    # run.sh 스크립트를 실행하여 Nginx 설정을 생성한 후, Nginx 실행
-    CMD ["/run.sh"]
+    # serve 명령어를 사용해 빌드 결과물을 서빙 (SPA 모드)
+    CMD ["serve", "-s", "build", "-l", "3000"]
     

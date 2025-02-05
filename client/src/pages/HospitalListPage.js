@@ -95,10 +95,10 @@ const filterMajor = [
 
 const filterAdditionFilters =[
   { label: "전체", icon: "📌" },
-  { label: "야간 진료", icon: "🌙" },
-  { label: "24시간 진료", icon: "⏰" },
-  { label: "주말 진료", icon: "📅" },
-  { label: "일반 진료", icon: "🏥" },
+  { label: "야간진료", icon: "🌙" },
+  { label: "24시간진료", icon: "⏰" },
+  { label: "주말진료", icon: "📅" },
+  { label: "영업중", icon: "🏥" },
 ]
 
 
@@ -117,10 +117,10 @@ const Major = [
 
 const additionalFilters = [
   { label: "전체", icon: "📌" },
-  { label: "야간 진료", icon: "🌙" },
-  { label: "24시간 진료", icon: "⏰" },
-  { label: "주말 진료", icon: "📅" },
-  { label: "일반 진료", icon: "🏥" },
+  { label: "야간진료", icon: "🌙" },
+  { label: "24시간진료", icon: "⏰" },
+  { label: "주말진료", icon: "📅" },
+  { label: "영업중", icon: "🏥" },
 ];
 
 const HospitalListPage = () => {
@@ -147,6 +147,10 @@ const HospitalListPage = () => {
   // 로딩/에러
   const [, setLoading] = useState(false);
   const [, setError] = useState(null);
+
+  // 초기렌더링
+  const [initialized, setInitialized] = useState(false);
+
 
   const filterCategories = [
     { name: "지역", options: filterRegions, state: selectedRegion, setState: setSelectedRegion },
@@ -204,6 +208,8 @@ const HospitalListPage = () => {
     } else {
       setLocationBased(false);
     }
+
+    setInitialized(true);
   }, [location]);
 
   // 서버 데이터 불러오기
@@ -252,15 +258,13 @@ const HospitalListPage = () => {
       }
 
       const response = await fetchHospitals(params);
-
-      
       // 구조분해: { data, totalCount, currentPage, totalPages }
       const {
         data,
         totalCount: fetchedTotalCount,
         totalPages: fetchedTotalPages,
         currentPage: fetchedCurrentPage,
-      } = response.data;
+      } = response;
 
       // 상태 업데이트
       setHospitals(data);
@@ -277,9 +281,10 @@ const HospitalListPage = () => {
 
   // 필터/페이지 변경 시마다 재요청
   useEffect(() => {
-    fetchHospitalsFromServer();
-    // eslint-disable-next-line
-  }, [selectedRegion, selectedSubject, selectedAdditionalFilter, selectedMajor, currentPage, limit, searchQuery, locationBased, userLocation]);
+    if (initialized) {
+      fetchHospitalsFromServer();
+    }
+  }, [initialized, selectedRegion, selectedSubject, selectedAdditionalFilter, selectedMajor, currentPage, limit, searchQuery, locationBased, userLocation]);
 
   // 클릭 핸들러
   const handleAdditionalFilterClick = (filterLabel) => {
@@ -384,7 +389,7 @@ const HospitalListPage = () => {
         
         {hospitals && hospitals.length > 0 ? (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 gap-6">
               {hospitals.map((hospital) => (
                 <div
                 key={hospital._id}

@@ -7,6 +7,12 @@ const hospitalSubjectRoutes = require('./routes/hospitalSubjectRoutes'); // 새�
 const { reindex } = require('./elastic/elastics'); // reindex 불러오기
 
 const app = express();
+const cors = require('cors');
+const allowedOrigin = process.env.CLIENT_URL || 'http://localhost:8081';
+
+app.use(cors({
+  origin: allowedOrigin,
+}));
 
 // MongoDB 연결
 connectDB();

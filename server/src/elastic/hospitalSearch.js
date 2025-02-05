@@ -56,12 +56,14 @@ router.get('/', async (req, res) => {
     }
 
     // 추가 필터 (야간 진료, 24시간 진료, 주말 진료 등)
-    if (category === "야간진료") {
-      filter.push({ term: { nightCare: true } });
-    } else if (category === "24시간진료") {
-      filter.push({ term: { twentyfourCare: true } });
-    } else if (category === "주말진료") {
-      filter.push({ term: { weekendCare: true } });
+    if (category) {
+      if (category === "야간진료") {
+        filter.push({ term: { nightCare: true } });
+      } else if (category === "24시간진료") {
+        filter.push({ term: { twentyfourCare: true } });
+      } else if (category === "주말진료") {
+        filter.push({ term: { weekendCare: true } });
+      }
     }
 
     // 위치 기반 검색 추가

@@ -2,8 +2,6 @@
 import React, { useState } from "react";
 
 const FilterDropdown = ({ categories, onFilterChange }) => {
-    console.log("FilterDropdown Props:", { categories, onFilterChange });
-
   const [isOpen, setIsOpen] = useState(false);
   const [isAvailable, setIsAvailable] = useState(false);
 
@@ -11,7 +9,6 @@ const FilterDropdown = ({ categories, onFilterChange }) => {
   const toggleAvailability = () => setIsAvailable(!isAvailable);
 
   const handleOptionClick = (categoryName, option) => {
-    console.log("onFilterChange is:", onFilterChange);
     onFilterChange(categoryName, option);
     setIsOpen(false);
   };
