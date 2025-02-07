@@ -59,7 +59,7 @@ services:
       MONGO_URI: "mongodb://root:example@mongo:27017/horoscope_db?authSource=admin"
       NODE_ENV: "production"
       ES_NODE: "http://es_container:9200"
-      CLIENT_URL: "http://client:8080"
+      CLIENT_URL: "http://client:8081"
 
     networks:
       - esnet
@@ -68,7 +68,7 @@ services:
     build: ./client
     container_name: client_container
     ports:
-      - "8080:3000"  # ✅ 내부 Nginx 80번 포트를 외부 8080번으로 매핑
+      - "8081:3000"  # ✅ 내부 Nginx 80번 포트를 외부 8080번으로 매핑
     depends_on:
       - server
     networks:

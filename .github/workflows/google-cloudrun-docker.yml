@@ -58,6 +58,7 @@ jobs:
             --image asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/server:latest \
             --platform managed \
             --region asia-northeast3 \
+            --port 3001 \
             --allow-unauthenticated
 
       # 8) 클라이언트 이미지 Cloud Run에 배포
@@ -67,4 +68,5 @@ jobs:
             --image asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/client:latest \
             --platform managed \
             --region asia-northeast3 \
+            --port 8081 \
             --allow-unauthenticated
