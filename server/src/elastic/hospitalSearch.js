@@ -117,7 +117,10 @@ router.get('/', async (req, res) => {
 
     let hits, totalCount;
     if (result && result.hits) {
-      hits = result.hits.hits.map(hit => hit._source);
+      hits = result.hits.hits.map(hit => ({
+        ...hit._source,
+        _id: hit._id, // _id 값을 _source와 병합
+      }));
       // total은 버전에 따라 다르게 반환될 수 있습니다.
       totalCount = typeof result.hits.total === 'number'
         ? result.hits.total
