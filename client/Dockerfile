@@ -30,8 +30,8 @@
     COPY --from=builder /app/build ./build
     
     # 컨테이너 내부에서 사용할 포트 (여기서는 3000번 사용)
-    EXPOSE 3000
+    EXPOSE 3001
     
     # serve 명령어를 사용해 빌드 결과물을 서빙 (SPA 모드)
-    CMD ["serve", "-s", "build", "-l", "3000"]
+    CMD ["serve", "-s", "build", "-l", "3001"]
     
