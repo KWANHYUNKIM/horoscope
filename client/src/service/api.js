@@ -14,3 +14,15 @@ export const fetchHospitals = async (params) => {
     throw error;
   }
 };
+
+// 병원 상세 정보 가져오기 (ID를 URL 파라미터로 전달)
+// 서버 측에서는 app.use('/api/hospitals/details/search', hospitalDetailSearchRoutes)로 라우팅됩니다.
+export const fetchHospitalDetail = async (id) => {
+  try {
+    const response = await axios.get(`${API_URL}/hospitals/details/search/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching hospital detail:", error);
+    throw error;
+  }
+};

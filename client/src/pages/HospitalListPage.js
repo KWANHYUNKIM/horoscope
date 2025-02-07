@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";  // 쿼리 파라미터 받기
-import { fetchHospitals } from "../service/api";
+import { useNavigate } from 'react-router-dom';
+import { fetchHospitals, fetchHospitalDetail } from "../service/api";
 import FilterDropdown from "../components/FilterDropdown";
 
 const filterRegions = [
@@ -124,6 +125,7 @@ const additionalFilters = [
 ];
 
 const HospitalListPage = () => {
+  const navigate = useNavigate();
   
   const [selectedRegion, setSelectedRegion] = useState("전국");
   const [selectedSubject, setSelectedSubject] = useState("전체");
@@ -309,6 +311,19 @@ const HospitalListPage = () => {
     }
   };
 
+  const handleDetailClick = async (hospitalId) => {
+    try {
+      const detailData = await fetchHospitalDetail(hospitalId);
+      // navigate를 사용해 페이지 이동하고 state로 데이터를 전달합니다.
+      navigate(`/hospital/details/${hospitalId}`, {
+        state: { hospitalDetail: detailData },
+      });
+    } catch (error) {
+      console.error("Error fetching hospital details:", error);
+      alert("병원 상세 정보를 불러오는 중 오류가 발생했습니다.");
+    }
+  };
+
   return (
     <div className="sticky top-16 z-50 bg-gray-50">
       {/* 헤더 */}
@@ -486,11 +501,11 @@ const HospitalListPage = () => {
                         주말 진료: {hospital.weekendCare ? "가능 ✅" : "불가 ❌"}
                       </span>
                     </div>
-
+                    
                     {/* 상세보기 버튼 */}
                     <button
                       className="mt-2 bg-blue-500 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-600 transition"
-                      onClick={() => window.location.href = `/hospital/details/${hospital._id}`}
+                      onClick={() => handleDetailClick(hospital._id)}
                     >
                       🔍 자세히 보기
                     </button>
