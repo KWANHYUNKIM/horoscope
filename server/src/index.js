@@ -1,11 +1,11 @@
 require('dotenv').config();
 const express = require('express');
-const connectDB = require('./config/mongoose'); // MongoDB 연결
-const hospitalRoutes = require('./routes/hospitalRoutes');
-const hospitalSearchRouter = require('./elastic/hospitalSearch');
-const hospitalSubjectRoutes = require('./routes/hospitalSubjectRoutes'); // 새로운 라우터 추가
-const hospitalDetailSearchRoutes = require('./elastic/hospitalDetailSearch');
-const { reindex } = require('./elastic/elastics'); // reindex 불러오기
+const connectDB = require('../config/mongoose'); // MongoDB 연결
+const hospitalRoutes = require('../routes/hospitalRoutes');
+const hospitalSearchRouter = require('../elastic/hospitalSearch');
+const hospitalSubjectRoutes = require('../routes/hospitalSubjectRoutes'); // 새로운 라우터 추가
+const hospitalDetailSearchRoutes = require('../elastic/hospitalDetailSearch');
+const { reindex } = require('../elastic/elastics'); // reindex 불러오기
 
 const app = express();
 const cors = require('cors');
