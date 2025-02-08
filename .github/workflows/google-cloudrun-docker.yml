@@ -9,49 +9,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1) GitHub Actions에서 소스코드 체크아웃
       - name: 📥 Checkout Repository
         uses: actions/checkout@v3
 
-      # 2) Google Cloud 인증 (서비스 계정 JSON 사용)
       - name: 🔑 Authenticate with Google Cloud
         uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-      # 3) gcloud CLI 설치 및 프로젝트 설정
       - name: 🔧 Set up Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-      # 4) Docker 인증 설정
       - name: 🐳 Configure Docker
         run: gcloud auth configure-docker asia-northeast3-docker.pkg.dev
 
-      # 5) 서버 이미지 빌드 & 푸시
       - name: 🏗 Build and Push Server Docker Image
         run: |
-          echo "Using project ID: ${{ secrets.GCP_PROJECT_ID }}"
-          if [[ -z "${{ secrets.GCP_PROJECT_ID }}" ]]; then
-            echo "❌ ERROR: GCP_PROJECT_ID is empty!"
-            exit 1
-          fi
-          
           cd server
-          # 서버 이미지를 'my-server' 레포지토리 안의 'server'라는 이름으로 태그 (latest)
           docker build -t asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/server:latest -f Dockerfile .
           docker push asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/server:latest
 
-      # 6) 클라이언트 이미지 빌드 & 푸시
       - name: 🏗 Build and Push Client Docker Image
         run: |
           cd client
-          # 클라이언트 이미지를 'my-server' 레포지토리 안의 'client'라는 이름으로 태그 (latest)
           docker build -t asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/client:latest -f Dockerfile .
           docker push asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/client:latest
 
-      # 7) 서버 이미지 Cloud Run에 배포
       - name: 🚀 Deploy Server to Cloud Run
         run: |
           gcloud run deploy my-server \
@@ -59,9 +44,9 @@ jobs:
             --platform managed \
             --region asia-northeast3 \
             --port 3001 \
+            --vpc-connector YOUR_VPC_CONNECTOR_NAME \
             --allow-unauthenticated
 
-      # 8) 클라이언트 이미지 Cloud Run에 배포
       - name: 🚀 Deploy Client to Cloud Run
         run: |
           gcloud run deploy my-client \
@@ -70,3 +55,19 @@ jobs:
             --region asia-northeast3 \
             --port 8081 \
             --allow-unauthenticated
+
+      - name: 🔧 Get GKE Cluster Credentials
+        run: |
+          gcloud container clusters get-credentials hospital-cluster --region asia-northeast3
+
+      - name: 🚀 Deploy MongoDB to GKE
+        run: |
+          cd k8s
+          kubectl apply -f mongodb.yaml
+
+      - name: 🚀 Run MongoDB Restore Job
+        run: |
+          cd k8s
+          kubectl apply -f mongo-restore-job.yaml
+          # Job 완료까지 잠시 대기 (여기서는 예시로 300초)
+          sleep 300

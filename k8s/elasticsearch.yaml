@@ -1,0 +1,12 @@
+replicas: 1
+minimumMasterNodes: 1
+resources:
+  limits:
+    memory: 2Gi
+  requests:
+    memory: 1Gi
+volumeClaimTemplate:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 20Gi
