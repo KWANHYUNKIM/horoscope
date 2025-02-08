@@ -43,6 +43,10 @@ jobs:
           docker build -t asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/client:latest -f Dockerfile .
           docker push asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/client:latest
 
+      # (추가) gke-gcloud-auth-plugin 설치
+      - name: Install gke-gcloud-auth-plugin
+        run: gcloud components install gke-gcloud-auth-plugin --quiet
+
       # 7) GKE 클러스터 자격 증명 가져오기 (MongoDB 배포 및 데이터 복원용)
       - name: 🔧 Get GKE Cluster Credentials
         run: |
