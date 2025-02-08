@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";  // 쿼리 파라미터 받기
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
 import { fetchHospitals, fetchHospitalDetail } from "../service/api";
 import FilterDropdown from "../components/FilterDropdown";
 
@@ -26,7 +26,7 @@ const filterRegions = [
 ];
 
 const filterSubjects = [
-  { label: "전체", icon: "🌐"},
+  { label: "전체", icon: "🌐" },
   { label: "상급종합", icon: "🏥" },
   { label: "보건의료원", icon: "🏥" },
   { label: "보건진료소", icon: "🏥" },
@@ -94,14 +94,13 @@ const filterMajor = [
   { label: "핵의학과", icon: "☢️🔬" }
 ];
 
-const filterAdditionFilters =[
+const filterAdditionFilters = [
   { label: "전체", icon: "📌" },
   { label: "야간진료", icon: "🌙" },
   { label: "24시간진료", icon: "⏰" },
   { label: "주말진료", icon: "📅" },
   { label: "영업중", icon: "🏥" },
-]
-
+];
 
 const Major = [
   { label: "전체", icon: "📋" },
@@ -152,7 +151,6 @@ const HospitalListPage = () => {
 
   // 초기렌더링
   const [initialized, setInitialized] = useState(false);
-
 
   const filterCategories = [
     { name: "지역", options: filterRegions, state: selectedRegion, setState: setSelectedRegion },
@@ -333,7 +331,9 @@ const HospitalListPage = () => {
           <p className="text-lg mt-2">선택한 지역의 병원을 쉽게 찾아보세요</p>
           {/* 검색어 표시 */}
           {searchQuery && (
-            <p className="text-md mt-1">검색어: <strong>{searchQuery}</strong></p>
+            <p className="text-md mt-1">
+              검색어: <strong>{searchQuery}</strong>
+            </p>
           )}
           {/* 위치 기반 검색 표시 */}
           {locationBased && userLocation.x !== null && userLocation.y !== null && (
@@ -344,8 +344,8 @@ const HospitalListPage = () => {
       
       {/* 필터 컨테이너 (고정형) */}
       <div className="top-0 z-50 bg-white shadow-md py-4">
-      {/* Major 선택 */}
-        <section className="container mx-auto mt-6 p-2 px-40">
+        {/* Major 선택 */}
+        <section className="container mx-auto mt-6 p-2 px-4 md:px-40">
           <div className="flex flex-wrap justify-center gap-2">
             {Major.map((m) => (
               <button
@@ -364,8 +364,8 @@ const HospitalListPage = () => {
           </div>
         </section>
 
-        {/* 근무 시간*/}
-        <section className="container mx-auto mt-6 p-2 px-40">
+        {/* 근무 시간 */}
+        <section className="container mx-auto mt-6 p-2 px-4 md:px-40">
           <div className="flex flex-wrap justify-center gap-2">
             {additionalFilters.map((filter) => (
               <button
@@ -384,18 +384,19 @@ const HospitalListPage = () => {
           </div>
         </section>
 
-        {/* 필터  */}
-        <div className="container mx-auto mt-6 p-2 px-40">
+        {/* 드롭다운 필터 */}
+        <div className="container mx-auto mt-6 p-2 px-4 md:px-40">
           <div className="container mx-auto flex justify-center">
-            <FilterDropdown categories={filterCategories}
-                            onFilterChange={handleFilterChange}
+            <FilterDropdown
+              categories={filterCategories}
+              onFilterChange={handleFilterChange}
             />
           </div>
         </div>
       </div>
 
       {/* 병원 리스트 */}
-      <section className="container mx-auto mt-10 p-6 px-40">
+      <section className="container mx-auto mt-10 p-6 px-4 md:px-40">
         <div className="flex justify-between items-center mb-6">
           <div className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-sm font-semibold">
             총 {totalCount} 개의 병원
@@ -404,18 +405,18 @@ const HospitalListPage = () => {
         
         {hospitals && hospitals.length > 0 ? (
           <>
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {hospitals.map((hospital) => (
                 <div
-                key={hospital._id}
-                className="relative bg-white shadow-md hover:shadow-lg rounded-lg overflow-hidden hover:scale-105 transition-transform duration-300"
-              >
-                {/* 병원 유형 (요양병원, 일반 병원 등) */}
-                {hospital.subject && (
-                  <div className="absolute top-3 left-3 bg-blue-100 text-blue-700 px-3 py-1 rounded-md text-xs font-semibold">
-                    {hospital.subject}
-                  </div>
-                )}
+                  key={hospital._id}
+                  className="relative bg-white shadow-md hover:shadow-lg rounded-lg overflow-hidden hover:scale-105 transition-transform duration-300"
+                >
+                  {/* 병원 유형 (요양병원, 일반 병원 등) */}
+                  {hospital.subject && (
+                    <div className="absolute top-3 left-3 bg-blue-100 text-blue-700 px-3 py-1 rounded-md text-xs font-semibold">
+                      {hospital.subject}
+                    </div>
+                  )}
                   {/* 병원 이미지 */}
                   <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
                     {hospital.image ? (
@@ -439,13 +440,17 @@ const HospitalListPage = () => {
                       <span className="flex-1 truncate">{hospital.addr}</span>
 
                       <a
-                        href={`https://map.naver.com/v5/search/${encodeURIComponent(hospital.addr)}`}
+                        href={`https://map.naver.com/v5/search/${encodeURIComponent(
+                          hospital.addr
+                        )}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="ml-2 px-2 py-1 text-blue-500 border border-blue-300 rounded-md flex items-center gap-x-1 hover:bg-blue-100"
                       >
                         <span>지도보기</span>
-                        <span role="img" aria-label="map">🗺️</span>
+                        <span role="img" aria-label="map">
+                          🗺️
+                        </span>
                       </a>
                     </div>
 
@@ -515,7 +520,7 @@ const HospitalListPage = () => {
             </div>
 
             {/* 페이지네이션 UI */}
-            <div className="flex justify-center items-center mt-6 gap-2">
+            <div className="flex flex-wrap justify-center items-center mt-6 gap-2">
               {/* 이전 페이지 버튼 */}
               <button
                 onClick={handlePrevPage}
@@ -569,7 +574,9 @@ const HospitalListPage = () => {
             </div>
           </>
         ) : (
-          <p className="text-center text-gray-500">선택한 조건에 맞는 병원이 없습니다.</p>
+          <p className="text-center text-gray-500">
+            선택한 조건에 맞는 병원이 없습니다.
+          </p>
         )}
       </section>
     </div>

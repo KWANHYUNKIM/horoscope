@@ -5,8 +5,7 @@ const MONGO_URI = process.env.MONGO_URI ||
   (process.env.NODE_ENV === 'development'
     ? "mongodb://localhost:27017/horoscope_db"
     : "mongodb://root:example@mongo:27017/horoscope_db?authSource=admin");
-
-    
+mongo_container
 const connectDB = async () => {
   if (mongoose.connection.readyState === 1) {
     console.log("⚠️ MongoDB 이미 연결됨.");

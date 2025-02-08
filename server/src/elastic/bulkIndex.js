@@ -5,14 +5,20 @@ const HospitalTime = require('../models/hospitalTime'); // MongoDB HospitalTime 
 const HospitalMajor = require('../models/hospitalSubject'); // MongoDB HospitalSubject 모델
 
 const BULK_SIZE = 500; // 500개씩 색인
+const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/hospital_db";
 
 async function bulkIndex() {
   try {
-    if (mongoose.connection.readyState !== 1) {
-      console.log("⚠️ MongoDB가 아직 연결되지 않음.");
-      return;
-    }
-    console.log("✅ MongoDB 연결 성공!");
+      // 1. MongoDB 연결
+      if (mongoose.connection.readyState !== 1) {
+        console.log("🔄 MongoDB 연결 시도 중...");
+        await mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true });
+      }
+      if (mongoose.connection.readyState !== 1) {
+        console.error("⚠️ MongoDB 연결 실패. 실행을 중단합니다.");
+        return;
+      }
+      console.log("✅ MongoDB 연결 성공!");
 
     // MongoDB 데이터 조회 및 조인
     const hospitalsWithDetails = await Hospital.aggregate([

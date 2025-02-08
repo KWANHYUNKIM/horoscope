@@ -49,14 +49,14 @@ const MainPage = () => {
           </p>
 
           {/* 검색바 */}
-          <section className="container mx-auto mt-6 p-2">
+          <section className="w-full mt-6 p-2">
             <div className="flex max-w-md mx-auto">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="어떤 병원을 찾으시나요?"
-                className="flex-1 p-2 border border-gray-300 rounded-l-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 text-black" // 변경됨: text-black 추가, padding 조정
+                className="flex-1 p-2 border border-gray-300 rounded-l-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 text-black"
               />
               <button
                 onClick={handleSearch}
@@ -70,9 +70,9 @@ const MainPage = () => {
       </header>
 
       {/* 카테고리 */}
-      <section className="container mx-auto mt-6 p-4 px-40">
+      <section className="container mx-auto mt-6 p-4 px-4 md:px-40">
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-          {categories.map((category, index) => (
+          {categories.map((category, index) =>
             category.label !== "내 주변" ? (
               <Link
                 key={index}
@@ -92,12 +92,12 @@ const MainPage = () => {
                 <p className="mt-1 text-base font-semibold">{category.label}</p>
               </button>
             )
-          ))}
+          )}
         </div>
       </section>
 
       {/* 슬라이더 */}
-      <section className="container mx-auto mt-6 p-4 px-40">
+      <section className="container mx-auto mt-6 p-4 px-4 md:px-40">
         <Slider /> {/* 슬라이더 컴포넌트 추가 */}
       </section>
     </div>

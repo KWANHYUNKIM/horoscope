@@ -14,7 +14,7 @@ const HospitalDetailPage = () => {
     const fetchHospital = async () => {
       try {
         const response = await fetch(
-          `http://localhost:3002/api/hospitals/details/search/${id}`
+          `http://localhost:3001/api/hospitals/details/search/${id}`
         );
         if (!response.ok) {
           throw new Error("병원 정보를 가져오는데 실패했습니다.");
@@ -64,7 +64,7 @@ const HospitalDetailPage = () => {
   ];
 
   return (
-    <section className="container mx-auto mt-10 p-6 px-40">
+    <section className="container mx-auto mt-10 p-6 px-4 md:px-40">
       <div className="bg-white shadow-md hover:shadow-lg rounded-lg overflow-hidden transition-transform duration-300">
         {/* 병원 이미지 */}
         {hospital.image && !imgError ? (
@@ -76,9 +76,7 @@ const HospitalDetailPage = () => {
           />
         ) : (
           <div className="w-full h-64 bg-gray-200 flex items-center justify-center">
-            <span className="text-gray-500 text-sm">
-              🖼️ 이미지 준비 중
-            </span>
+            <span className="text-gray-500 text-sm">🖼️ 이미지 준비 중</span>
           </div>
         )}
 
@@ -87,7 +85,7 @@ const HospitalDetailPage = () => {
           <h1 className="text-3xl font-bold text-gray-800 mb-4">
             {hospital.yadmNm}
           </h1>
-          <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between text-sm text-gray-500 mb-4">
             <span className="flex-1 truncate">{hospital.addr}</span>
             <a
               href={`https://map.naver.com/v5/search/${encodeURIComponent(
@@ -95,7 +93,7 @@ const HospitalDetailPage = () => {
               )}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="ml-2 px-2 py-1 text-blue-500 border border-blue-300 rounded-md flex items-center gap-x-1 hover:bg-blue-100"
+              className="mt-2 sm:mt-0 sm:ml-2 px-2 py-1 text-blue-500 border border-blue-300 rounded-md flex items-center gap-x-1 hover:bg-blue-100"
             >
               지도보기
               <span role="img" aria-label="map">
