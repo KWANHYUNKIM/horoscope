@@ -89,5 +89,4 @@ jobs:
           gcloud run services replace cloud-run-multi-container.yml \
             --platform managed \
             --region asia-northeast3 \
-            --allow-unauthenticated
 
