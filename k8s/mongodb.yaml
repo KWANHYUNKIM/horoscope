@@ -31,16 +31,12 @@ spec:
       containers:
       - name: mongodb
         image: mongo:5.0   # 사용하고 싶은 MongoDB 버전을 지정하세요.
+        command: ["mongod", "--noauth", "--bind_ip_all", "--port", "27017", "--dbpath", "/data/db"]
         ports:
         - containerPort: 27017
         volumeMounts:
         - name: mongo-data
           mountPath: /data/db
-        env:
-        - name: MONGO_INITDB_ROOT_USERNAME
-          value: "root"
-        - name: MONGO_INITDB_ROOT_PASSWORD
-          value: "example"
   volumeClaimTemplates:
   - metadata:
       name: mongo-data
