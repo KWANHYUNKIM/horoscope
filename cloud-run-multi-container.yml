@@ -18,4 +18,4 @@ spec:
         ports:
           - containerPort: 3001
       - name: elasticsearch
-        image: docker.elastic.co/elasticsearch/elasticsearch:7.17.13
+        image: asia-northeast3-docker.pkg.dev/${PROJECT_ID}/my-es-repo/elasticsearch:7.17.13
