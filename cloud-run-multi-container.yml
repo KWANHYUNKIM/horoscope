@@ -19,6 +19,3 @@ spec:
           - containerPort: 3001
       - name: elasticsearch
         image: docker.elastic.co/elasticsearch/elasticsearch:7.17.13
-        ports:
-          - containerPort: 9200
-
