@@ -1,0 +1,24 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: my-server
+spec:
+  template:
+    metadata:
+      # VPC 커넥터 설정이 없다면 해당 annotation은 제거
+      # annotations:
+      #   run.googleapis.com/vpc-access-connector: YOUR_VPC_CONNECTOR_NAME
+    spec:
+      containers:
+      - name: my-server
+        image: asia-northeast3-docker.pkg.dev/${PROJECT_ID}/my-server/server:latest
+        env:
+          - name: ELASTIC_URL
+            value: "http://localhost:9200"
+        ports:
+          - containerPort: 3001
+      - name: elasticsearch
+        image: docker.elastic.co/elasticsearch/elasticsearch:7.17.13
+        ports:
+          - containerPort: 9200
+

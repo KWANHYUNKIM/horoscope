@@ -44,27 +44,28 @@ jobs:
           docker push asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/client:latest
 
       # (추가) gke-gcloud-auth-plugin 설치
-      - name: Install gke-gcloud-auth-plugin
-        run: gcloud components install gke-gcloud-auth-plugin --quiet
+      #- name: Install gke-gcloud-auth-plugin
+      #  run: gcloud components install gke-gcloud-auth-plugin --quiet
 
       # 7) GKE 클러스터 자격 증명 가져오기 (MongoDB 배포 및 데이터 복원용)
-      - name: 🔧 Get GKE Cluster Credentials
-        run: |
-          gcloud container clusters get-credentials hospital-cluster --region asia-northeast3
+      #- name: 🔧 Get GKE Cluster Credentials
+      #  run: |
+      #    gcloud container clusters get-credentials hospital-cluster --region asia-northeast3
 
       # 8) Kubernetes 매니페스트 (MongoDB) 적용
-      - name: 🚀 Deploy MongoDB to GKE
-        run: |
-          cd k8s
-          kubectl apply -f mongodb.yaml
+      #- name: 🚀 Deploy MongoDB to GKE
+      #  run: |
+      #    cd k8s
+      #    kubectl apply -f mongodb.yaml
 
       # 9) 데이터 복원 Job 실행
-      - name: 🚀 Run MongoDB Restore Job
-        run: |
-          cd k8s
-          kubectl apply -f mongo-restore-job.yaml
+      #- name: 🚀 Run MongoDB Restore Job
+      #  run: |
+      #    cd k8s
+      #    kubectl apply -f mongo-restore-job.yaml
           # Job 완료까지 잠시 대기 (예시로 300초)
-          sleep 300
+      #    sleep 300
+
 
       # 10) 클라이언트 이미지 Cloud Run에 배포
       - name: 🚀 Deploy Client to Cloud Run
@@ -75,14 +76,18 @@ jobs:
             --region asia-northeast3 \
             --port 8081 \
             --allow-unauthenticated
+  
+      
+      - name: Replace PROJECT_ID in YAML file
+        run: |
+          sed -i "s|\${PROJECT_ID}|${{ secrets.GCP_PROJECT_ID }}|g" cloud-run-multi-container.yml
+
 
       # 11) 서버 이미지 Cloud Run에 배포 (최종 단계)
-      - name: 🚀 Deploy Server to Cloud Run
+      - name: 🚀 Deploy Multi-Container Service to Cloud Run
         run: |
-          gcloud run deploy my-server \
-            --image asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/server:latest \
+          gcloud run services replace cloud-run-multi-container.yml \
             --platform managed \
             --region asia-northeast3 \
-            --port 3001 \
-            --vpc-connector YOUR_VPC_CONNECTOR_NAME \
             --allow-unauthenticated
+
