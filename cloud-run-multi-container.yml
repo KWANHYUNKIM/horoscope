@@ -11,11 +11,11 @@ spec:
     spec:
       containers:
       - name: my-server
-        image: asia-northeast3-docker.pkg.dev/${PROJECT_ID}/my-server/server:latest
+        image: asia-northeast3-docker.pkg.dev/hospital-449512/my-server/server:latest
         env:
           - name: ELASTIC_URL
             value: "http://localhost:9200"
         ports:
           - containerPort: 3001
       - name: elasticsearch
-        image: asia-northeast3-docker.pkg.dev/${PROJECT_ID}/my-es-repo/elasticsearch:7.17.13
+        image: asia-northeast3-docker.pkg.dev/hospital-449512/my-es-repo/elasticsearch:7.17.13
