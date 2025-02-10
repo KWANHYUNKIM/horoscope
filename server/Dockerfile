@@ -7,8 +7,6 @@ RUN npm install
 
 COPY . .
 
-ENV HOST 0.0.0.0
-
 # 운영 환경으로 설정
 ENV NODE_ENV=production
 # (선택) 운영 DB 서버 주소가 필요하다면
