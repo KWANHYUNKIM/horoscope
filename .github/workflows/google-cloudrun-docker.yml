@@ -77,16 +77,13 @@ jobs:
             --port 8081 \
             --allow-unauthenticated
   
-      
-      - name: Replace PROJECT_ID in YAML file
-        run: |
-          sed -i "s|\${PROJECT_ID}|${{ secrets.GCP_PROJECT_ID }}|g" cloud-run-multi-container.yml
-
-
       # 11) 서버 이미지 Cloud Run에 배포 (최종 단계)
-      - name: 🚀 Deploy Multi-Container Service to Cloud Run
+      - name: 🚀 Deploy Server to Cloud Run
         run: |
-          gcloud run services replace cloud-run-multi-container.yml \
+          gcloud run deploy my-server \
+            --image asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/server:latest \
             --platform managed \
             --region asia-northeast3 \
+            --port 3001 \
+            --allow-unauthenticated
 

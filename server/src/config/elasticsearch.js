@@ -6,7 +6,7 @@ const { Client } = require('@elastic/elasticsearch');
 const ES_NODE = process.env.ES_NODE ||
   (process.env.NODE_ENV === 'development'
     ? 'http://localhost:9200'
-    : 'http://es_container:9200');
+    : 'http://34.22.68.206:9200/');
 
 const client = new Client({ node: ES_NODE });
 
