@@ -39,7 +39,7 @@ jobs:
           fi
       
           cd server
-          docker buildx build --platform=linux/amd64,linux/arm64 \
+          docker buildx build --platform=linux/amd64 \
             -t asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/server:latest \
             -f Dockerfile . --push
     
