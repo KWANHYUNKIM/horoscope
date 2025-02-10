@@ -5,11 +5,13 @@ const hospitalRoutes = require('./routes/hospitalRoutes');
 const hospitalSearchRouter = require('./elastic/hospitalSearch');
 const hospitalSubjectRoutes = require('./routes/hospitalSubjectRoutes'); // 새로운 라우터 추가
 const hospitalDetailSearchRoutes = require('./elastic/hospitalDetailSearch');
-const { reindex } = require('./elastic/elastics'); // reindex 불러오기
+//const { reindex } = require('./elastic/elastics'); // reindex 불러오기
 
 const app = express();
 const cors = require('cors');
-const allowedOrigin = process.env.CLIENT_URL || 'http://localhost:8081';
+const allowedOrigin = process.env.NODE_ENV === 'production'
+  ? process.env.CLIENT_URL    // 운영 환경: production 환경 변수에 설정한 클라이언트 URL 사용
+  : 'http://localhost:8081';  // 개발 환경: 로컬 호스트 사용
 
 app.use(cors({
   origin: allowedOrigin,
