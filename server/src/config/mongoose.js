@@ -14,9 +14,12 @@
     }
 
     try {
-      await mongoose.connect(MONGO_URI);  // ✅ 불필요한 옵션 제거
-      console.log(MONGO_URI);
-      console.log('✅ MongoDB Connected');
+      await mongoose.connect(MONGO_URI, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        serverSelectionTimeoutMS: 20000, // 20초로 설정
+        socketTimeoutMS: 45000 // 45초로 설정
+      });
     } catch (err) {
       console.error('❌ MongoDB Connection Error:', err.message);
       process.exit(1);
