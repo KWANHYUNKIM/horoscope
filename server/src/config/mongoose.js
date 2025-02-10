@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const MONGO_URI = process.env.MONGO_URI ||
   (process.env.NODE_ENV === 'development'
     ? "mongodb://localhost:27017/horoscope_db"
-    : "mongodb://mongodb-service:27017/horoscope_db");
+    : "mongodb://34.64.58.121:27017");
     
 const connectDB = async () => {
   if (mongoose.connection.readyState === 1) {

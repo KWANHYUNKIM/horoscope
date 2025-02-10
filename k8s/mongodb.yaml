@@ -11,38 +11,3 @@ spec:
       targetPort: 27017      # 컨테이너의 포트를 지정합니다.
   selector:
     app: mongodb
----
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  name: mongodb
-  labels:
-    app: mongodb
-spec:
-  serviceName: "mongodb-service"
-  replicas: 1
-  selector:
-    matchLabels:
-      app: mongodb
-  template:
-    metadata:
-      labels:
-        app: mongodb
-    spec:
-      containers:
-      - name: mongodb
-        image: mongo:5.0
-        command: ["mongod", "--noauth", "--bind_ip_all", "--port", "27017", "--dbpath", "/data/db"]
-        ports:
-        - containerPort: 27017
-        volumeMounts:
-        - name: mongo-data
-          mountPath: /data/db
-  volumeClaimTemplates:
-  - metadata:
-      name: mongo-data
-    spec:
-      accessModes: ["ReadWriteOnce"]
-      resources:
-        requests:
-          storage: 10Gi
