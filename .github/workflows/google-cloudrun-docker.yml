@@ -40,7 +40,8 @@ jobs:
           
       
           cd server
-          docker buildx build --platform linux/amd64,linux/arm64 -t asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/server:latest -f Dockerfile . --push
+          docker buildx build --platform linux/amd64,linux/arm64 -t asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/server:latest -f Dockerfile .
+          docker push asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/server:latest
             
       # 6) 클라이언트 이미지 빌드 & 푸시
       - name: 🏗 Build and Push Client Docker Image
