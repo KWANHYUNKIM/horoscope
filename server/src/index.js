@@ -36,4 +36,4 @@ app.use('/api/hospitals/subjects', hospitalSubjectRoutes); // 새로운 라우�
 
 // 서버 실행
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
