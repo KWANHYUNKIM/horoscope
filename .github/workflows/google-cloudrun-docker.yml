@@ -73,7 +73,6 @@ jobs:
             --image asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/server:latest \
             --platform managed \
             --region asia-northeast3 \
-            --set-env-vars PORT=3001,ES_NODE="http://34.22.68.206:9200",MONGO_URI="mongodb://34.64.58.121:27017/horoscope_db",NODE_ENV=production \
             --port 3001 \
             --allow-unauthenticated
 
