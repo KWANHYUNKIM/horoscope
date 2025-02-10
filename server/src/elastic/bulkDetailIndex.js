@@ -5,8 +5,13 @@ const Hospital = require('../models/hospital');
 
 // 상수 정의
 const BULK_SIZE = 500;
-const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/hospital_db";
 const INDEX_NAME = 'hospital_details';
+const MONGO_URI =
+  process.env.MONGO_URI ||
+  (process.env.NODE_ENV === 'development'
+    ? 'mongodb://localhost:27017/horoscope_db'
+    : 'mongodb://34.64.58.121:27017/horoscope_db'
+  );
 
 async function bulkDetailIndex() {
   try {

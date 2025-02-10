@@ -5,8 +5,13 @@ const HospitalTime = require('../models/hospitalTime'); // MongoDB HospitalTime 
 const HospitalMajor = require('../models/hospitalSubject'); // MongoDB HospitalSubject 모델
 
 const BULK_SIZE = 500; // 500개씩 색인
-const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/hospital_db";
 
+const MONGO_URI =
+  process.env.MONGO_URI ||
+  (process.env.NODE_ENV === 'development'
+    ? 'mongodb://localhost:27017/horoscope_db'
+    : 'mongodb://34.64.58.121:27017/horoscope_db'
+  );
 async function bulkIndex() {
   try {
       // 1. MongoDB 연결
