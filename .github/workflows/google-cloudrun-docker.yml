@@ -32,10 +32,17 @@ jobs:
       # 5) 서버 이미지 빌드 & 푸시
       - name: 🏗 Build and Push Server Docker Image
         run: |
+          echo "Using project ID: ${{ secrets.GCP_PROJECT_ID }}"
+          if [[ -z "${{ secrets.GCP_PROJECT_ID }}" ]]; then
+            echo "❌ ERROR: GCP_PROJECT_ID is empty!"
+            exit 1
+          fi
+          
           cd server
+          # 서버 이미지를 'my-server' 레포지토리 안의 'server'라는 이름으로 태그 (latest)
           docker build -t asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/server:latest -f Dockerfile .
           docker push asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/server:latest
-
+          
       # 6) 클라이언트 이미지 빌드 & 푸시
       - name: 🏗 Build and Push Client Docker Image
         run: |
