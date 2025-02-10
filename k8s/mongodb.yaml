@@ -5,9 +5,10 @@ metadata:
   labels:
     app: mongodb
 spec:
+  type: LoadBalancer         # LoadBalancer 타입으로 변경하여 외부 IP 할당
   ports:
     - port: 27017
-  clusterIP: None  # Headless Service로 내부 DNS를 사용
+      targetPort: 27017      # 컨테이너의 포트를 지정합니다.
   selector:
     app: mongodb
 ---
@@ -30,7 +31,7 @@ spec:
     spec:
       containers:
       - name: mongodb
-        image: mongo:5.0   # 사용하고 싶은 MongoDB 버전을 지정하세요.
+        image: mongo:5.0
         command: ["mongod", "--noauth", "--bind_ip_all", "--port", "27017", "--dbpath", "/data/db"]
         ports:
         - containerPort: 27017
@@ -41,7 +42,7 @@ spec:
   - metadata:
       name: mongo-data
     spec:
-      accessModes: [ "ReadWriteOnce" ]
+      accessModes: ["ReadWriteOnce"]
       resources:
         requests:
           storage: 10Gi

@@ -33,9 +33,8 @@ jobs:
       - name: 🏗 Build and Push Server Docker Image
         run: |
           cd server
-          docker build --platform linux/amd64 -t asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/server:latest -f Dockerfile .
+          docker build -t asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/server:latest -f Dockerfile .
           docker push asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/server:latest
-
 
       # 6) 클라이언트 이미지 빌드 & 푸시
       - name: 🏗 Build and Push Client Docker Image
@@ -54,10 +53,10 @@ jobs:
       #    gcloud container clusters get-credentials hospital-cluster --region asia-northeast3
 
       # 8) Kubernetes 매니페스트 (MongoDB) 적용
-      #- name: 🚀 Deploy MongoDB to GKE
-      #  run: |
-      #    cd k8s
-      #    kubectl apply -f mongodb.yaml
+      - name: 🚀 Deploy MongoDB to GKE
+        run: |
+          cd k8s
+          kubectl apply -f mongodb.yaml
 
       # 9) 데이터 복원 Job 실행
       #- name: 🚀 Run MongoDB Restore Job
