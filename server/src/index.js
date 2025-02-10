@@ -33,5 +33,7 @@ app.use('/api/hospitals/details/search', hospitalDetailSearchRoutes);
 app.use('/api/hospitals/subjects', hospitalSubjectRoutes); // 새로운 라우터 사용
 
 // 서버 실행
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+const port = process.env.PORT || 3001;
+app.listen(port, '0.0.0.0', () => {
+  console.log(`Server is running on port ${port}`);
+});
