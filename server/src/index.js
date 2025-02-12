@@ -20,9 +20,9 @@ app.use(cors({
 // MongoDB 연결
 connectDB();
 
-reindex().then(() => {
-    console.log("🚀 Elasticsearch Reindexing Complete!");
-  }).catch(err => console.error("❌ Error in reindexing:", err));
+//reindex().then(() => {
+//    console.log("🚀 Elasticsearch Reindexing Complete!");
+//  }).catch(err => console.error("❌ Error in reindexing:", err));
   
 
 // 미들웨어
