@@ -47,11 +47,10 @@ jobs:
           cd server
           # multi-platform 빌드 시 --platform 플래그와 --push를 함께 사용해야 합니다.
           docker buildx build \
-                --platform linux/amd64 \
-                -t asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/server:latest \
+                --platform linux/amd64 -t asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/server \
                 --push \
                 -f Dockerfile .
-                
+
       # 6) 클라이언트 이미지 빌드 & 푸시
       - name: 🏗 Build and Push Client Docker Image
         run: |
