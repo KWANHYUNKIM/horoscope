@@ -1,5 +1,5 @@
 // src/pages/HospitalDetailPage.js
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 const HospitalDetailPage = () => {
@@ -14,7 +14,7 @@ const HospitalDetailPage = () => {
     const fetchHospital = async () => {
       try {
         const response = await fetch(
-          `http://localhost:3001/api/hospitals/details/search/${id}`
+          `http://localhost:/api/hospitals/details/search/${id}`
         );
         if (!response.ok) {
           throw new Error("병원 정보를 가져오는데 실패했습니다.");
