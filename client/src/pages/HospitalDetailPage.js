@@ -1,5 +1,5 @@
 // src/pages/HospitalDetailPage.js
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 
 const HospitalDetailPage = () => {
@@ -10,27 +10,31 @@ const HospitalDetailPage = () => {
   const [imgError, setImgError] = useState(false);
 
   // 병원 상세 정보 API 호출
-  useEffect(() => {
-    const fetchHospital = async () => {
-      try {
-        const response = await fetch(
-          `http://localhost:/api/hospitals/details/search/${id}`
-        );
-        if (!response.ok) {
-          throw new Error("병원 정보를 가져오는데 실패했습니다.");
-        }
-        const data = await response.json();
-        setHospital(data);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
+  const baseUrl =
+  process.env.NODE_ENV === "production"
+    ? "https://my-server-284451238916.asia-northeast3.run.app" // 운영용
+    : "http://localhost:3001";          // 로컬 개발용
+
+useEffect(() => {
+  const fetchHospital = async () => {
+    try {
+      const response = await fetch(
+        `${baseUrl}/api/hospitals/details/search/${id}`
+      );
+      if (!response.ok) {
+        throw new Error("병원 정보를 가져오는데 실패했습니다.");
       }
-    };
+      const data = await response.json();
+      setHospital(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchHospital();
 
-    fetchHospital();
-  }, [id]);
-
+}, [id, baseUrl]);
   if (loading)
     return <div className="text-center mt-10">🔄 로딩 중...</div>;
   if (error)

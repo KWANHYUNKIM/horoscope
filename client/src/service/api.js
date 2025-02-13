@@ -2,12 +2,16 @@
 import axios from "axios";
 
 // 프록시 대신 실제 API 서버의 URL을 사용합니다.
-const API_URL = "http://localhost:3001/api";
+// 환경에 따라 baseURL 설정
+const baseURL =
+  process.env.NODE_ENV === "production"
+    ? "https://my-server-284451238916.asia-northeast3.run.app"  // Cloud Run 배포 URL
+    : "http://localhost:3001";          // 로컬 API URL
 
 // 병원 목록 가져오기 (전체 조회)
 export const fetchHospitals = async (params) => {
   try {
-    const response = await axios.get(`${API_URL}/hospitals/search`, { params });
+    const response = await axios.get(`${baseURL}/api/hospitals/search`, { params });
     return response.data;
   } catch (error) {
     console.error("Error fetching hospitals:", error);
