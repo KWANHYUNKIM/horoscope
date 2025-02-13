@@ -10,7 +10,7 @@ const hospitalDetailSearchRoutes = require('./elastic/hospitalDetailSearch');
 const app = express();
 const cors = require('cors');
 const allowedOrigin = process.env.NODE_ENV === 'production'
-  ? process.env.CLIENT_URL    // 운영 환경: production 환경 변수에 설정한 클라이언트 URL 사용
+  ? 'https://my-client-284451238916.asia-northeast3.run.app'    // 운영 환경: production 환경 변수에 설정한 클라이언트 URL 사용
   : 'http://localhost:8081';  // 개발 환경: 로컬 호스트 사용
 
 app.use(cors({
