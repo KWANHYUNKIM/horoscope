@@ -23,7 +23,7 @@ export const fetchHospitals = async (params) => {
 // 서버 측에서는 app.use('/api/hospitals/details/search', hospitalDetailSearchRoutes)로 라우팅됩니다.
 export const fetchHospitalDetail = async (id) => {
   try {
-    const response = await axios.get(`${baseURL}/hospitals/details/search/${id}`);
+    const response = await axios.get(`${baseURL}/api/hospitals/details/search/${id}`);
     return response.data;
   } catch (error) {
     console.error("Error fetching hospital detail:", error);
