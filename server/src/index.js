@@ -9,12 +9,23 @@ const hospitalDetailSearchRoutes = require('./elastic/hospitalDetailSearch');
 
 const app = express();
 const cors = require('cors');
-const allowedOrigin = process.env.NODE_ENV === 'production'
-  ? 'https://my-client-284451238916.asia-northeast3.run.app'    // 운영 환경: production 환경 변수에 설정한 클라이언트 URL 사용
-  : 'http://localhost:8081';  // 개발 환경: 로컬 호스트 사용
+const allowedOrigins = [
+  'https://my-client-284451238916.asia-northeast3.run.app',  // 운영 환경 도메인
+  'https://bippobippo119.com.',
+  'https://bippobippo119.com',
+  'https://www.bippobippo119.com',
+  'https://www.bippobippo119.com.',
+  'http://localhost:8081' // 개발 
+];
 
 app.use(cors({
-  origin: allowedOrigin,
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);  // 허용된 도메인인 경우
+    } else {
+      callback(new Error('Not allowed by CORS'));  // 허용되지 않은 경우
+    }
+  }
 }));
 
 // MongoDB 연결

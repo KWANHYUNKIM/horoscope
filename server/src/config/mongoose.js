@@ -6,7 +6,6 @@
       ? "mongodb://localhost:27017/horoscope_db"
       : "mongodb://34.64.58.121:27017/horoscope_db");
 
-
   const connectDB = async () => {
     if (mongoose.connection.readyState === 1) {
       console.log("⚠️ MongoDB 이미 연결됨.");

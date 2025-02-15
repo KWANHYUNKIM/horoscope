@@ -18,13 +18,13 @@ async function bulkDetailIndex() {
     // 1. MongoDB 연결
     if (mongoose.connection.readyState !== 1) {
       console.log("🔄 MongoDB 연결 시도 중...");
-      await mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true });
+      await mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true, serverSelectionTimeoutMS: 20000, socketTimeoutMS: 45000 });
     }
     if (mongoose.connection.readyState !== 1) {
       console.error("⚠️ MongoDB 연결 실패. 실행을 중단합니다.");
       return;
     }
-    console.log("✅ MongoDB 연결 성공!");
+    console.log("✅ MongoDB 연결 성공!" + MONGO_URI);
 
     // 2. 병원 상세 데이터 조회 (lookup을 통해 times, subjects 데이터를 병합)
     const hospitalsWithDetails = await Hospital.aggregate([
