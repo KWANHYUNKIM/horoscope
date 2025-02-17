@@ -1,8 +1,7 @@
 import ReactGA from "react-ga4";
 
 // ✅ 환경 변수에서 GA 측정 ID 가져오기
-const GA_MEASUREMENT_ID = process.env.REACT_APP_GA_MEASUREMENT_ID;
-
+const GA_MEASUREMENT_ID = 'G-GTVH0NK2R7';
 export const initializeGA = () => {
   if (GA_MEASUREMENT_ID) {
     ReactGA.initialize(GA_MEASUREMENT_ID);
