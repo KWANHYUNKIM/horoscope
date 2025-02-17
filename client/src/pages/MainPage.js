@@ -9,7 +9,6 @@ const MainPage = () => {
 
   const categories = [
     { label: "야간진료", icon: "🌙" },
-    { label: "24시간진료", icon: "⏰" },
     { label: "주말진료", icon: "📅" },
     { label: "영업중", icon: "🏥" },
     { label: "내 주변", icon: "📍" },
@@ -71,7 +70,7 @@ const MainPage = () => {
 
       {/* 카테고리 */}
       <section className="container mx-auto mt-6 p-4 px-4 md:px-40">
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {categories.map((category, index) =>
             category.label !== "내 주변" ? (
               <Link
@@ -95,8 +94,9 @@ const MainPage = () => {
           )}
         </div>
       </section>
-
+      {/* 애니메이션 */}
       {/* 슬라이더 */}
+      
       <section className="container mx-auto mt-6 p-4 px-4 md:px-40">
         <Slider /> {/* 슬라이더 컴포넌트 추가 */}
       </section>

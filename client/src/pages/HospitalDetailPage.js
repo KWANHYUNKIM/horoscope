@@ -58,6 +58,15 @@ useEffect(() => {
     "Saturday",
     "Sunday",
   ];
+  const dayMap = {
+    Monday: "월요일",
+    Tuesday: "화요일",
+    Wednesday: "수요일",
+    Thursday: "목요일",
+    Friday: "금요일",
+    Saturday: "토요일",
+    Sunday: "일요일",
+  };
   const extraInfo = [
     { label: "점심시간", key: "lunch" },
     { label: "평일 접수", key: "receptionWeek" },
@@ -149,7 +158,7 @@ useEffect(() => {
                   {dayKeys.map((day) => (
                     <tr key={day} className="hover:bg-gray-50">
                       <td className="px-4 py-2 border border-gray-200 font-medium">
-                        {day}
+                        {dayMap[day] || day} {/* 영어 요일을 한국어로 변환 */}
                       </td>
                       <td className="px-4 py-2 border border-gray-200">
                         {hospital.schedule && hospital.schedule[day]
@@ -158,7 +167,7 @@ useEffect(() => {
                       </td>
                     </tr>
                   ))}
-                </tbody>
+              </tbody>
               </table>
             </div>
           </div>

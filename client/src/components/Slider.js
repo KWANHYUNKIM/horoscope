@@ -1,34 +1,22 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const slides = [
   {
     id: 1,
     title: "야간 진료 병원을 찾으세요?",
     description: "지금 바로 검색하여 필요한 병원을 찾아보세요.",
-    image: "https://via.placeholder.com/800x400",
+    image: "/night_time_24.png",
   },
   {
     id: 2,
-    title: "24시간 운영 병원 안내",
-    description: "언제든 방문할 수 있는 병원을 찾아보세요.",
-    image: "https://via.placeholder.com/800x400?text=24시간+병원",
-  },
-  {
-    id: 3,
     title: "주말 진료 병원 리스트",
     description: "주말에도 운영 중인 병원을 확인하세요.",
-    image: "https://via.placeholder.com/800x400?text=주말+병원",
+    image: "/night_weekend_view.jpg",
   },
 ];
 
 const Slider = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
-
-  const handlePrev = () => {
-    setCurrentIndex((prevIndex) =>
-      prevIndex === 0 ? slides.length - 1 : prevIndex - 1
-    );
-  };
 
   const handleNext = () => {
     setCurrentIndex((prevIndex) =>
@@ -36,13 +24,28 @@ const Slider = () => {
     );
   };
 
+  const handlePrev = () => {
+    setCurrentIndex((prevIndex) =>
+      prevIndex === 0 ? slides.length - 1 : prevIndex - 1
+    );
+  };
+
+  // 자동 슬라이드 (6초마다 변경)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      handleNext();
+    }, 6000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
-    <div className="relative w-full h-64 bg-gray-300 rounded-lg shadow-md overflow-hidden">
+    <div className="relative w-full h-64 rounded-lg shadow-lg overflow-hidden bg-gradient-to-r from-blue-500 to-purple-500">
       {/* 슬라이드 이미지 */}
       <img
         src={slides[currentIndex].image}
         alt={slides[currentIndex].title}
-        className="w-full h-full object-cover"
+        className="w-full h-full object-cover transition-transform duration-1000 ease-in-out filter brightness-90"
       />
 
       {/* 슬라이드 텍스트 */}
@@ -51,18 +54,18 @@ const Slider = () => {
         <p>{slides[currentIndex].description}</p>
       </div>
 
-      {/* 이전 버튼 */}
+      {/* 이전 버튼 (흰색 배경, 검은색 아이콘) */}
       <button
         onClick={handlePrev}
-        className="absolute top-1/2 left-4 transform -translate-y-1/2 bg-white text-gray-800 rounded-full p-2 shadow hover:bg-gray-100"
+        className="absolute top-1/2 left-4 transform -translate-y-1/2 bg-white text-black rounded-full p-3 shadow-lg hover:bg-gray-200 transition"
       >
         &lt;
       </button>
 
-      {/* 다음 버튼 */}
+      {/* 다음 버튼 (흰색 배경, 검은색 아이콘) */}
       <button
         onClick={handleNext}
-        className="absolute top-1/2 right-4 transform -translate-y-1/2 bg-white text-gray-800 rounded-full p-2 shadow hover:bg-gray-100"
+        className="absolute top-1/2 right-4 transform -translate-y-1/2 bg-white text-black rounded-full p-3 shadow-lg hover:bg-gray-200 transition"
       >
         &gt;
       </button>
@@ -72,8 +75,8 @@ const Slider = () => {
         {slides.map((_, index) => (
           <div
             key={index}
-            className={`w-3 h-3 rounded-full ${
-              index === currentIndex ? "bg-white" : "bg-gray-400"
+            className={`w-3 h-3 rounded-full transition ${
+              index === currentIndex ? "bg-white scale-125" : "bg-gray-400"
             }`}
           ></div>
         ))}

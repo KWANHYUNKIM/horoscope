@@ -64,6 +64,23 @@ async function bulkIndex() {
 
       for (const h of chunk) {
         const majorSubjects = h.subjects.map(subject => subject.dgsbjtCdNm); // 병원 전공 리스트
+       
+        const schedule = {
+          Monday: { openTime: h.times?.trmtMonStart || "-", closeTime: h.times?.trmtMonEnd || "-" },
+          Tuesday: { openTime: h.times?.trmtTueStart || "-", closeTime: h.times?.trmtTueEnd || "-" },
+          Wednesday: { openTime: h.times?.trmtWedStart || "-", closeTime: h.times?.trmtWedEnd || "-" },
+          Thursday: { openTime: h.times?.trmtThuStart || "-", closeTime: h.times?.trmtThuEnd || "-" },
+          Friday: { openTime: h.times?.trmtFriStart || "-", closeTime: h.times?.trmtFriEnd || "-" },
+          Saturday: { openTime: h.times?.trmtSatStart || "-", closeTime: h.times?.trmtSatEnd || "-" },
+          Sunday: { openTime: h.times?.trmtSunStart || "-", closeTime: h.times?.trmtSunEnd || "-" },
+
+          lunch: h.times?.lunchWeek || "-",                // 점심시간: 예) "12:30 ~ 14:00"
+          receptionWeek: h.times?.rcvWeek || "-",         // 평일 접수시간
+          receptionSat: h.times?.rcvSat || "-",           // 토요일 접수시간
+          noTreatmentHoliday: h.times?.noTrmtHoli || "-", // 공휴일 휴진 여부
+          emergencyDay: h.times?.emyDayYn === "Y",       // 응급진료(주간)
+          emergencyNight: h.times?.emyNgtYn === "Y"      // 응급진료(야간)
+        };
 
         body.push({ index: { _index: 'hospitals', _id: h.ykiho || h._id.toString() } }); // ✅ `ykiho` 없으면 `_id` 사용
         body.push({
@@ -73,12 +90,14 @@ async function bulkIndex() {
           subject: h.clCdNm,
           major: majorSubjects,
           nightCare: h.times && h.times.emyNgtYn === 'Y',
-          twentyfourCare: h.times && h.times.trmtMonEnd === '2400',
           weekendCare: h.times && (h.times.noTrmtSat !== '휴무' || h.times.noTrmtSun !== '휴무'),
           location: {
             lat: h.YPos,
             lon: h.XPos
-          }
+          },
+          hospUrl: h.hospUrl,
+          telno: h.telno,
+          schedule
         });
       }
 

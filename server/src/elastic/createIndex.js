@@ -20,12 +20,33 @@ async function createHospitalIndex() {
             addr: { type: 'text' },
             region: { type: 'keyword' },
             subject: { type: 'keyword' },
-            major : {type: 'keyword'},
+            major: { type: 'keyword' },
             nightCare: { type: 'boolean' },
-            twentyfourCare: { type: 'boolean' },
+            twentyfourCare: { type: 'boolean' }, // 24시간 운영 여부
             weekendCare: { type: 'boolean' },
-            location: { type: "geo_point" }
-            // 필요한 다른 필드들도 추가
+            location: { type: "geo_point" },
+            hospUrl: { type: "text" },
+            telno: { type: "text" },
+            schedule: {
+              type: "object",
+              properties: {
+                Monday: {
+                  type: "object",
+                  properties: {
+                    openTime: { type: "keyword" },
+                    closeTime: { type: "keyword" },
+                    lunchStart: { type: "keyword" },
+                    lunchEnd: { type: "keyword" }
+                  }
+                },
+                Tuesday: { type: "object", properties: { openTime: { type: "keyword" }, closeTime: { type: "keyword" }, lunchStart: { type: "keyword" }, lunchEnd: { type: "keyword" } } },
+                Wednesday: { type: "object", properties: { openTime: { type: "keyword" }, closeTime: { type: "keyword" }, lunchStart: { type: "keyword" }, lunchEnd: { type: "keyword" } } },
+                Thursday: { type: "object", properties: { openTime: { type: "keyword" }, closeTime: { type: "keyword" }, lunchStart: { type: "keyword" }, lunchEnd: { type: "keyword" } } },
+                Friday: { type: "object", properties: { openTime: { type: "keyword" }, closeTime: { type: "keyword" }, lunchStart: { type: "keyword" }, lunchEnd: { type: "keyword" } } },
+                Saturday: { type: "object", properties: { openTime: { type: "keyword" }, closeTime: { type: "keyword" }, lunchStart: { type: "keyword" }, lunchEnd: { type: "keyword" } } },
+                Sunday: { type: "object", properties: { openTime: { type: "keyword" }, closeTime: { type: "keyword" }, lunchStart: { type: "keyword" }, lunchEnd: { type: "keyword" } } }
+              }
+            }
           }
         }
       }
