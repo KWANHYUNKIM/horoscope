@@ -6,28 +6,32 @@ import HospitalDetailPage from "./pages/HospitalDetailPage";
 import Footer from "./components/Footer";
 import AdSense from "./components/AdSense";
 import { initializeGA, trackPageView } from "./utils/GoogleAnalytics";
-
+import { Helmet } from "react-helmet";
 
 initializeGA();
 
 function App() {
   return (
-    <Router>
-      <PageTracker />
-      <div className="flex flex-col min-h-screen">
-        <div className="flex-grow"> {/* 메인 콘텐츠 영역을 flex-grow로 설정 */}
-          <Routes>
-            <Route path="/" element={<><MainPage /><AdSense /></>} />
-            <Route path="/hospitals" element={<><HospitalListPage /><AdSense /></>} />
-            <Route path="/hospital/details/:id" element={<><HospitalDetailPage /><AdSense /></>} />
-          </Routes>
+    <>
+      <Helmet>
+        <meta name="naver-site-verification" content="8663d053739b5b8325daa8c350c7130e2d92824f" />
+      </Helmet>
+      <Router>
+        <PageTracker />
+        <div className="flex flex-col min-h-screen">
+          <div className="flex-grow">
+            <Routes>
+              <Route path="/" element={<><MainPage /><AdSense /></>} />
+              <Route path="/hospitals" element={<><HospitalListPage /><AdSense /></>} />
+              <Route path="/hospital/details/:id" element={<><HospitalDetailPage /><AdSense /></>} />
+            </Routes>
+          </div>
+          <Footer />
         </div>
-        <Footer />
-      </div>
-    </Router>
+      </Router>
+    </>
   );
 }
-
 const PageTracker = () => {
   const location = useLocation();
 
