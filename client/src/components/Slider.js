@@ -5,7 +5,7 @@ const slides = [
     id: 1,
     title: "야간 진료 병원을 찾으세요?",
     description: "지금 바로 검색하여 필요한 병원을 찾아보세요.",
-    image: "/night_time_24.png",
+    image: "/night_time.png",
   },
   {
     id: 2,

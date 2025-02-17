@@ -17,9 +17,13 @@ const OperatingStatus = ({ schedule }) => {
 
   const timeToMinutes = (timeStr) => {
     if (!timeStr || timeStr === "-") return null;
-    const hour = parseInt(timeStr.slice(0, 2), 10);
-    const minute = parseInt(timeStr.slice(2, 4), 10);
+    
+    const strTime = String(timeStr).padStart(4, "0");  // 숫자일 경우 문자열로 변환 및 '0900' 형식 맞추기
+    const hour = parseInt(strTime.slice(0, 2), 10);
+    const minute = parseInt(strTime.slice(2, 4), 10);
+    
     return hour * 60 + minute;
+  
   };
 
   const nowInMinutes = currentHour * 60 + currentMinute;
