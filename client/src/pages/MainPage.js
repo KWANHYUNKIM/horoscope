@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import Slider from "../components/Slider"; // 슬라이더 컴포넌트 가져오기
+//import InfomationSection from "../components/InfomationSection";
+import FloatingAnnouncementModal from "../components/FloatingAnnouncementModal";
 
 const MainPage = () => {
   const [searchQuery, setSearchQuery] = useState(""); // 검색 입력값 상태
@@ -95,11 +97,18 @@ const MainPage = () => {
         </div>
       </section>
       {/* 애니메이션 */}
+      {/* 정보성 글 */}
       {/* 슬라이더 */}
-      
       <section className="container mx-auto mt-6 p-4 px-4 md:px-40">
         <Slider /> {/* 슬라이더 컴포넌트 추가 */}
       </section>
+
+      {/*<InfomationSection />*/}
+
+      {/* 공지사항 버튼 (페이지 오른쪽 아래에 떠 있음) */}
+      <FloatingAnnouncementModal />
+
+
     </div>
   );
 };

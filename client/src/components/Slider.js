@@ -5,14 +5,8 @@ const slides = [
     id: 1,
     title: "야간 진료 병원을 찾으세요?",
     description: "지금 바로 검색하여 필요한 병원을 찾아보세요.",
-    image: "/night_time.png",
-  },
-  {
-    id: 2,
-    title: "주말 진료 병원 리스트",
-    description: "주말에도 운영 중인 병원을 확인하세요.",
-    image: "/night_weekend_view.jpg",
-  },
+    image: "/night_time.jpg",
+  }
 ];
 
 const Slider = () => {
