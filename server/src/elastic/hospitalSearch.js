@@ -1,11 +1,10 @@
 // server/src/routes/elastic/hospitalSearch.js
 const express = require('express');
-const client = require('../config/elasticsearch'); // ✅ 클라이언트 가져오기
+const client = require('../config/elasticsearch'); // ✅ Elasticsearch 클라이언트 가져오기
 const router = express.Router();
 
 router.get('/', async (req, res) => {
   try {
-    // 쿼리 파라미터를 받아올 때 숫자형은 parseInt로 변환
     const {
       page = "1",
       limit = "10",
@@ -16,7 +15,7 @@ router.get('/', async (req, res) => {
       query,
       x,
       y,
-      distance = "10km" // 기본 거리 설정
+      distance = "10km"
     } = req.query;
 
     const pageNumber = parseInt(page, 10) || 1;
@@ -25,48 +24,84 @@ router.get('/', async (req, res) => {
     console.log("Received query parameters:", req.query);
     console.log("Distance parameter:", distance);
 
-    // Elasticsearch 쿼리 구성
     const must = [];
     const filter = [];
 
-    // 검색 쿼리 추가
     if (query && query.trim() !== "") {
       must.push({
         multi_match: {
           query: query.trim(),
-          fields: ["yadmNm^3", "addr", "major"], // 검색할 필드와 가중치 설정
-          fuzziness: "AUTO" // 오타 허용 (선택 사항)
+          fields: ["yadmNm^3", "addr", "major"],
+          fuzziness: "AUTO"
         }
       });
     }
 
-    // 지역 필터
     if (region && region !== "전국") {
       filter.push({ term: { region: region } });
     }
 
-    // 과목 필터 (subject)
     if (subject && subject !== "전체") {
       filter.push({ term: { subject: subject } });
     }
 
-    // 전공 필터 (major)
     if (major && major !== "전체") {
       filter.push({ term: { major: major } });
     }
 
-    // 추가 필터 (야간 진료, 24시간 진료, 주말 진료 등)
+    // category 필터 처리
     if (category) {
       if (category === "야간진료") {
         filter.push({ term: { nightCare: true } });
-      } else if (category === "24시간진료") {
-        filter.push({ term: { twentyfourCare: true } });
       } else if (category === "주말진료") {
         filter.push({ term: { weekendCare: true } });
+      } else if (category === "영업중") {
+        // 영업중 필터: 현재 운영중인 병원만 반환
+        filter.push({
+          script: {
+            script: {
+              lang: "painless",
+              source: `
+                int currentTime = params.currentTime;
+                String currentDay = params.currentDay;
+                // 먼저 필드의 값이 존재하는지 size()로 확인
+                if (doc["schedule." + currentDay + ".openTime"].size() == 0 ||
+                    doc["schedule." + currentDay + ".closeTime"].size() == 0) {
+                  return false;
+                }
+                // null 체크
+                if (doc["schedule." + currentDay + ".openTime"].value == null ||
+                    doc["schedule." + currentDay + ".closeTime"].value == null) {
+                  return false;
+                }
+                String openTimeStr = doc["schedule." + currentDay + ".openTime"].value.toString();
+                String closeTimeStr = doc["schedule." + currentDay + ".closeTime"].value.toString();
+                if (openTimeStr.equals("-") || closeTimeStr.equals("-")) {
+                  return false;
+                }
+                // 길이 체크: "HHmm" 형식이어야 함
+                if (openTimeStr.length() < 4 || closeTimeStr.length() < 4) {
+                  return false;
+                }
+                int openHour = Integer.parseInt(openTimeStr.substring(0,2));
+                int openMin = Integer.parseInt(openTimeStr.substring(2,4));
+                int closeHour = Integer.parseInt(closeTimeStr.substring(0,2));
+                int closeMin = Integer.parseInt(closeTimeStr.substring(2,4));
+                int openTime = openHour * 60 + openMin;
+                int closeTime = closeHour * 60 + closeMin;
+                return currentTime >= openTime && currentTime < closeTime;
+              `,
+              params: {
+                // 아래 값은 아래에서 계산된 값으로 설정됩니다.
+                currentTime: null,
+                currentDay: null
+              }
+            }
+          }
+        });
       }
     }
 
-    // 위치 기반 검색 추가
     if (x && y) {
       const userLocation = {
         lat: parseFloat(y),
@@ -74,28 +109,95 @@ router.get('/', async (req, res) => {
       };
       filter.push({
         geo_distance: {
-          distance: distance, // 클라이언트에서 전달된 반경 사용
-          location: userLocation // 'location' 필드는 Elasticsearch 인덱스의 Geo Point 필드명이어야 합니다.
+          distance: distance,
+          location: userLocation
         }
       });
     }
 
-    const queryBody = {
+    // 1. 현재 시간 및 요일 계산 (모든 스크립트에서 사용)
+    const now = new Date();
+    const currentTime = now.getHours() * 60 + now.getMinutes();
+    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const currentDay = days[now.getDay()];
+
+    // 만약 category가 "영업중"이면, 스크립트 필터의 파라미터 값을 설정
+    if (category === "영업중") {
+      filter.forEach(f => {
+        if (f.script && f.script.script) {
+          f.script.script.params.currentTime = currentTime;
+          f.script.script.params.currentDay = currentDay;
+        }
+      });
+    }
+
+    // 2. 기본 쿼리 구성
+    const baseQuery = {
       bool: {
         must: must.length > 0 ? must : [{ match_all: {} }],
         filter: filter
       }
     };
 
-    console.log("Elasticsearch 쿼리:", JSON.stringify(queryBody, null, 2));
+    // 3. boost 기능: 운영시간 boost 적용 (영업 중이면 10점 부여)
+    const boostedQuery = {
+      function_score: {
+        query: baseQuery,
+        functions: [
+          {
+            script_score: {
+              script: {
+                lang: "painless",
+                source: `
+                  int currentTime = params.currentTime;
+                  String currentDay = params.currentDay;
+                  if (doc["schedule." + currentDay + ".openTime"].size() == 0 ||
+                      doc["schedule." + currentDay + ".closeTime"].size() == 0) {
+                    return 0;
+                  }
+                  if (doc["schedule." + currentDay + ".openTime"].value == null ||
+                      doc["schedule." + currentDay + ".closeTime"].value == null) {
+                    return 0;
+                  }
+                  String openTimeStr = doc["schedule." + currentDay + ".openTime"].value.toString();
+                  String closeTimeStr = doc["schedule." + currentDay + ".closeTime"].value.toString();
+                  if (openTimeStr.equals("-") || closeTimeStr.equals("-")) {
+                    return 0;
+                  }
+                  if (openTimeStr.length() < 4 || closeTimeStr.length() < 4) {
+                    return 0;
+                  }
+                  int openHour = Integer.parseInt(openTimeStr.substring(0,2));
+                  int openMin = Integer.parseInt(openTimeStr.substring(2,4));
+                  int closeHour = Integer.parseInt(closeTimeStr.substring(0,2));
+                  int closeMin = Integer.parseInt(closeTimeStr.substring(2,4));
+                  int openTime = openHour * 60 + openMin;
+                  int closeTime = closeHour * 60 + closeMin;
+                  if (currentTime >= openTime && currentTime < closeTime) {
+                    return 10.0;
+                  } else {
+                    return 0;
+                  }
+                `,
+                params: {
+                  currentTime: currentTime,
+                  currentDay: currentDay
+                }
+              }
+            }
+          }
+        ],
+        boost_mode: "sum",
+        score_mode: "sum"
+      }
+    };
 
     const searchParams = {
-      index: 'hospitals', // 인덱스명
+      index: 'hospitals',
       from: (pageNumber - 1) * limitNumber,
       size: limitNumber,
       body: {
-        query: queryBody,
-        // 위치 기반 검색 시 거리 순 정렬 추가
+        query: boostedQuery,
         sort: (x && y) ? [
           {
             "_geo_distance": {
@@ -109,9 +211,9 @@ router.get('/', async (req, res) => {
       }
     };
 
-    const response = await client.search(searchParams);
+    console.log("Elasticsearch 쿼리:", JSON.stringify(searchParams.body, null, 2));
 
-    // response.body가 undefined라면 response 전체를 사용
+    const response = await client.search(searchParams);
     const result = (typeof response.body !== 'undefined') ? response.body : response;
     console.log("Full search response:", JSON.stringify(result, null, 2));
 
@@ -119,9 +221,8 @@ router.get('/', async (req, res) => {
     if (result && result.hits) {
       hits = result.hits.hits.map(hit => ({
         ...hit._source,
-        _id: hit._id, // _id 값을 _source와 병합
+        _id: hit._id,
       }));
-      // total은 버전에 따라 다르게 반환될 수 있습니다.
       totalCount = typeof result.hits.total === 'number'
         ? result.hits.total
         : result.hits.total.value;

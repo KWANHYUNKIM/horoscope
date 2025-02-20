@@ -1,44 +1,82 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
   <head>
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+
+    <!-- 네이버 검색 등록 관련 -->
     <meta name="naver-site-verification" content="8663d053739b5b8325daa8c350c7130e2d92824f" />
+
+    <!-- 반응형 설정 -->
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#000000" />
+
+    <!-- 검색결과 설명 -->
     <meta
       name="description"
-      content="Web site created using create-react-app"
+      content="삐뽀삐뽀119 글로벌 병원 서칭 플랫폼 | 삐뽀삐뽀119 공식 사이트"
     />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <!--
-      manifest.json provides metadata used when your web app is installed on a
-      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
-    -->
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <!--
-      Notice the use of %PUBLIC_URL% in the tags above.
-      It will be replaced with the URL of the `public` folder during the build.
-      Only files inside the `public` folder can be referenced from the HTML.
 
-      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
-      work correctly both with client-side routing and a non-root public URL.
-      Learn how to configure a non-root public URL by running `npm run build`.
-    -->
-    <title>삐뽀삐뽀119 | 주변 병원 서칭 플랫폼 </title>
+    <!-- 키워드 (선택) -->
+    <meta
+      name="keywords"
+      content="삐뽀삐뽀119,병원,응급실,119,서칭,검색,플랫폼"
+    />
+
+    <!-- 오픈그래프(OG) 태그 -->
+    <meta property="og:title" content="삐뽀삐뽀119 | 주변 병원 서칭 플랫폼" />
+    <meta
+      property="og:description"
+      content="삐뽀삐뽀119 글로벌 병원 서칭 플랫폼 | 삐뽀삐뽀119 공식 사이트"
+    />
+    <meta property="og:url" content="https://www.bippobippo119.com" />
+    <meta property="og:type" content="website" />
+    <!-- 아래 이미지는 검색 결과에서 미리보기로 노출될 대표 이미지 URL -->
+    <meta property="og:image" content="%PUBLIC_URL%/images/pp119_og.png" />
+
+    <!-- 아이콘 & PWA 관련 설정 -->
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+
+    <title>삐뽀삐뽀119 | 주변 병원 서칭 플랫폼</title>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
-    <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
 
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
+    <!-- 검색엔진/사용자에게 노출될 수 있는 간단한 섹션 예시 -->
+    <div style="text-align:center; margin-top: 40px;">
+      <!-- 보통 브랜드명 - 도메인 형태로 표기 -->
+      <h1>삐뽀삐뽀119 - www.bippobippo119.com</h1>
+      <!-- 짧은 소개 문구 -->
+      <p style="margin-bottom: 20px;">
+        삐뽀삐뽀119 글로벌 병원 서칭 플랫폼 | 삐뽀삐뽀119 공식 사이트
+      </p>
+      <!-- 다운로드/채널 아이콘 링크 -->
+      <div style="display: inline-flex; gap: 15px; align-items: center;">
+        <!-- 실제 서비스 링크로 교체하세요 -->
+        <!--
+        <a href="https://play.google.com/store/apps/details?id=YOUR_APP_ID" target="_blank">
+          <img src="%PUBLIC_URL%/images/google-play.png" alt="Google Play" style="height: 32px;" />
+        </a>
+        -->
 
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
+        <a href="https://blog.naver.com/YOUR_BLOG_ID" target="_blank">
+          <img src="%PUBLIC_URL%/images/naver-blog.png" alt="네이버 블로그" style="height: 32px;" />
+        </a>
+        <a href="https://instagram.com/YOUR_INSTAGRAM_ID" target="_blank">
+          <img src="%PUBLIC_URL%/images/instagram.png" alt="인스타그램" style="height: 32px;" />
+        </a>
+        <a href="https://facebook.com/YOUR_FACEBOOK_ID" target="_blank">
+          <img src="%PUBLIC_URL%/images/facebook.png" alt="페이스북" style="height: 32px;" />
+        </a>
+        <a href="https://youtube.com/YOUR_CHANNEL_ID" target="_blank">
+          <img src="%PUBLIC_URL%/images/youtube.png" alt="유튜브" style="height: 32px;" />
+        </a>
+        <a href="https://apps.apple.com/kr/app/YOUR_APP_ID" target="_blank">
+          <img src="%PUBLIC_URL%/images/app-store.png" alt="앱스토어" style="height: 32px;" />
+        </a>
+      </div>
+    </div>
   </body>
 </html>

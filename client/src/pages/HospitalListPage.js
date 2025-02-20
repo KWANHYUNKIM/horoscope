@@ -262,8 +262,10 @@ const HospitalListPage = () => {
         params.category = "야간진료";
       }else if (selectedAdditionalFilter === "주말진료") {
         params.category = "주말진료";
+      }else if (selectedAdditionalFilter === "영업중") {
+        params.category = "영업중";
       }
-
+    
       const response = await fetchHospitals(params);
       // 구조분해: { data, totalCount, currentPage, totalPages }
       const {
@@ -272,7 +274,7 @@ const HospitalListPage = () => {
         totalPages: fetchedTotalPages,
         currentPage: fetchedCurrentPage,
       } = response;
-
+      
       // 상태 업데이트
       setHospitals(data);
       setTotalCount(fetchedTotalCount);

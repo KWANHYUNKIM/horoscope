@@ -36,20 +36,20 @@ jobs:
         run: gcloud auth configure-docker asia-northeast3-docker.pkg.dev
 
       # 5) 서버 이미지 빌드 & 푸시
-      #- name: 🏗 Build and Push Server Docker Image
-      #  run: |
-      #    echo "Using project ID: ${{ secrets.GCP_PROJECT_ID }}"
-      #    if [[ -z "${{ secrets.GCP_PROJECT_ID }}" ]]; then
-      #      echo "❌ ERROR: GCP_PROJECT_ID is empty!"
-      #      exit 1
-      #    fi
-      #    
-      #    cd server
+      - name: 🏗 Build and Push Server Docker Image
+        run: |
+          echo "Using project ID: ${{ secrets.GCP_PROJECT_ID }}"
+          if [[ -z "${{ secrets.GCP_PROJECT_ID }}" ]]; then
+            echo "❌ ERROR: GCP_PROJECT_ID is empty!"
+            exit 1
+          fi
+          
+          cd server
           # multi-platform 빌드 시 --platform 플래그와 --push를 함께 사용해야 합니다.
-      #    docker buildx build \
-      #          --platform linux/amd64 -t asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/server:latest \
-      #          --push \
-      #          -f Dockerfile .
+          docker buildx build \
+                --platform linux/amd64 -t asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/server:latest \
+                --push \
+                -f Dockerfile .
 
       # 6) 클라이언트 이미지 빌드 & 푸시
       - name: 🏗 Build and Push Client Docker Image
@@ -82,14 +82,14 @@ jobs:
       #    sleep 300
 
       # 11) 서버 이미지 Cloud Run에 배포 (최종 단계)
-      #- name: 🚀 Deploy Server to Cloud Run
-      #  run: |
-      #    gcloud run deploy my-server \
-      #      --image asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/server:latest \
-      #      --platform managed \
-      #      --region asia-northeast3 \
-      #      --port 3001 \
-      #     --allow-unauthenticated
+      - name: 🚀 Deploy Server to Cloud Run
+        run: |
+          gcloud run deploy my-server \
+            --image asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/server:latest \
+            --platform managed \
+            --region asia-northeast3 \
+            --port 3001 \
+           --allow-unauthenticated
 
 
       # 10) 클라이언트 이미지 Cloud Run에 배포
