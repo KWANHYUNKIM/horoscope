@@ -8,7 +8,7 @@ const Footer = () => {
         <div className="text-center md:text-left">
           <h2 className="text-xl font-bold">🚑 삐뽀삐뽀119</h2>
           <p className="text-sm text-gray-300 mt-2">
-            아이가 아플 때, 가장 가까운 병원을 빠르게 찾을 수 있도록!
+            가장 가까운 병원을 빠르게 찾을 수 있도록!
             <br />
             <strong>삐뽀삐뽀119</strong>는 공공데이터를 활용하여 실시간 병원 정보를 제공합니다.
             빠르고, 정확한 의료정보 검색을 경험하세요.
@@ -16,7 +16,9 @@ const Footer = () => {
         </div>
 
         {/* 주요 서비스 링크 */}
+        {/*
         <div className="flex flex-col items-center text-center space-y-2">
+          
           <h3 className="text-lg font-semibold">🔗 주요 서비스</h3>
           <a href="/hospitals" className="text-gray-400 hover:text-white transition">
             병원 검색
@@ -31,6 +33,7 @@ const Footer = () => {
             회사 소개
           </a>
         </div>
+        */}
 
         {/* 공공누리 저작권 & 공공데이터 출처 */}
         <div className="flex flex-col items-center text-center">

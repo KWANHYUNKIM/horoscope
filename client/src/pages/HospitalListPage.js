@@ -509,14 +509,15 @@ const HospitalListPage = () => {
                       주말 진료: {hospital.weekendCare ? "가능 ✅" : "불가 ❌"}
                     </span>
                   </div>
-
                   {/* 🔍 상세보기 버튼 */}
+                  {/*
                   <button
                     className="mt-2 bg-blue-500 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-600 transition"
                     onClick={() => handleDetailClick(hospital._id)}
                   >
                     🔍 자세히 보기
                   </button>
+                  */}
                 </div>
               </div>
             ))}
