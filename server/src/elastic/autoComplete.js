@@ -1,59 +1,96 @@
-const express = require('express');
-const client = require('../config/elasticsearch'); // Elasticsearch 클라이언트 가져오기
+const express = require("express");
+const client = require("../config/elasticsearch"); // Elasticsearch 클라이언트 가져오기
 const router = express.Router();
 
-router.get('/', async (req, res) => {
-  // 캐시 사용 안하도록 설정
-  res.set('Cache-Control', 'no-store');
+router.get("/", async (req, res) => {
+  console.log("🚀 자동완성 요청 도착!"); 
+  res.set("Cache-Control", "no-store");
 
   try {
     const { query } = req.query;
+    console.log(`✅ 검색어 수신: ${query}`); 
+
     if (!query || query.trim() === "") {
+      console.log("❌ query 파라미터 없음");
       return res.status(400).json({ error: "query 파라미터가 필요합니다." });
     }
 
-    // 입력 쿼리를 공백 기준으로 토큰화 (예: "대전 정형외과" → ["대전", "정형외과"])
-    const tokens = query.trim().split(/\s+/);
-
-    // 각 토큰을 대상으로 multi_match 쿼리를 구성
-    // 여러 필드에서 검색하도록 하여, 지역, 병원명, 전공 등 다양한 키워드를 인식
-    const mustQueries = tokens.map(token => ({
-      multi_match: {
-        query: token,
-        fields: ["yadmNm^3", "addr", "region", "major", "subject"],
-        fuzziness: "AUTO"
-      }
-    }));
-
-    // 동적 쿼리 구성: 모든 토큰을 must 조건으로 결합
-    const autoCompleteQuery = {
-      bool: {
-        must: mustQueries
-      }
-    };
-
     const searchParams = {
-      index: 'hospitals', // 실제 사용하는 인덱스명으로 변경
-      size: 10,
+      index: "hospitals",
+      size: 20,
       body: {
-        query: autoCompleteQuery
+        query: {
+          bool: {
+            should: [
+              {
+                match_phrase_prefix: { yadmNm: query }
+              },
+              {
+                wildcard: { addr: `*${query}*` }
+              },
+              {
+                wildcard: { region: `*${query}*` }
+              },
+              {
+                wildcard: { subject: `*${query}*` }
+              }
+            ]
+          }
+        },
+        sort: [{ _score: "desc" }]
       }
     };
 
-    console.log("Elasticsearch AutoComplete 쿼리:", JSON.stringify(searchParams.body, null, 2));
+    console.log("🔍 Elasticsearch Query:", JSON.stringify(searchParams.body, null, 2));
 
     const response = await client.search(searchParams);
-    const result = (typeof response.body !== 'undefined') ? response.body : response;
-    console.log("자동완성 검색 응답:", JSON.stringify(result, null, 2));
 
-    const suggestions = result.hits.hits.map(hit => hit._source);
+    // ✅ 응답이 정상인지 체크
+    if (!response || !response.body || !response.body.hits) {
+      console.error("❌ Elasticsearch 응답 오류: 응답이 비어 있음.");
+      return res.status(500).json({ message: "Elasticsearch 응답 오류" });
+    }
 
+    console.log("✅ Elasticsearch 응답:", JSON.stringify(response.body, null, 2));
+
+    const suggestions = {
+      region: [],
+      major: [],
+      hospital: []
+    };
+
+    response.body.hits.hits.forEach((hit) => {
+      const item = hit._source;
+      if (item.region && !suggestions.region.includes(item.region)) {
+        suggestions.region.push(item.region);
+      }
+      if (item.major) {
+        item.major.forEach((m) => {
+          if (!suggestions.major.includes(m)) {
+            suggestions.major.push(m);
+          }
+        });
+      }
+      if (item.yadmNm) {
+        suggestions.hospital.push({
+          name: item.yadmNm,
+          address: item.addr,
+          subject: item.subject
+        });
+      }
+    });
+
+    console.log("✅ 최종 자동완성 응답 데이터:", JSON.stringify(suggestions, null, 2));
     res.json(suggestions);
+
   } catch (error) {
-    console.error(
-      "자동완성 라우트 오류:",
-      error.meta ? JSON.stringify(error.meta.body.error, null, 2) : error
-    );
+    console.error("❌ 자동완성 라우트 오류:", error);
+
+    // ✅ Elasticsearch 상세 오류 로그 출력
+    if (error.meta && error.meta.body) {
+      console.error("🔍 Elasticsearch 상세 오류:", JSON.stringify(error.meta.body, null, 2));
+    }
+
     res.status(500).json({ message: "자동완성 검색 중 오류가 발생했습니다." });
   }
 });

@@ -1,7 +1,11 @@
 // server/src/routes/elastic/hospitalSearch.js
 const express = require('express');
+const moment = require('moment-timezone'); // moment-timezone 라이브러리 추가
 const client = require('../config/elasticsearch'); // ✅ Elasticsearch 클라이언트 가져오기
 const router = express.Router();
+
+// 환경변수 TIMEZONE이 설정되어 있으면 사용하고, 없으면 'Asia/Seoul'로 기본 설정
+const TIMEZONE = process.env.TIMEZONE || 'Asia/Seoul';
 
 router.get('/', async (req, res) => {
   try {
@@ -92,7 +96,6 @@ router.get('/', async (req, res) => {
                 return currentTime >= openTime && currentTime < closeTime;
               `,
               params: {
-                // 아래 값은 아래에서 계산된 값으로 설정됩니다.
                 currentTime: null,
                 currentDay: null
               }
@@ -115,11 +118,11 @@ router.get('/', async (req, res) => {
       });
     }
 
-    // 1. 현재 시간 및 요일 계산 (모든 스크립트에서 사용)
-    const now = new Date();
-    const currentTime = now.getHours() * 60 + now.getMinutes();
-    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-    const currentDay = days[now.getDay()];
+    // 1. 현재 시간 및 요일 계산 (타임존을 고려하여 계산)
+    const now = moment().tz(TIMEZONE);
+    const currentTime = now.hours() * 60 + now.minutes();
+    const currentDay = now.format('dddd'); // 예: "Saturday"
+    console.log(`Calculated currentTime: ${currentTime}, currentDay: ${currentDay} (Timezone: ${TIMEZONE})`);
 
     // 만약 category가 "영업중"이면, 스크립트 필터의 파라미터 값을 설정
     if (category === "영업중") {
@@ -211,7 +214,8 @@ router.get('/', async (req, res) => {
       }
     };
 
-    //console.log("Elasticsearch 쿼리:", JSON.stringify(searchParams.body, null, 2));
+    // 실행 전 Elasticsearch 쿼리 로깅 (필요시 주석 해제)
+    // console.log("Elasticsearch 쿼리:", JSON.stringify(searchParams.body, null, 2));
 
     const response = await client.search(searchParams);
     const result = (typeof response.body !== 'undefined') ? response.body : response;
