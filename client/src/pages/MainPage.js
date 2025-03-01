@@ -1,12 +1,11 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Link } from "react-router-dom";
-import Slider from "../components/Slider"; // 슬라이더 컴포넌트 가져오기
-//import InfomationSection from "../components/InfomationSection";
+import { useNavigate, Link } from "react-router-dom";
+import Slider from "../components/Slider"; // 슬라이더 컴포넌트
 import FloatingAnnouncementModal from "../components/FloatingAnnouncementModal";
+import AutoComplete from "../components/AutoComplete"; // 자동완성 컴포넌트 import
 
 const MainPage = () => {
-  const [searchQuery, setSearchQuery] = useState(""); // 검색 입력값 상태
+  const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
 
   const categories = [
@@ -16,17 +15,11 @@ const MainPage = () => {
     { label: "내 주변", icon: "📍" },
   ];
 
-  const handleSearch = () => {
-    // 검색 버튼 클릭 시 검색 페이지로 이동
-    navigate(`/hospitals?query=${encodeURIComponent(searchQuery)}`);
-  };
-
   const handleNearby = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          // 위치 정보를 서버로 전달하기 위해 쿼리 파라미터로 포함
           navigate(`/hospitals?x=${longitude}&y=${latitude}`);
         },
         (error) => {
@@ -49,22 +42,13 @@ const MainPage = () => {
             당신의 근처에서 운영 중인 병원을 쉽게 찾아보세요
           </p>
 
-          {/* 검색바 */}
+          {/* 검색바 - AutoComplete 컴포넌트 사용 */}
           <section className="w-full mt-6 p-2">
             <div className="flex max-w-md mx-auto">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="어떤 병원을 찾으시나요?"
-                className="flex-1 p-2 border border-gray-300 rounded-l-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 text-black"
+              <AutoComplete
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
               />
-              <button
-                onClick={handleSearch}
-                className="bg-purple-500 text-white px-4 py-2 rounded-r-lg shadow-sm hover:bg-purple-600"
-              >
-                검색
-              </button>
             </div>
           </section>
         </div>
@@ -96,19 +80,14 @@ const MainPage = () => {
           )}
         </div>
       </section>
-      {/* 애니메이션 */}
-      {/* 정보성 글 */}
+
       {/* 슬라이더 */}
       <section className="container mx-auto mt-6 p-4 px-4 md:px-40">
-        <Slider /> {/* 슬라이더 컴포넌트 추가 */}
+        <Slider />
       </section>
 
-      {/*<InfomationSection />*/}
-
-      {/* 공지사항 버튼 (페이지 오른쪽 아래에 떠 있음) */}
+      {/* 공지사항 버튼 */}
       <FloatingAnnouncementModal />
-
-
     </div>
   );
 };

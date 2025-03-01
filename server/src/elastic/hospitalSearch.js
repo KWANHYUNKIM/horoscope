@@ -211,7 +211,7 @@ router.get('/', async (req, res) => {
       }
     };
 
-    console.log("Elasticsearch 쿼리:", JSON.stringify(searchParams.body, null, 2));
+    //console.log("Elasticsearch 쿼리:", JSON.stringify(searchParams.body, null, 2));
 
     const response = await client.search(searchParams);
     const result = (typeof response.body !== 'undefined') ? response.body : response;
