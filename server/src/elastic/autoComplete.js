@@ -3,15 +3,15 @@ const client = require("../config/elasticsearch"); // Elasticsearch 클라이언
 const router = express.Router();
 
 router.get("/", async (req, res) => {
-  console.log("🚀 자동완성 요청 도착!"); 
+  //console.log("🚀 자동완성 요청 도착!"); 
   res.set("Cache-Control", "no-store");
 
   try {
     const { query } = req.query;
-    console.log(`✅ 검색어 수신: ${query}`); 
+    //console.log(`✅ 검색어 수신: ${query}`); 
 
     if (!query || query.trim() === "") {
-      console.log("❌ query 파라미터 없음");
+      //console.log("❌ query 파라미터 없음");
       return res.status(400).json({ error: "query 파라미터가 필요합니다." });
     }
 
@@ -22,18 +22,10 @@ router.get("/", async (req, res) => {
         query: {
           bool: {
             should: [
-              {
-                match_phrase_prefix: { yadmNm: query }
-              },
-              {
-                wildcard: { addr: `*${query}*` }
-              },
-              {
-                wildcard: { region: `*${query}*` }
-              },
-              {
-                wildcard: { subject: `*${query}*` }
-              }
+              { match_phrase_prefix: { yadmNm: query } },
+              { wildcard: { "addr.keyword": `*${query}*` } }, // 정확한 검색을 위해 `.keyword` 적용
+              { wildcard: { "region.keyword": `*${query}*` } },
+              { wildcard: { "subject.keyword": `*${query}*` } }
             ]
           }
         },
@@ -41,17 +33,21 @@ router.get("/", async (req, res) => {
       }
     };
 
-    console.log("🔍 Elasticsearch Query:", JSON.stringify(searchParams.body, null, 2));
+    //console.log("🔍 Elasticsearch Query:", JSON.stringify(searchParams.body, null, 2));
 
     const response = await client.search(searchParams);
 
-    // ✅ 응답이 정상인지 체크
-    if (!response || !response.body || !response.body.hits) {
-      console.error("❌ Elasticsearch 응답 오류: 응답이 비어 있음.");
-      return res.status(500).json({ message: "Elasticsearch 응답 오류" });
+    // ✅ Elasticsearch 응답 데이터 확인
+    //console.log("🔍 Elasticsearch Raw Response:", JSON.stringify(response, null, 2));
+
+    // ✅ hits 데이터 확인
+    const hits = response.hits?.hits || [];
+    if (!hits.length) {
+      //console.error("❌ Elasticsearch 응답 오류: 검색 결과 없음.");
+      return res.status(404).json({ message: "검색 결과 없음" });
     }
 
-    console.log("✅ Elasticsearch 응답:", JSON.stringify(response.body, null, 2));
+    //console.log("✅ Elasticsearch 검색 결과 hits:", hits);
 
     const suggestions = {
       region: [],
@@ -59,7 +55,7 @@ router.get("/", async (req, res) => {
       hospital: []
     };
 
-    response.body.hits.hits.forEach((hit) => {
+    hits.forEach((hit) => {
       const item = hit._source;
       if (item.region && !suggestions.region.includes(item.region)) {
         suggestions.region.push(item.region);
@@ -80,7 +76,7 @@ router.get("/", async (req, res) => {
       }
     });
 
-    console.log("✅ 최종 자동완성 응답 데이터:", JSON.stringify(suggestions, null, 2));
+   //console.log("✅ 최종 자동완성 응답 데이터:", JSON.stringify(suggestions, null, 2));
     res.json(suggestions);
 
   } catch (error) {
@@ -88,7 +84,7 @@ router.get("/", async (req, res) => {
 
     // ✅ Elasticsearch 상세 오류 로그 출력
     if (error.meta && error.meta.body) {
-      console.error("🔍 Elasticsearch 상세 오류:", JSON.stringify(error.meta.body, null, 2));
+      //console.error("🔍 Elasticsearch 상세 오류:", JSON.stringify(error.meta.body, null, 2));
     }
 
     res.status(500).json({ message: "자동완성 검색 중 오류가 발생했습니다." });
@@ -96,3 +92,4 @@ router.get("/", async (req, res) => {
 });
 
 module.exports = router;
+
