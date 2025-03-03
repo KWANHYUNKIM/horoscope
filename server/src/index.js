@@ -11,21 +11,24 @@ const { reindex } = require('./elastic/elastics'); // reindex 불러오기
 
 const app = express();
 const cors = require('cors');
-
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',')
-  : ['http://localhost:8081']; // 기본 허용 도메인
+const allowedOrigins = [
+  'https://my-client-284451238916.asia-northeast3.run.app',  // 운영 환경 도메인
+  'https://bippobippo119.com.',
+  'https://bippobippo119.com',
+  'https://www.bippobippo119.com',
+  'https://www.bippobippo119.com.',
+  'http://localhost:8081' // 개발
+];
 
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);  // 허용된 도메인
+      callback(null, true);  // 허용된 도메인인 경우
     } else {
-      callback(new Error('Not allowed by CORS'));  // 허용되지 않음
+      callback(new Error('Not allowed by CORS'));  // 허용되지 않은 경우
     }
   }
 }));
-
 
 // MongoDB 연결
 connectDB();
