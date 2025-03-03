@@ -81,7 +81,6 @@ jobs:
           # Job 완료까지 잠시 대기 (예시로 300초)
       #    sleep 300
 
-      # 11) 서버 이미지 Cloud Run에 배포 (최종 단계)
       - name: 🚀 Deploy Server to Cloud Run
         run: |
           gcloud run deploy my-server \
@@ -89,14 +88,9 @@ jobs:
             --platform managed \
             --region asia-northeast3 \
             --port 3001 \
-            --allow-unauthenticated
-            --set-env-vars "NODE_ENV=production" \
-            --set-env-vars "MONGO_URI=${{ secrets.MONGO_URI }}" \
-            --set-env-vars "ES_NODE=${{ secrets.ES_NODE }}" \
-            --set-env-vars "API_KEY=${{ secrets.API_KEY }}" \
-            --set-env-vars "ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }}"
+            --allow-unauthenticated \
+            --set-env-vars "NODE_ENV=production,MONGO_URI=$(echo ${{ secrets.MONGO_URI }} | base64 --decode),ES_NODE=${{ secrets.ES_NODE }},API_KEY=${{ secrets.API_KEY }},ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }}"
 
-      # 10) 클라이언트 이미지 Cloud Run에 배포
       - name: 🚀 Deploy Client to Cloud Run
         run: |
           gcloud run deploy my-client \
@@ -104,8 +98,5 @@ jobs:
             --platform managed \
             --region asia-northeast3 \
             --port 8081 \
-            --allow-unauthenticated
-            --set-env-vars "NODE_ENV=production" \
-            --set-env-vars "REACT_APP_ES_USERNAME=${{ secrets.REACT_APP_ES_USERNAME }}" \
-            --set-env-vars "REACT_APP_ES_PASSWORD=${{ secrets.REACT_APP_ES_PASSWORD }}" \
-            --set-env-vars "REACT_APP_API_BASE_URL=${{ secrets.REACT_APP_API_BASE_URL }}"
+            --allow-unauthenticated \
+            --set-env-vars "NODE_ENV=production,REACT_APP_ES_USERNAME=${{ secrets.REACT_APP_ES_USERNAME }},REACT_APP_ES_PASSWORD=${{ secrets.REACT_APP_ES_PASSWORD }},REACT_APP_BACKEND_URL=${{ secrets.REACT_APP_BACKEND_URL }}"

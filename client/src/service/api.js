@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // ✅ 환경 변수에서 API 서버 URL 가져오기 (없으면 기본값 사용)
-const baseURL = process.env.REACT_APP_API_BASE_URL || "http://localhost:3001";
+const baseURL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
 
 // 병원 목록 가져오기 (전체 조회)
 export const fetchHospitals = async (params) => {
