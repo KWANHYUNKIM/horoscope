@@ -10,18 +10,15 @@ const HospitalDetailPage = () => {
 
   // ✅ 환경 변수에서 백엔드 API URL 및 Elasticsearch 인증 정보 가져오기
   const baseUrl = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
-  const esUsername = process.env.REACT_APP_ES_USERNAME;
-  const esPassword = process.env.REACT_APP_ES_PASSWORD;
   
   useEffect(() => {
     const fetchHospital = async () => {
       try {
         const response = await fetch(
-          `${baseUrl}/api/hospitals/details/search/${id}`,
+          `${baseUrl}/api/hospitals/details/search/${id}`, // ✅ 백엔드 API 호출
           {
             method: "GET",
             headers: {
-              "Authorization": "Basic " + btoa(`${esUsername}:${esPassword}`), // ✅ Elasticsearch 인증 추가
               "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
               Pragma: "no-cache",
               Expires: "0",
