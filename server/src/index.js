@@ -6,7 +6,7 @@ const hospitalSubjectRoutes = require('./routes/hospitalSubjectRoutes'); // 새�
 const hospitalDetailSearchRoutes = require('./elastic/hospitalDetailSearch');
 const autoCompleteRouter = require('./elastic/autoComplete');
 
-const { reindex } = require('./elastic/elastics'); // reindex 불러오기
+//const { reindex } = require('./elastic/elastics'); // reindex 불러오기
 //const User = require('./models/User');
 
 const app = express();
@@ -33,9 +33,9 @@ app.use(cors({
 // MongoDB 연결
 connectDB();
 
-reindex().then(() => {
-    console.log("🚀 Elasticsearch Reindexing Complete!");
-  }).catch(err => console.error("❌ Error in reindexing:", err));
+//reindex().then(() => {
+//    console.log("🚀 Elasticsearch Reindexing Complete!");
+//  }).catch(err => console.error("❌ Error in reindexing:", err));
 
 // 미들웨어
 app.use(express.json());
