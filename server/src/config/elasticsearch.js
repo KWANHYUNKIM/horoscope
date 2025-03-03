@@ -1,4 +1,3 @@
-require('dotenv').config();
 const { Client } = require('@elastic/elasticsearch');
 
 // 환경 변수에서 Elasticsearch 노드 주소 불러오기

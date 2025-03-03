@@ -1,4 +1,3 @@
-require('dotenv').config();
 const express = require('express');
 const connectDB = require('./config/mongoose'); // MongoDB 연결
 const hospitalRoutes = require('./routes/hospitalRoutes');
@@ -12,17 +11,21 @@ const { reindex } = require('./elastic/elastics'); // reindex 불러오기
 
 const app = express();
 const cors = require('cors');
-const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : [];
+
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : ['http://localhost:8081']; // 기본 허용 도메인
 
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);  // 허용된 도메인인 경우
+      callback(null, true);  // 허용된 도메인
     } else {
-      callback(new Error('Not allowed by CORS'));  // 허용되지 않은 경우
+      callback(new Error('Not allowed by CORS'));  // 허용되지 않음
     }
   }
 }));
+
 
 // MongoDB 연결
 connectDB();

@@ -1,4 +1,3 @@
-require('dotenv').config();
 const mongoose = require('mongoose');
 
 // 환경 변수에서 MongoDB URI 불러오기

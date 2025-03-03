@@ -3,12 +3,12 @@ const client = require("../config/elasticsearch"); // Elasticsearch 클라이언
 const router = express.Router();
 
 router.get("/", async (req, res) => {
-  //console.log("🚀 자동완성 요청 도착!"); 
+  //console.log("🚀 자동완성 요청 도착!");
   res.set("Cache-Control", "no-store");
 
   try {
     const { query } = req.query;
-    //console.log(`✅ 검색어 수신: ${query}`); 
+    //console.log(`✅ 검색어 수신: ${query}`);
 
     if (!query || query.trim() === "") {
       //console.log("❌ query 파라미터 없음");

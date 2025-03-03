@@ -1,4 +1,3 @@
-require('dotenv').config();
 const mongoose = require('mongoose');
 const client = require('../config/elasticsearch');
 const Hospital = require('../models/hospital');
@@ -7,7 +6,7 @@ const BULK_SIZE = 500;
 const INDEX_NAME = 'hospital_details';
 
 // MongoDB URI를 환경 변수에서 가져옴
-const MONGO_URI = process.env.MONGO_URI;
+const MONGO_URI = process.env.MONGO_URI || 'http://localhost:8081' ;
 
 if (!MONGO_URI) {
   console.error('❌ MONGO_URI 환경 변수가 설정되지 않았습니다.');
