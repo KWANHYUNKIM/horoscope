@@ -93,7 +93,7 @@ jobs:
             --set-env-vars MONGO_URI=${{ secrets.MONGO_URI }} \
             --set-env-vars ES_NODE=${{ secrets.ES_NODE }} \
             --set-env-vars API_KEY=${{ secrets.API_KEY }} \
-            --set-env-vars ALLOWED_ORIGINS="${{ secrets.ALLOWED_ORIGINS }}"
+            --set-env-vars ALLOWED_ORIGINS="'${{ secrets.ALLOWED_ORIGINS }}'"
 
       - name: 🚀 Deploy Server to Cloud Run
         run: |
