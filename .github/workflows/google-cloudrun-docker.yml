@@ -89,14 +89,18 @@ jobs:
             --region asia-northeast3 \
             --port 3001 \
             --allow-unauthenticated \
-            --set-env-vars "NODE_ENV=production,MONGO_URI=$(echo ${{ secrets.MONGO_URI }} | base64 --decode),ES_NODE=${{ secrets.ES_NODE }},API_KEY=${{ secrets.API_KEY }},ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }}"
+            --set-env-vars NODE_ENV=production \
+            --set-env-vars MONGO_URI=${{ secrets.MONGO_URI }} \
+            --set-env-vars ES_NODE=${{ secrets.ES_NODE }} \
+            --set-env-vars API_KEY=${{ secrets.API_KEY }} \
+            --set-env-vars ALLOWED_ORIGINS="${{ secrets.ALLOWED_ORIGINS }}"
 
-      - name: 🚀 Deploy Client to Cloud Run
+      - name: 🚀 Deploy Server to Cloud Run
         run: |
-          gcloud run deploy my-client \
-            --image asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/client:latest \
+          gcloud run deploy my-server \
+            --image asia-northeast3-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-server/server:latest \
             --platform managed \
             --region asia-northeast3 \
-            --port 8081 \
+            --port 3001 \
             --allow-unauthenticated \
-            --set-env-vars "NODE_ENV=production,REACT_APP_ES_USERNAME=${{ secrets.REACT_APP_ES_USERNAME }},REACT_APP_ES_PASSWORD=${{ secrets.REACT_APP_ES_PASSWORD }},REACT_APP_BACKEND_URL=${{ secrets.REACT_APP_BACKEND_URL }}"
+            --set-env-vars "NODE_ENV=production,MONGO_URI='${{ secrets.MONGO_URI }}',ES_NODE='${{ secrets.ES_NODE }}',API_KEY='${{ secrets.API_KEY }}',ALLOWED_ORIGINS='${{ secrets.ALLOWED_ORIGINS }}'"
