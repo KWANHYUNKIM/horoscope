@@ -1,4 +1,3 @@
-// src/pages/HospitalDetailPage.js
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 
@@ -9,32 +8,41 @@ const HospitalDetailPage = () => {
   const [error, setError] = useState(null);
   const [imgError, setImgError] = useState(false);
 
-  // 병원 상세 정보 API 호출
-  const baseUrl =
-  process.env.NODE_ENV === "production"
-    ? "https://my-server-284451238916.asia-northeast3.run.app" // 운영용
-    : "http://localhost:3001";          // 로컬 개발용
-
-useEffect(() => {
-  const fetchHospital = async () => {
-    try {
-      const response = await fetch(
-        `${baseUrl}/api/hospitals/details/search/${id}`
-      );
-      if (!response.ok) {
-        throw new Error("병원 정보를 가져오는데 실패했습니다.");
+  // ✅ 환경 변수에서 백엔드 API URL 및 Elasticsearch 인증 정보 가져오기
+  const baseUrl = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+  const esUsername = process.env.REACT_APP_ES_USERNAME;
+  const esPassword = process.env.REACT_APP_ES_PASSWORD;
+  
+  useEffect(() => {
+    const fetchHospital = async () => {
+      try {
+        const response = await fetch(
+          `${baseUrl}/api/hospitals/details/search/${id}`,
+          {
+            method: "GET",
+            headers: {
+              "Authorization": "Basic " + btoa(`${esUsername}:${esPassword}`), // ✅ Elasticsearch 인증 추가
+              "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+              Pragma: "no-cache",
+              Expires: "0",
+            },
+          }
+        );
+        if (!response.ok) {
+          throw new Error("병원 정보를 가져오는데 실패했습니다.");
+        }
+        const data = await response.json();
+        setHospital(data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
-      const data = await response.json();
-      setHospital(data);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-  fetchHospital();
+    };
 
-}, [id, baseUrl]);
+    fetchHospital();
+  }, [id]); // ✅ baseUrl 제외 (환경 변수 값 변경 시 불필요한 재요청 방지)
+
   if (loading)
     return <div className="text-center mt-10">🔄 로딩 중...</div>;
   if (error)
@@ -48,16 +56,7 @@ useEffect(() => {
       </div>
     );
 
-  // 요일별 운영 시간: Monday ~ Sunday, 그리고 추가 정보 항목
-  const dayKeys = [
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-    "Sunday",
-  ];
+  // ✅ 요일 매핑 및 추가 정보 항목
   const dayMap = {
     Monday: "월요일",
     Tuesday: "화요일",
@@ -67,6 +66,7 @@ useEffect(() => {
     Saturday: "토요일",
     Sunday: "일요일",
   };
+
   const extraInfo = [
     { label: "점심시간", key: "lunch" },
     { label: "평일 접수", key: "receptionWeek" },
@@ -108,15 +108,12 @@ useEffect(() => {
               rel="noopener noreferrer"
               className="mt-2 sm:mt-0 sm:ml-2 px-2 py-1 text-blue-500 border border-blue-300 rounded-md flex items-center gap-x-1 hover:bg-blue-100"
             >
-              지도보기
-              <span role="img" aria-label="map">
-                🗺️
-              </span>
+              지도보기 🗺️
             </a>
           </div>
 
           {/* 진료과 정보 */}
-          {hospital.major && hospital.major.length > 0 ? (
+          {hospital.major?.length > 0 ? (
             <div className="mb-4">
               <p className="font-semibold text-gray-700">진료과:</p>
               <div className="flex flex-wrap gap-2 mt-1">
@@ -155,19 +152,17 @@ useEffect(() => {
                   </tr>
                 </thead>
                 <tbody>
-                  {dayKeys.map((day) => (
+                  {Object.keys(dayMap).map((day) => (
                     <tr key={day} className="hover:bg-gray-50">
                       <td className="px-4 py-2 border border-gray-200 font-medium">
-                        {dayMap[day] || day} {/* 영어 요일을 한국어로 변환 */}
+                        {dayMap[day]}
                       </td>
                       <td className="px-4 py-2 border border-gray-200">
-                        {hospital.schedule && hospital.schedule[day]
-                          ? hospital.schedule[day]
-                          : "운영 정보 없음"}
+                        {hospital.schedule?.[day] || "운영 정보 없음"}
                       </td>
                     </tr>
                   ))}
-              </tbody>
+                </tbody>
               </table>
             </div>
           </div>
@@ -183,15 +178,7 @@ useEffect(() => {
                 >
                   <p className="text-gray-600 text-sm">{label}</p>
                   <p className="text-lg font-medium text-gray-800">
-                    {(key === "emergencyDay" || key === "emergencyNight") ? (
-                      hospital.schedule && hospital.schedule[key] === "Y"
-                        ? "가능 ✅"
-                        : "불가 ❌"
-                    ) : (
-                      hospital.schedule && hospital.schedule[key]
-                        ? hospital.schedule[key]
-                        : "정보 없음"
-                    )}
+                    {hospital.schedule?.[key] || "정보 없음"}
                   </p>
                 </div>
               ))}

@@ -3,6 +3,8 @@ import { useNavigate, Link } from "react-router-dom";
 import Slider from "../components/Slider"; // 슬라이더 컴포넌트
 import FloatingAnnouncementModal from "../components/FloatingAnnouncementModal";
 import AutoComplete from "../components/AutoComplete"; // 자동완성 컴포넌트 import
+import MedicalGuideSlider from "../components/MedicalGuideSlider"; // 긴급 의료 정보 슬라이더 추가
+
 
 const MainPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -85,6 +87,9 @@ const MainPage = () => {
       <section className="container mx-auto mt-6 p-4 px-4 md:px-40">
         <Slider />
       </section>
+      
+      {/* 긴급 의료 정보 & 병원 이용 가이드 슬라이더 추가 */}
+      <MedicalGuideSlider />
 
       {/* 공지사항 버튼 */}
       <FloatingAnnouncementModal />
