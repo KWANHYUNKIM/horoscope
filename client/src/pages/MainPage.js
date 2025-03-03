@@ -89,7 +89,7 @@ const MainPage = () => {
       </section>
       
       {/* 긴급 의료 정보 & 병원 이용 가이드 슬라이더 추가 */}
-      <MedicalGuideSlider />
+      {/*<MedicalGuideSlider /> */}
 
       {/* 공지사항 버튼 */}
       <FloatingAnnouncementModal />

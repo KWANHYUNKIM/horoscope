@@ -90,7 +90,7 @@ jobs:
             --region asia-northeast3 \
             --port 3001 \
             --allow-unauthenticated
-            --set-env-vars "NODE_ENV=production,MONGO_URI=${{ secrets.MONGO_URI }},ES_NODE=${{ secrets.ES_NODE }},API_KEY=${{ secrets.API_KEY }},ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }}"
+            --set-env-vars "NODE_ENV=production,MONGO_URI='${{ secrets.MONGO_URI }}',ES_NODE='${{ secrets.ES_NODE }}',API_KEY='${{ secrets.API_KEY }}',ALLOWED_ORIGINS='${{ secrets.ALLOWED_ORIGINS }}'"
 
       # 10) 클라이언트 이미지 Cloud Run에 배포
       - name: 🚀 Deploy Client to Cloud Run
@@ -101,4 +101,4 @@ jobs:
             --region asia-northeast3 \
             --port 8081 \
             --allow-unauthenticated
-            --set-env-vars "NODE_ENV=production,REACT_APP_ES_USERNAME =${{ secrets.REACT_APP_ES_USERNAME }}, REACT_APP_ES_PASSWORD=${{ secrets.REACT_APP_ES_PASSWORD}}  ,REACT_APP_API_BASE_URL=${{ secrets.REACT_APP_API_BASE_URL }}"
+            --set-env-vars "NODE_ENV=production,REACT_APP_ES_USERNAME ='${{ secrets.REACT_APP_ES_USERNAME }}', REACT_APP_ES_PASSWORD='${{ secrets.REACT_APP_ES_PASSWORD}}'  ,REACT_APP_API_BASE_URL='${{ secrets.REACT_APP_API_BASE_URL }}'"
