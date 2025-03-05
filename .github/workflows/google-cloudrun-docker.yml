@@ -31,16 +31,19 @@ jobs:
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
       
-      - name: 🔍 Check GitHub Secrets
+      - name: 📄 Create .env File (Shared for Server & Client)
         run: |
-          echo "🔎 Checking GitHub Secrets..."
-          if [[ -z "${{ secrets.REACT_APP_BACKEND_URI }}" ]]; then
-            echo "❌ ERROR: REACT_APP_BACKEND_URI is empty!"
-            exit 1
-          else
-            echo "✅ REACT_APP_BACKEND_URI exists: ${{ secrets.REACT_APP_BACKEND_URI }}"
-          fi
-          
+          cat <<EOF > .env
+            REACT_APP_BACKEND_URI=${{ secrets.REACT_APP_BACKEND_URI }}
+            REACT_APP_ES_USERNAME=${{ secrets.REACT_APP_ES_USERNAME }}
+            REACT_APP_ES_PASSWORD=${{ secrets.REACT_APP_ES_PASSWORD }}
+            NODE_ENV=production
+            API_KEY=${{ secrets.API_KEY }}
+            ES_NODE=${{ secrets.ES_NODE }}
+            MONGO_URI=${{ secrets.MONGO_URI }}
+            REACT_APP_GA_MEASUREMENT_ID=${{ secrets.REACT_APP_GA_MEASUREMENT_ID }}
+          EOF
+
       # 4) Docker 인증 설정
       - name: 🐳 Configure Docker
         run: gcloud auth configure-docker asia-northeast3-docker.pkg.dev
@@ -99,12 +102,8 @@ jobs:
             --platform managed \
             --region asia-northeast3 \
             --port 3001 \
-            --allow-unauthenticated \
-            --set-env-vars NODE_ENV=production \
-            --set-env-vars MONGO_URI="${{ secrets.MONGO_URI }}" \
-            --set-env-vars ES_NODE="${{ secrets.ES_NODE }}" \
-            --set-env-vars API_KEY="${{ secrets.API_KEY }}"
-
+            --allow-unauthenticated
+            
       # 10) 클라이언트 이미지 Cloud Run에 배포
       - name: 🚀 Deploy Client to Cloud Run
         run: |
@@ -113,8 +112,4 @@ jobs:
             --platform managed \
             --region asia-northeast3 \
             --port 8081 \
-            --set-env-vars NODE_ENV=production \
-            --set-env-vars MONGO_URI="${{ secrets.MONGO_URI }}" \
-            --set-env-vars ES_NODE="${{ secrets.ES_NODE }}" \
-            --set-env-vars API_KEY="${{ secrets.API_KEY }}" \
-            --set-env-vars REACT_APP_BACKEND_URI="${{ secrets.REACT_APP_BACKEND_URI }}"
+            --allow-unauthenticated
