@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const connectDB = require('./config/mongoose'); // MongoDB 연결
 const hospitalRoutes = require('./routes/hospitalRoutes');

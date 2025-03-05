@@ -31,18 +31,24 @@ jobs:
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
       
-      - name: 📄 Create .env File (Shared for Server & Client)
+      - name: 📄 Create Server .env File
         run: |
-          cat <<EOF > .env
-            REACT_APP_BACKEND_URI=${{ secrets.REACT_APP_BACKEND_URI }}
-            REACT_APP_ES_USERNAME=${{ secrets.REACT_APP_ES_USERNAME }}
-            REACT_APP_ES_PASSWORD=${{ secrets.REACT_APP_ES_PASSWORD }}
-            NODE_ENV=production
-            API_KEY=${{ secrets.API_KEY }}
-            ES_NODE=${{ secrets.ES_NODE }}
-            MONGO_URI=${{ secrets.MONGO_URI }}
-            REACT_APP_GA_MEASUREMENT_ID=${{ secrets.REACT_APP_GA_MEASUREMENT_ID }}
+          cat <<EOF > server/.env
+          NODE_ENV=production
+          API_KEY=${{ secrets.API_KEY }}
+          ES_NODE=${{ secrets.ES_NODE }}
+          MONGO_URI=${{ secrets.MONGO_URI }}
           EOF
+        
+      - name: 📄 Create Client .env File
+        run: |
+          cat <<EOF > client/.env
+          REACT_APP_BACKEND_URI=${{ secrets.REACT_APP_BACKEND_URI }}
+          REACT_APP_ES_USERNAME=${{ secrets.REACT_APP_ES_USERNAME }}
+          REACT_APP_ES_PASSWORD=${{ secrets.REACT_APP_ES_PASSWORD }}
+          REACT_APP_GA_MEASUREMENT_ID=${{ secrets.REACT_APP_GA_MEASUREMENT_ID }}
+          EOF
+        
 
       # 4) Docker 인증 설정
       - name: 🐳 Configure Docker

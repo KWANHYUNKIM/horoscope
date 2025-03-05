@@ -10,7 +10,8 @@ yarn.lock
 venv/
 
 # 환경 변수 파일
-.env
+server/.env
+client/.env
 
 # mongo 백업 폴더 전체 제외
 mongo/backup/
