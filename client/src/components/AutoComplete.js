@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const baseUrl = process.env.END_URL || "http://localhost:3001"; // ✅ 환경변수 사용
+const baseUrl = process.env.REACT_APP_BACKEND_URI || "http://localhost:3001"; // ✅ 환경변수 사용
 
 const AutoComplete = ({ searchQuery, setSearchQuery }) => {
   const [suggestions, setSuggestions] = useState([]);

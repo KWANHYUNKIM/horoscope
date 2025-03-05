@@ -30,7 +30,17 @@ jobs:
         uses: google-github-actions/setup-gcloud@v1
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
-
+      
+      - name: 🔍 Check GitHub Secrets
+        run: |
+          echo "🔎 Checking GitHub Secrets..."
+          if [[ -z "${{ secrets.REACT_APP_BACKEND_URI }}" ]]; then
+            echo "❌ ERROR: REACT_APP_BACKEND_URI is empty!"
+            exit 1
+          else
+            echo "✅ REACT_APP_BACKEND_URI exists: ${{ secrets.REACT_APP_BACKEND_URI }}"
+          fi
+          
       # 4) Docker 인증 설정
       - name: 🐳 Configure Docker
         run: gcloud auth configure-docker asia-northeast3-docker.pkg.dev
@@ -106,4 +116,5 @@ jobs:
             --set-env-vars NODE_ENV=production \
             --set-env-vars MONGO_URI="${{ secrets.MONGO_URI }}" \
             --set-env-vars ES_NODE="${{ secrets.ES_NODE }}" \
-            --set-env-vars API_KEY="${{ secrets.API_KEY }}"
+            --set-env-vars API_KEY="${{ secrets.API_KEY }}" \
+            --set-env-vars REACT_APP_BACKEND_URI="${{ secrets.REACT_APP_BACKEND_URI }}"
