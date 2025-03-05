@@ -106,5 +106,4 @@ jobs:
             --set-env-vars NODE_ENV=production \
             --set-env-vars MONGO_URI="${{ secrets.MONGO_URI }}" \
             --set-env-vars ES_NODE="${{ secrets.ES_NODE }}" \
-            --set-env-vars API_KEY="${{ secrets.API_KEY }}" \
-            --set-env-vars REACT_APP_BACKEND_URL="${{ secrets.REACT_APP_BACKEND_URL }}"
+            --set-env-vars API_KEY="${{ secrets.API_KEY }}"

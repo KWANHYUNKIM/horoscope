@@ -89,17 +89,25 @@ router.get('/filter', async (req, res) => {
 
 // GET /api/hospitals: 모든 병원 및 관련 subject, time 정보를 함께 조회
 
-router.get('/', async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1; // 기본 1페이지
     const limit = parseInt(req.query.limit) || 20; // 페이지당 20건
     const skip = (page - 1) * limit;
+    const region = req.query.region || ""; // 기본값은 ""
 
-    // skip과 limit을 적용해 필요한 데이터만 조회
-    const hospitals = await Hospital.find({}).skip(skip).limit(limit);
-    const totalCount = await Hospital.countDocuments({});
+    // 🔹 필터 조건 설정
+    let filterConditions = {};
 
-    // 각 병원마다 관련 subject와 time 데이터를 조회
+    if (region !== "") {
+      filterConditions.addr = { $regex: region, $options: "i" }; // 주소 필드에서 부분 일치 검색 (대소문자 무시)
+    }
+
+    // 🔹 필터 조건 적용하여 병원 데이터 조회
+    const hospitals = await Hospital.find(filterConditions).skip(skip).limit(limit);
+    const totalCount = await Hospital.countDocuments(filterConditions); // 전체 개수 카운트
+
+    // 🔹 각 병원마다 subject & time 데이터 조회
     const results = await Promise.all(
       hospitals.map(async (hospital) => {
         const subject = await HospitalSubject.findOne({ ykiho: hospital.ykiho });

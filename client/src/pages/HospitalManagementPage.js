@@ -4,9 +4,12 @@ const HospitalManagementPage = () => {
   const [hospitals, setHospitals] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [missingTimeCount, setMissingTimeCount] = useState(0); // 🔹 없음 개수 상태 추가
+
 
   // 검색 및 페이지네이션 상태
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedRegion, setSelectedRegion] = useState("전국");
   const [page, setPage] = useState(1);
   const limit = 20; // 페이지당 항목 수
   const [totalPages, setTotalPages] = useState(1);
@@ -17,6 +20,27 @@ const HospitalManagementPage = () => {
   const [currentYkiho, setCurrentYkiho] = useState('');
   const [modalForm, setModalForm] = useState({});
   const [customPage, setCustomPage] = useState(page); // 직접 입력한 페이지 번호 상태
+  
+  const filterRegions = [
+    { label: "전국", icon: "🌍" },
+    { label: "서울", icon: "🏙️" },
+    { label: "경기", icon: "🏞️" },
+    { label: "부산", icon: "🌊" },
+    { label: "경남", icon: "🌾" },
+    { label: "대구", icon: "🏞️" },
+    { label: "인천", icon: "✈️" },
+    { label: "경북", icon: "🌾" },
+    { label: "전북", icon: "🌻" },
+    { label: "충남", icon: "🌳" },
+    { label: "전남", icon: "🌻" },
+    { label: "대전", icon: "🌳" },
+    { label: "광주", icon: "🌻" },
+    { label: "충북", icon: "🌳" },
+    { label: "강원", icon: "⛰️" },
+    { label: "울산", icon: "🌾" },
+    { label: "제주", icon: "🏝️" },
+    { label: "세종시", icon: "🏢" },
+  ];
 
   useEffect(() => {
     const fetchHospitals = async () => {
@@ -28,10 +52,16 @@ const HospitalManagementPage = () => {
         if (searchQuery) {
           queryParams.append('search', searchQuery);
         }
+        if (selectedRegion !== "전국") {
+          queryParams.append("region", selectedRegion);
+        }
+
         const res = await fetch(`http://localhost:3001/api/hospitals?${queryParams.toString()}`);
         const data = await res.json();
         // 서버가 { hospitals: [...], totalCount: number } 형태로 응답한다고 가정
         setHospitals(data.hospitals);
+        const count = data.hospitals.filter(hospital => !hospital.time).length;
+        setMissingTimeCount(count);
         setTotalPages(Math.ceil(data.totalCount / limit));
       } catch (err) {
         setError(err.message);
@@ -40,7 +70,13 @@ const HospitalManagementPage = () => {
     };
 
     fetchHospitals();
-  }, [page, searchQuery]);
+  }, [page, searchQuery, selectedRegion]);
+
+   // 🔹 지역 필터 버튼 클릭 이벤트
+   const handleRegionFilter = (region) => {
+    setSelectedRegion(region);
+    setPage(1); // 지역 필터 변경 시 첫 페이지부터 시작
+  };
 
   const handlePageInputChange = (e) => {
     let value = e.target.value;
@@ -138,7 +174,29 @@ const HospitalManagementPage = () => {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-6 text-center">병원 관리</h1>
+
+      {/* 🔹 `time` 값이 없는 병원 수 표시 */}
+      <div className="text-center text-lg font-semibold text-red-500 mb-4">
+        "Time 없음" 입력이 필요한 병원: {missingTimeCount} 개
+      </div>
       
+      {/* 🔹 지역 필터 버튼 */}
+      <div className="flex flex-wrap gap-2 justify-center mb-4">
+        {filterRegions.map((region) => (
+          <button
+            key={region.label}
+            onClick={() => handleRegionFilter(region.label)}
+            className={`px-4 py-2 rounded ${
+              selectedRegion === region.label
+                ? "bg-blue-500 text-white"
+                  : "bg-gray-300 text-gray-700"
+                }`}
+              >
+            {region.icon} {region.label}
+          </button>
+        ))}
+      </div>
+
       {/* 검색 및 페이지네이션 */}
       <div className="flex flex-col md:flex-row justify-between items-center mb-6">
         <input

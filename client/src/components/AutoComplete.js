@@ -13,7 +13,7 @@ const AutoComplete = ({ searchQuery, setSearchQuery }) => {
       return;
     }
 
-    console.log(`🔎 검색 요청: ${searchQuery}`);
+    //console.log(`🔎 검색 요청: ${searchQuery}`);
 
     const timer = setTimeout(() => {
       fetch(`${baseUrl}/api/autocomplete?query=${encodeURIComponent(searchQuery)}`, {
@@ -26,15 +26,15 @@ const AutoComplete = ({ searchQuery, setSearchQuery }) => {
         cache: "no-store",
       })
         .then((res) => {
-          console.log(`📡 응답 상태 코드: ${res.status}`);
+          //console.log(`📡 응답 상태 코드: ${res.status}`);
           return res.json();
         })
         .then((data) => {
-          console.log("✅ 자동완성 데이터 수신:", JSON.stringify(data, null, 2));
+          //console.log("✅ 자동완성 데이터 수신:", JSON.stringify(data, null, 2));
           setSuggestions(data.hospital || []); // 🔥 불필요한 프론트 필터 제거 & 빈 배열 처리
         })
         .catch((err) => {
-          console.error("❌ 자동완성 오류:", err);
+          //console.error("❌ 자동완성 오류:", err);
           setSuggestions([]);
         });
     }, 300);
