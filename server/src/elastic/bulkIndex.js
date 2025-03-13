@@ -4,7 +4,7 @@ const Hospital = require('../models/hospital'); // 병원 모델
 const BULK_SIZE = 500; // 한 번에 색인할 개수
 
 // ✅ 환경 변수에서 MongoDB URI 가져오기
-const MONGO_URI = process.env.MONGO_URI || 'http://localhost:8081' ;
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/horoscope_db';
 if (!MONGO_URI) {
   console.error("❌ [오류] MONGO_URI 환경 변수가 설정되지 않았습니다.");
   process.exit(1);
@@ -12,7 +12,7 @@ if (!MONGO_URI) {
 
 async function bulkIndex() {
   try {
-    // 1. ✅ MongoDB 연결 (이미 연결된 경우 재연결 방지)
+    // 1️⃣ MongoDB 연결 확인
     if (mongoose.connection.readyState !== 1) {
       console.log("🔄 MongoDB 연결 시도 중...");
       await mongoose.connect(MONGO_URI, {
@@ -23,14 +23,13 @@ async function bulkIndex() {
       });
     }
 
-    // 연결 체크
     if (mongoose.connection.readyState !== 1) {
       console.error("⚠️ MongoDB 연결 실패. 실행을 중단합니다.");
       return;
     }
     console.log(`✅ MongoDB 연결 성공! ${MONGO_URI}`);
 
-    // 2. ✅ 병원 데이터 조회
+    // 2️⃣ 병원 데이터 조회
     const hospitalsWithDetails = await Hospital.aggregate([
       {
         $lookup: {
@@ -63,13 +62,13 @@ async function bulkIndex() {
       return;
     }
 
-    // 3. ✅ Bulk 색인 진행
+    // 3️⃣ Bulk 색인 진행
     for (let i = 0; i < hospitalsWithDetails.length; i += BULK_SIZE) {
       const chunk = hospitalsWithDetails.slice(i, i + BULK_SIZE);
       const body = [];
 
       for (const h of chunk) {
-        const majorSubjects = h.subjects.map(subject => subject.dgsbjtCdNm) || ["-"];
+        const majorSubjects = h.subjects?.map(subject => subject.dgsbjtCdNm) || ["-"];
 
         const schedule = {
           Monday: { openTime: h.times?.trmtMonStart || "-", closeTime: h.times?.trmtMonEnd || "-" },
@@ -94,8 +93,8 @@ async function bulkIndex() {
           region: h.sidoCdNm || "-",
           subject: h.clCdNm || "-",
           major: majorSubjects,
-          nightCare: h.times && h.times.emyNgtYn === 'Y',
-          weekendCare: h.times && (h.times.noTrmtSat !== '휴무' || h.times.noTrmtSun !== '휴무'),
+          nightCare: h.times?.emyNgtYn === 'Y',
+          weekendCare: h.times?.noTrmtSat !== '휴무' || h.times?.noTrmtSun !== '휴무',
           location: h.YPos && h.XPos ? { lat: h.YPos, lon: h.XPos } : null,
           hospUrl: h.hospUrl || "-",
           telno: h.telno || "-",
@@ -105,30 +104,29 @@ async function bulkIndex() {
 
       console.log(`📝 색인 진행 중... (Batch ${Math.floor(i / BULK_SIZE) + 1})`);
 
-      let resp;
       try {
-        resp = await client.bulk({ refresh: true, body });
+        const resp = await client.bulk({ refresh: true, body });
+
+        if (!resp || !resp.body) {
+          console.error("❌ Elasticsearch 응답이 비어 있음.");
+          continue;
+        }
+
+        if (resp.body.errors) {
+          const erroredDocuments = resp.body.items.filter(item => item.index && item.index.error);
+          erroredDocuments.forEach(doc => {
+            console.error(`❌ 색인 오류 (ID: ${doc.index._id}):`, doc.index.error);
+          });
+        } else {
+          console.log(`✅ ${chunk.length}개의 병원이 'hospitals' 인덱스에 색인됨.`);
+        }
       } catch (bulkError) {
         console.error(`❌ Bulk 요청 중 오류 발생:`, bulkError);
         continue;
       }
-
-      if (!resp || !resp.body) {
-        console.error("❌ Elasticsearch 응답이 비어 있음.");
-        continue;
-      }
-
-      if (resp.body.errors) {
-        const erroredDocuments = resp.body.items.filter(item => item.index && item.index.error);
-        erroredDocuments.forEach(doc => {
-          console.error(`❌ 색인 오류 (ID: ${doc.index._id}):`, doc.index.error);
-        });
-      } else {
-        console.log(`✅ ${chunk.length}개의 병원이 'hospitals' 인덱스에 색인됨.`);
-      }
     }
 
-    // 4. ✅ 인덱스 새로 고침
+    // 4️⃣ 인덱스 새로 고침
     await client.indices.refresh({ index: 'hospitals' });
     console.log("🔄 Elasticsearch 인덱스 새로 고침 완료.");
   } catch (error) {

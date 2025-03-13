@@ -1,20 +1,24 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const baseUrl = process.env.REACT_APP_BACKEND_URI || "http://localhost:3001"; // ✅ 환경변수 사용
-
+const baseUrl = process.env.NODE_ENV === "development"
+  ? "http://localhost:3001"  // 개발 환경: 로컬 서버 사용
+  : process.env.REACT_APP_BACKEND_URL
 const AutoComplete = ({ searchQuery, setSearchQuery }) => {
-  const [suggestions, setSuggestions] = useState([]);
+  const [suggestions, setSuggestions] = useState({ hospital: [] });
+  const [searchHistory, setSearchHistory] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
+    const storedHistory = JSON.parse(localStorage.getItem("searchHistory")) || [];
+    setSearchHistory(storedHistory);
+  }, []);
+
+  useEffect(() => {
     if (!searchQuery) {
-      setSuggestions([]);
+      setSuggestions({ hospital: [] });
       return;
     }
-
-    //console.log(`🔎 검색 요청: ${searchQuery}`);
-
     const timer = setTimeout(() => {
       fetch(`${baseUrl}/api/autocomplete?query=${encodeURIComponent(searchQuery)}`, {
         method: "GET",
@@ -25,26 +29,48 @@ const AutoComplete = ({ searchQuery, setSearchQuery }) => {
         },
         cache: "no-store",
       })
-        .then((res) => {
-          //console.log(`📡 응답 상태 코드: ${res.status}`);
-          return res.json();
-        })
+        .then((res) => res.json())
         .then((data) => {
-          //console.log("✅ 자동완성 데이터 수신:", JSON.stringify(data, null, 2));
-          setSuggestions(data.hospital || []); // 🔥 불필요한 프론트 필터 제거 & 빈 배열 처리
+          const hospitalData = (data.hospital || []).map((h) => ({
+            ...h,
+            address: h.address || h.addr,
+          }));
+          setSuggestions({ hospital: hospitalData });
         })
-        .catch((err) => {
-          //console.error("❌ 자동완성 오류:", err);
-          setSuggestions([]);
+        .catch(() => {
+          setSuggestions({ hospital: [] });
         });
     }, 300);
-
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const handleSuggestionClick = (query) => {
-    setSearchQuery(query);
-    navigate(`/hospitals?query=${encodeURIComponent(query)}`);
+  const handleSearch = (queryParam = searchQuery) => {
+    if (!queryParam.trim()) return;
+    const trimmedQuery = queryParam.trim();
+    if (trimmedQuery) {
+      let updatedHistory = [trimmedQuery, ...searchHistory.filter((h) => h !== trimmedQuery)];
+      updatedHistory = updatedHistory.slice(0, 10);
+      localStorage.setItem("searchHistory", JSON.stringify(updatedHistory));
+      setSearchHistory(updatedHistory);
+    }
+    navigate(`/hospitals?query=${encodeURIComponent(queryParam)}`);
+  };
+
+  const handleHistoryClick = (item) => {
+    setSearchQuery(item);
+    handleSearch(item);
+  };
+
+  const handleDeleteHistoryItem = (e, index) => {
+    e.stopPropagation();
+    const updatedHistory = searchHistory.filter((_, i) => i !== index);
+    localStorage.setItem("searchHistory", JSON.stringify(updatedHistory));
+    setSearchHistory(updatedHistory);
+  };
+
+  const handleHospitalClick = (hospital) => {
+    setSearchQuery(hospital.name);
+    handleSearch(hospital.name);
   };
 
   return (
@@ -58,40 +84,55 @@ const AutoComplete = ({ searchQuery, setSearchQuery }) => {
           className="flex-1 p-3 border border-gray-300 rounded-l-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 text-black"
         />
         <button
-          onClick={() => navigate(`/hospitals?query=${encodeURIComponent(searchQuery)}`)}
+          onClick={() => handleSearch()}
           className="bg-purple-500 text-white px-4 py-2 rounded-r-lg shadow-sm hover:bg-purple-600"
         >
           검색
         </button>
       </div>
 
-      {suggestions.length > 0 ? (
-        <div className="absolute z-10 bg-white border border-gray-300 mt-1 w-full rounded-lg shadow-lg overflow-hidden">
-          <div className="bg-gray-100 px-4 py-2 font-semibold text-gray-700">🏥 병원 목록</div>
-          <ul className="max-h-60 overflow-auto">
-            {suggestions.map((item, index) => (
+      {!searchQuery && searchHistory.length > 0 && (
+        <div className="absolute z-10 bg-white border border-gray-300 mt-1 w-full rounded-lg shadow-lg overflow-auto">
+          <div className="px-4 py-2 font-semibold text-gray-700">이전 검색어</div>
+          <ul>
+            {searchHistory.map((item, index) => (
               <li
-                key={`hospital-${index}`}
-                onClick={() => handleSuggestionClick(item.name)}
-                className="flex justify-between items-center p-3 hover:bg-gray-200 cursor-pointer border-b"
+                key={`history-${index}`}
+                onMouseDown={() => handleHistoryClick(item)}
+                className="flex justify-between items-center p-3 hover:bg-gray-200 cursor-pointer border-b text-black text-sm"
               >
-                <div className="flex flex-col">
-                  <span className="font-medium text-blue-600">{item.name}</span>
-                  <span className="text-gray-600 text-sm">{item.address}</span>
-                </div>
-                <span className="bg-gray-300 text-gray-700 px-2 py-1 text-xs rounded-md">
-                  {item.subject}
-                </span>
+                <span>{item}</span>
+                <button
+                  className="text-gray-400 hover:text-red-500 ml-2"
+                  onMouseDown={(e) => handleDeleteHistoryItem(e, index)}
+                >
+                  X
+                </button>
               </li>
             ))}
           </ul>
         </div>
-      ) : (
-        searchQuery && (
-          <div className="absolute z-10 bg-white border border-gray-300 mt-1 w-full rounded-lg shadow-lg">
+      )}
+
+      {searchQuery && (
+        <div className="absolute z-10 bg-white border border-gray-300 mt-1 w-full rounded-lg shadow-lg overflow-hidden">
+          {suggestions.hospital.length === 0 ? (
             <div className="p-3 text-gray-500 text-center">❌ 검색 결과 없음</div>
-          </div>
-        )
+          ) : (
+            <ul>
+              {suggestions.hospital.map((hospital, idx) => (
+                <li
+                  key={idx}
+                  onMouseDown={() => handleHospitalClick(hospital)}
+                  className="p-3 hover:bg-gray-200 cursor-pointer border-b text-black text-sm"
+                >
+                  <div className="font-medium text-blue-600 text-sm">{hospital.name}</div>
+                  <div className="text-xs text-gray-500">{hospital.address}</div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
     </div>
   );

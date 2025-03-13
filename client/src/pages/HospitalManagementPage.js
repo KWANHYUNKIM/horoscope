@@ -11,7 +11,7 @@ const HospitalManagementPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRegion, setSelectedRegion] = useState("전국");
   const [page, setPage] = useState(1);
-  const limit = 20; // 페이지당 항목 수
+  const limit = 10; // 페이지당 항목 수
   const [totalPages, setTotalPages] = useState(1);
 
   // Modal 관련 상태
@@ -20,7 +20,34 @@ const HospitalManagementPage = () => {
   const [currentYkiho, setCurrentYkiho] = useState('');
   const [modalForm, setModalForm] = useState({});
   const [customPage, setCustomPage] = useState(page); // 직접 입력한 페이지 번호 상태
-  
+  const [rawJsonText, setRawJsonText] = useState('{}');
+
+  const [combinedJson, setCombinedJson] = useState('');
+  const [timeBulkJson, setTimeBulkJson] = useState('');
+
+  useEffect(() => {
+    if (modalOpen) {
+      setRawJsonText(JSON.stringify(modalForm, null, 2));
+    }
+  }, [modalOpen, modalForm]);
+
+  useEffect(() => {
+    const combined = hospitals.map(h => {
+      return `${h.yadmNm} ${h.addr} 조사하고 "ykiho": "${h.ykiho}" "_id :" "${h.time?._id ?? 'null'}" 추가해줘라`;
+    });
+    // JSON 배열 형식으로 저장
+    setCombinedJson(JSON.stringify(combined, null, 2));
+  }, [hospitals]);
+
+  useEffect(() => {
+    const times = hospitals.map(h => {
+      return {
+        time: h.time || null
+      };
+    });
+    setTimeBulkJson(JSON.stringify(times, null, 2));
+  }, [hospitals]);
+
   const filterRegions = [
     { label: "전국", icon: "🌍" },
     { label: "서울", icon: "🏙️" },
@@ -42,6 +69,7 @@ const HospitalManagementPage = () => {
     { label: "세종시", icon: "🏢" },
   ];
 
+ 
   useEffect(() => {
     const fetchHospitals = async () => {
       setLoading(true);
@@ -101,9 +129,15 @@ const HospitalManagementPage = () => {
   };
 
   const openModal = (type, ykiho, existingData = {}) => {
+    // `hospital`의 데이터를 `existingData`로 전달
+    const selectedHospital = hospitals.find(hospital => hospital.ykiho === ykiho);
     setModalType(type);
     setCurrentYkiho(ykiho);
-    setModalForm(existingData);
+    setModalForm({
+      ...existingData,
+      yadmNm: selectedHospital ? selectedHospital.yadmNm : '',
+      addr: selectedHospital ? selectedHospital.addr : ''
+    });
     setModalOpen(true);
   };
 
@@ -168,6 +202,28 @@ const HospitalManagementPage = () => {
       }));
     } catch (error) {
       alert("잘못된 JSON 형식입니다.");
+    }
+  };
+
+  const bulkUpdateTime = async () => {
+    try {
+      const parsedTimeData = JSON.parse(timeBulkJson);
+      // time 키 내부의 객체만 뽑아내어 새로운 배열로 만듭니다.
+      const flattenedData = parsedTimeData.map(item => item.time);
+      
+      // flattenedData의 각 항목에 대해 API 호출
+      for (let data of flattenedData) {
+        const { ykiho } = data;
+        await fetch(`http://localhost:3001/api/hospitals/${ykiho}/time`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          // 여기서 data 객체 자체를 전송합니다.
+          body: JSON.stringify(data),
+        });
+      }
+      alert("전체 Time 데이터가 저장되었습니다.");
+    } catch (error) {
+      alert("전체 저장 중 오류가 발생했습니다: " + error.message);
     }
   };
   
@@ -245,7 +301,7 @@ const HospitalManagementPage = () => {
           </button>
         </div>
       </div>
-
+      
       {loading && <p className="text-center">로딩 중...</p>}
       {error && <p className="text-center text-red-500">{error}</p>}
       
@@ -256,66 +312,115 @@ const HospitalManagementPage = () => {
             <tr className="bg-gray-100">
               <th className="border p-2 text-left">병원명</th>
               <th className="border p-2 text-left">주소</th>
-              <th className="border p-2 text-left">Subject</th>
-              <th className="border p-2 text-left">Time</th>
+              <th className="border p-2 text-left">외과/내과</th>
+              <th className="border p-2 text-left">시간데이터</th>
+              <th className="border p-2 text-left">확인</th>
             </tr>
           </thead>
           <tbody>
-            {hospitals.map((hospital) =>  (
-              <tr key={hospital._id} className="hover:bg-gray-50">
-                <td className="border p-2">{hospital.yadmNm}</td>
-                <td className="border p-2">{hospital.addr}</td>
-                <td className="border p-2">
-                  {hospital.subject ? (
-                    <div>
-                      <p className="font-semibold">{hospital.subject.dgsbjtCdNm}</p>
-                      <p>{hospital.subject.dgsbjtCd}</p>
-                      <button
-                        onClick={() => openModal('subject', hospital.ykiho, hospital.subject)}
-                        className="text-blue-500 underline text-sm mt-1"
-                      >
-                        수정
-                      </button>
-                    </div>
-                  ) : (
-                    <div>
-                      <p className="text-gray-500">없음</p>
-                      <button
-                        onClick={() => openModal('subject', hospital.ykiho)}
-                        className="text-blue-500 underline text-sm mt-1"
-                      >
-                        입력
-                      </button>
-                    </div>
-                  )}
-                </td>
-                <td className="border p-2 time-value">
-                  {hospital.time ? (
-                    <div>
-                      <p className="font-semibold">{hospital.time.emyDayYn}</p>
-                      <button
-                        onClick={() => openModal('time', hospital.ykiho, hospital.time)}
-                        className="text-blue-500 underline text-sm mt-1"
-                      >
-                        수정
-                      </button>
-                    </div>
-                  ) : (
-                    <div>
-                      <p className="text-gray-500">없음</p>
-                      <button
-                        onClick={() => openModal('time', hospital.ykiho)}
-                        className="text-blue-500 underline text-sm mt-1"
-                      >
-                        입력
-                      </button>
-                    </div>
-                  )}
+            {Array.isArray(hospitals) && hospitals.length > 0 ? (
+              hospitals.map((hospital) => (
+                <tr key={hospital._id || hospital.ykiho} className="hover:bg-gray-50">
+                  <td className="border p-2">{hospital.yadmNm || "-"}</td>
+                  <td className="border p-2">{hospital.addr || "-"}</td>
+                  <td className="border p-2">
+                    {hospital.subject?.dgsbjtCdNm ? (
+                      <div>
+                        <p className="font-semibold">{hospital.subject.dgsbjtCdNm}</p>
+                        <p>{hospital.subject.dgsbjtCd}</p>
+                        <button
+                          onClick={() => openModal("subject", hospital.ykiho, hospital.subject)}
+                          className="text-blue-500 underline text-sm mt-1"
+                        >
+                          수정
+                        </button>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="text-gray-500">없음</p>
+                        <button
+                          onClick={() => openModal("subject", hospital.ykiho)}
+                          className="text-blue-500 underline text-sm mt-1"
+                        >
+                          입력
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                  <td className="border p-2 time-value">
+                    {hospital.time?.emyDayYn ? (
+                      <div>
+                        <p className="font-semibold">{hospital.time.emyDayYn}</p>
+                        <button
+                          onClick={() => openModal("time", hospital.ykiho, hospital.time)}
+                          className="text-blue-500 underline text-sm mt-1"
+                        >
+                          수정
+                        </button>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="text-gray-500">없음</p>
+                        <button
+                          onClick={() => openModal("time", hospital.ykiho)}
+                          className="text-blue-500 underline text-sm mt-1"
+                        >
+                          입력
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                  <td className="border p-2 time-value">
+                    {hospital.time?.trmtMonStart || hospital.time?.trmtTueStart ||
+                    hospital.time?.trmtWedStart || hospital.time?.trmtThuStart ||
+                    hospital.time?.trmtFriStart ? (
+                      <div>
+                        <p className="font-semibold">✔</p>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="text-gray-500">없음</p>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="5" className="text-center text-gray-500 p-4">
+                  병원 데이터가 없습니다.
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
+      </div>
+      
+      {/* 🔹 통합 미리보기 영역 (combinedJson) */}
+      <div className="mt-6">
+        <h2 className="text-xl font-bold mb-2">통합 미리보기 (JSON)</h2>
+        <textarea
+          value={combinedJson}
+          onChange={(e) => setCombinedJson(e.target.value)}
+          className="border rounded px-2 py-1 w-full h-48"
+        />
+      </div>
+      
+      {/* 전체 Time 값 보기 및 JSON 미리보기 영역 */}
+      <div className="mt-6">
+        <h2 className="text-xl font-bold mb-2">전체 Time 값 보기 (JSON)</h2>
+        <textarea
+          value={timeBulkJson}
+          onChange={(e) => setTimeBulkJson(e.target.value)}
+          className="border rounded px-2 py-1 w-full h-48"
+          placeholder="여기에 전체 Time 값을 JSON 형식으로 수정할 수 있습니다."
+        />
+        <button
+          onClick={bulkUpdateTime}
+          className="mt-4 bg-green-500 text-white px-4 py-2 rounded"
+        >
+          전체 저장
+        </button>
       </div>
 
       {/* Modal Popup */}
@@ -325,32 +430,40 @@ const HospitalManagementPage = () => {
             <h2 className="text-xl font-bold mb-4">
               {modalType === 'subject' ? 'Subject 입력/수정' : 'Time 입력/수정'}
             </h2>
-            {/* JSON 붙여넣기 입력 */}
             <div className="mb-4">
-                <label className="block mb-1">JSON 데이터 붙여넣기</label>
-                <textarea
-                value={JSON.stringify(modalForm, null, 2)}  // JSON 데이터 미리보기
-                onChange={(e) => setModalForm(JSON.parse(e.target.value || '{}'))}
+              <label className="block mb-1-chatGpt">JSON </label>
+              <textarea
+                readOnly
+                value={JSON.stringify(modalForm, null, 2)}
                 className="border rounded px-2 py-1 w-full h-32"
-                placeholder="여기에 JSON 데이터를 붙여넣으세요."
-                />
+              />
             </div>
 
-            {/* JSON 미리보기 버튼 */}
+            {/* JSON 데이터 붙여넣기 영역 */}
             <div className="mb-4">
-                <button
+              <label className="block mb-1">JSON 데이터 붙여넣기</label>
+              <textarea
+                value={rawJsonText}
+                onChange={(e) => setRawJsonText(e.target.value)}
+                className="border rounded px-2 py-1 w-full h-32"
+                placeholder="여기에 JSON 데이터를 붙여넣으세요."
+              />
+            </div>
+
+            <div className="mb-4">
+              <button
                 onClick={() => {
-                    try {
-                    const parsedData = JSON.parse(document.querySelector("textarea").value); // JSON 파싱
-                    setModalForm(parsedData); // modalForm에 적용
-                    } catch (error) {
+                  try {
+                    const parsedData = JSON.parse(rawJsonText);
+                    setModalForm(parsedData);
+                  } catch (error) {
                     alert("올바른 JSON 형식을 입력해주세요.");
-                    }
+                  }
                 }}
                 className="bg-blue-500 text-white px-4 py-2 rounded w-full"
-                >
+              >
                 JSON 미리보기
-                </button>
+              </button>
             </div>
             {modalType === 'subject' ? (
               <div className="space-y-4">
@@ -394,6 +507,14 @@ const HospitalManagementPage = () => {
             ) : (
               <div className="space-y-4">
                 {/* 긴급주간 */}
+                <div className="mt-4 flex justify-end space-x-4">
+                  <button onClick={closeModal} className="px-4 py-2 bg-gray-300 rounded">
+                    취소
+                  </button>
+                  <button onClick={submitModalForm} className="px-4 py-2 bg-blue-500 text-white rounded">
+                    저장
+                  </button>
+                </div>
                 <div>
                 <label className="block mb-1">긴급주간 전화번호1</label>
                 <input 

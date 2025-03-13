@@ -100,8 +100,8 @@ const filterMajor = [
 
 const filterAdditionFilters = [
   { label: "전체", icon: "📌" },
-  { label: "야간진료", icon: "🌙" },
-  { label: "주말진료", icon: "📅" },
+  { label: "응급야간진료", icon: "🌙" },
+  { label: "응급주말진료", icon: "📅" },
   { label: "영업중", icon: "🏥" },
 ];
 
@@ -119,8 +119,8 @@ const Major = [
 
 const additionalFilters = [
   { label: "전체", icon: "📌" },
-  { label: "야간진료", icon: "🌙" },
-  { label: "주말진료", icon: "📅" },
+  { label: "응급야간진료", icon: "🌙" },
+  { label: "응급주말진료", icon: "📅" },
   { label: "영업중", icon: "🏥" },
 ];
 
@@ -258,10 +258,10 @@ const HospitalListPage = () => {
         params.major = selectedMajor; // Major 필터 추가
       }
 
-      if (selectedAdditionalFilter === "야간진료") {
-        params.category = "야간진료";
-      }else if (selectedAdditionalFilter === "주말진료") {
-        params.category = "주말진료";
+      if (selectedAdditionalFilter === "응급야간진료") {
+        params.category = "응급야간진료";
+      }else if (selectedAdditionalFilter === "응급주말진료") {
+        params.category = "응급주말진료";
       }else if (selectedAdditionalFilter === "영업중") {
         params.category = "영업중";
       }
@@ -499,14 +499,14 @@ const HospitalListPage = () => {
                         hospital.nightCare ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
                       }`}
                     >
-                      야간 진료: {hospital.nightCare ? "가능 ✅" : "불가 ❌"}
+                      응급 야간 진료: {hospital.nightCare ? "가능 ✅" : "불가 ❌"}
                     </span>
                     <span
                       className={`px-3 py-1 rounded-md text-sm ${
                         hospital.weekendCare ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
                       }`}
                     >
-                      주말 진료: {hospital.weekendCare ? "가능 ✅" : "불가 ❌"}
+                      응급 주말 진료: {hospital.weekendCare ? "가능 ✅" : "불가 ❌"}
                     </span>
                   </div>
                   {/* 🔍 상세보기 버튼 */}

@@ -43,11 +43,9 @@ router.get('/filter', async (req, res) => {
 
     // category 필터
     if (category && category !== '전체') {
-      if (category === '야간진료') {
+      if (category === '응급야간진료') {
         pipeline.push({ $match: { "times.emyNgtYn": "Y" } });
-      } else if (category === '24시간진료') {
-        pipeline.push({ $match: { "times.trmtMonEnd": "2400" } });
-      } else if (category === '주말진료') {
+      } else if (category === '응급주말진료') {
         pipeline.push({
           $match: {
             $or: [

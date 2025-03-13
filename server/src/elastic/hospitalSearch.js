@@ -55,9 +55,9 @@ router.get('/', async (req, res) => {
 
     // category 필터 처리
     if (category) {
-      if (category === "야간진료") {
+      if (category === "응급야간진료") {
         filter.push({ term: { nightCare: true } });
-      } else if (category === "주말진료") {
+      } else if (category === "응급주말진료") {
         filter.push({ term: { weekendCare: true } });
       } else if (category === "영업중") {
         // 영업중 필터: 현재 운영중인 병원만 반환

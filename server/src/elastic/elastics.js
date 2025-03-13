@@ -12,9 +12,9 @@ async function reindex() {
   await createHospitalIndex();  // 새 색인 생성
   await bulkIndex();  // 데이터 색인
 
-  await deleteHospitalDetailIndex();
-  await createHospitalDetailIndex();
-  await bulkDetailIndex();
+  //await deleteHospitalDetailIndex();
+  //await createHospitalDetailIndex();
+  //await bulkDetailIndex();
 
   console.log("✅ Reindexing complete!");
 }

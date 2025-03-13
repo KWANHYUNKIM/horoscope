@@ -1,5 +1,4 @@
-require('dotenv').config();
-
+//require('dotenv').config(); // 운영서버 , if not 주석
 const express = require('express');
 const connectDB = require('./config/mongoose'); // MongoDB 연결
 const hospitalRoutes = require('./routes/hospitalRoutes');
@@ -9,10 +8,11 @@ const hospitalDetailSearchRoutes = require('./elastic/hospitalDetailSearch');
 const autoCompleteRouter = require('./elastic/autoComplete');
 
 //const { reindex } = require('./elastic/elastics'); // reindex 불러오기
-//const User = require('./models/User');
+const User = require('./models/User');
+const cors = require('cors');
 
 const app = express();
-const cors = require('cors');
+
 const allowedOrigins = [
   'https://my-client-284451238916.asia-northeast3.run.app',  // 운영 환경 도메인
   'https://bippobippo119.com.',
@@ -25,12 +25,18 @@ const allowedOrigins = [
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);  // 허용된 도메인인 경우
+      callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));  // 허용되지 않은 경우
+      callback(new Error('Not allowed by CORS'));
     }
-  }
+  },
+  credentials: true, // 클라이언트가 인증 정보를 포함하려면 필요
+  methods: 'GET, POST, PUT, DELETE, OPTIONS',
+  allowedHeaders: 'Content-Type, Authorization'
 }));
+
+app.use(express.json());
+app.options('*', cors());
 
 // MongoDB 연결
 connectDB();
@@ -39,8 +45,6 @@ connectDB();
 //    console.log("🚀 Elasticsearch Reindexing Complete!");
 //  }).catch(err => console.error("❌ Error in reindexing:", err));
 
-// 미들웨어
-app.use(express.json());
 
 //app.post('/api/login', async (req, res) => {
 //  const { username, password } = req.body;

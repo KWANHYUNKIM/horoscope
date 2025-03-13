@@ -9,8 +9,10 @@ const HospitalDetailPage = () => {
   const [imgError, setImgError] = useState(false);
 
   // ✅ 환경 변수에서 백엔드 API URL 및 Elasticsearch 인증 정보 가져오기
-  const baseUrl = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
-  
+  const baseUrl = process.env.NODE_ENV === "development"
+  ? "http://localhost:3001"  // 개발 환경: 로컬 서버 사용
+  : process.env.REACT_APP_BACKEND_URL
+    
   useEffect(() => {
     const fetchHospital = async () => {
       try {

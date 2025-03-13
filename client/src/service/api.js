@@ -38,4 +38,4 @@ export const fetchAutoComplete = async (query) => {
   }
 };
 
-console.log(`🔗 API Base URL: ${baseURL}`);
+//console.log(`🔗 API Base URL: ${baseURL}`);
