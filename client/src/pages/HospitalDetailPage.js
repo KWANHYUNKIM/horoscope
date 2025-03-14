@@ -9,9 +9,11 @@ const HospitalDetailPage = () => {
   const [imgError, setImgError] = useState(false);
 
   // ✅ 환경 변수에서 백엔드 API URL 및 Elasticsearch 인증 정보 가져오기
-  const baseUrl = process.env.NODE_ENV === "development"
-  ? "http://localhost:3001"  // 개발 환경: 로컬 서버 사용
-  : process.env.REACT_APP_BACKEND_URL
+const baseUrl = process.env.REACT_APP_BACKEND_URI || "http://localhost:3001";
+//const baseUrl = "http://localhost:3001";
+  //const baseUrl = process.env.NODE_ENV === "development"
+  //? "http://localhost:3001"  // 개발 환경: 로컬 서버 사용
+  //: process.env.REACT_APP_BACKEND_URL
     
   useEffect(() => {
     const fetchHospital = async () => {
@@ -20,11 +22,7 @@ const HospitalDetailPage = () => {
           `${baseUrl}/api/hospitals/details/search/${id}`, // ✅ 백엔드 API 호출
           {
             method: "GET",
-            headers: {
-              "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-              Pragma: "no-cache",
-              Expires: "0",
-            },
+            mode: "cors",
           }
         );
         if (!response.ok) {

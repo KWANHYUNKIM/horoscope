@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const baseUrl = process.env.NODE_ENV === "development"
-  ? "http://localhost:3001"  // 개발 환경: 로컬 서버 사용
-  : process.env.REACT_APP_BACKEND_URL
+const baseUrl = process.env.REACT_APP_BACKEND_URI || "http://localhost:3001";
+//const baseUrl = "http://localhost:3001";
+
 const AutoComplete = ({ searchQuery, setSearchQuery }) => {
   const [suggestions, setSuggestions] = useState({ hospital: [] });
   const [searchHistory, setSearchHistory] = useState([]);
@@ -22,12 +22,7 @@ const AutoComplete = ({ searchQuery, setSearchQuery }) => {
     const timer = setTimeout(() => {
       fetch(`${baseUrl}/api/autocomplete?query=${encodeURIComponent(searchQuery)}`, {
         method: "GET",
-        headers: {
-          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-          Pragma: "no-cache",
-          Expires: "0",
-        },
-        cache: "no-store",
+        mode: "cors",
       })
         .then((res) => res.json())
         .then((data) => {

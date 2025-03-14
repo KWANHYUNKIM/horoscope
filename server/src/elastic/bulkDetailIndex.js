@@ -7,7 +7,7 @@ const INDEX_NAME = 'hospital_details';
 
 // MongoDB URI를 환경 변수에서 가져옴
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/horoscope_db' ;
-
+//const MONGO_URI = 'mongodb://localhost:27017/horoscope_db';
 if (!MONGO_URI) {
   console.error('❌ MONGO_URI 환경 변수가 설정되지 않았습니다.');
   process.exit(1); // 환경 변수가 없으면 실행 중단

@@ -19,7 +19,9 @@ const allowedOrigins = [
   'https://bippobippo119.com',
   'https://www.bippobippo119.com',
   'https://www.bippobippo119.com.',
-  'http://localhost:8081' // 개발
+  'http://localhost:8081', // 개발
+  'http://localhost:3001',
+  'https://my-server-284451238916.asia-northeast3.run.app'
 ];
 
 app.use(cors({
@@ -30,14 +32,13 @@ app.use(cors({
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true, // 클라이언트가 인증 정보를 포함하려면 필요
+  credentials: true,
   methods: 'GET, POST, PUT, DELETE, OPTIONS',
-  allowedHeaders: 'Content-Type, Authorization'
+  allowedHeaders: 'Content-Type, Authorization' // 최소한의 헤더만 허용
 }));
 
-app.use(express.json());
-app.options('*', cors());
 
+app.use(express.json());
 // MongoDB 연결
 connectDB();
 
