@@ -7,7 +7,7 @@ const FilterDropdown = ({ categories, onFilterChange }) => {
   const [distance, setDistance] = useState(10000); // 기본 거리 10km
   const [userLocation, setUserLocation] = useState({ x: null, y: null });
 
-  // URL 파라미터를 읽어 위치 상태 업데이트
+  // URL 파라미터를 읽어 위치 상태 업데이트.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const x = params.get("x");
