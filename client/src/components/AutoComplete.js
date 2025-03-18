@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const baseUrl = process.env.REACT_APP_BACKEND_URI || "http://localhost:3001";
 //const baseUrl = "http://localhost:3001";
+const baseUrl = "https://my-server-284451238916.asia-northeast3.run.app";
 
 const AutoComplete = ({ searchQuery, setSearchQuery }) => {
   const [suggestions, setSuggestions] = useState({ hospital: [] });
@@ -19,6 +19,7 @@ const AutoComplete = ({ searchQuery, setSearchQuery }) => {
       setSuggestions({ hospital: [] });
       return;
     }
+
     const timer = setTimeout(() => {
       fetch(`${baseUrl}/api/autocomplete?query=${encodeURIComponent(searchQuery)}`, {
         method: "GET",
@@ -26,46 +27,48 @@ const AutoComplete = ({ searchQuery, setSearchQuery }) => {
       })
         .then((res) => res.json())
         .then((data) => {
-          const hospitalData = (data.hospital || []).map((h) => ({
-            ...h,
-            address: h.address || h.addr,
-          }));
-          setSuggestions({ hospital: hospitalData });
+          setSuggestions({ hospital: data.hospital || [] }); // ⬅ 여기서 기본값 설정
         })
         .catch(() => {
           setSuggestions({ hospital: [] });
         });
     }, 300);
+
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
   const handleSearch = (queryParam = searchQuery) => {
-    if (!queryParam.trim()) return;
     const trimmedQuery = queryParam.trim();
-    if (trimmedQuery) {
-      let updatedHistory = [trimmedQuery, ...searchHistory.filter((h) => h !== trimmedQuery)];
-      updatedHistory = updatedHistory.slice(0, 10);
-      localStorage.setItem("searchHistory", JSON.stringify(updatedHistory));
-      setSearchHistory(updatedHistory);
+  
+    // 검색어가 없으면 위치 기반 검색 시도
+    if (!trimmedQuery) {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            // 위치 기반 검색을 위한 URL 구성 (예: x, y 값 전달)
+            navigate(`/hospitals?x=${longitude}&y=${latitude}`);
+          },
+          (error) => {
+            console.error("위치 정보를 가져올 수 없습니다.", error);
+            alert("위치 정보를 가져올 수 없습니다. 직접 검색어를 입력해주세요.");
+          }
+        );
+      } else {
+        alert("이 브라우저는 위치 정보를 지원하지 않습니다.");
+      }
+      return;
     }
-    navigate(`/hospitals?query=${encodeURIComponent(queryParam)}`);
-  };
-
-  const handleHistoryClick = (item) => {
-    setSearchQuery(item);
-    handleSearch(item);
-  };
-
-  const handleDeleteHistoryItem = (e, index) => {
-    e.stopPropagation();
-    const updatedHistory = searchHistory.filter((_, i) => i !== index);
+  
+    // 검색어가 있으면 기존 로직 실행
+    let updatedHistory = [
+      trimmedQuery,
+      ...searchHistory.filter((h) => h !== trimmedQuery),
+    ];
+    updatedHistory = updatedHistory.slice(0, 10);
     localStorage.setItem("searchHistory", JSON.stringify(updatedHistory));
     setSearchHistory(updatedHistory);
-  };
-
-  const handleHospitalClick = (hospital) => {
-    setSearchQuery(hospital.name);
-    handleSearch(hospital.name);
+    navigate(`/hospitals?query=${encodeURIComponent(trimmedQuery)}`);
   };
 
   return (
@@ -86,42 +89,16 @@ const AutoComplete = ({ searchQuery, setSearchQuery }) => {
         </button>
       </div>
 
-      {!searchQuery && searchHistory.length > 0 && (
-        <div className="absolute z-10 bg-white border border-gray-300 mt-1 w-full rounded-lg shadow-lg overflow-auto">
-          <div className="px-4 py-2 font-semibold text-gray-700">이전 검색어</div>
-          <ul>
-            {searchHistory.map((item, index) => (
-              <li
-                key={`history-${index}`}
-                onMouseDown={() => handleHistoryClick(item)}
-                className="flex justify-between items-center p-3 hover:bg-gray-200 cursor-pointer border-b text-black text-sm"
-              >
-                <span>{item}</span>
-                <button
-                  className="text-gray-400 hover:text-red-500 ml-2"
-                  onMouseDown={(e) => handleDeleteHistoryItem(e, index)}
-                >
-                  X
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
       {searchQuery && (
         <div className="absolute z-10 bg-white border border-gray-300 mt-1 w-full rounded-lg shadow-lg overflow-hidden">
-          {suggestions.hospital.length === 0 ? (
+          {(suggestions.hospital || []).length === 0 ? (
             <div className="p-3 text-gray-500 text-center">❌ 검색 결과 없음</div>
           ) : (
             <ul>
-              {suggestions.hospital.map((hospital, idx) => (
-                <li
-                  key={idx}
-                  onMouseDown={() => handleHospitalClick(hospital)}
-                  className="p-3 hover:bg-gray-200 cursor-pointer border-b text-black text-sm"
-                >
-                  <div className="font-medium text-blue-600 text-sm">{hospital.name}</div>
+              {(suggestions.hospital || []).map((hospital, idx) => (
+                <li key={idx} onMouseDown={() => handleSearch(hospital.name)}
+                    className="p-3 hover:bg-gray-200 cursor-pointer border-b text-black text-sm">
+                  <div className="font-medium text-blue-600">{hospital.name}</div>
                   <div className="text-xs text-gray-500">{hospital.address}</div>
                 </li>
               ))}

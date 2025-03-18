@@ -19,7 +19,7 @@ async function createHospitalIndex() {
             yadmNm: { type: 'text' },
             addr: { type: 'text' },
             region: { type: 'keyword' },
-            subject: { type: 'keyword' },
+            subject: { type: 'text' },
             major: { type: 'keyword' },
             nightCare: { type: 'boolean' },
             twentyfourCare: { type: 'boolean' }, // 24시간 운영 여부

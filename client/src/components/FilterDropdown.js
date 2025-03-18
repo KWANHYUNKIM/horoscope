@@ -7,6 +7,17 @@ const FilterDropdown = ({ categories, onFilterChange }) => {
   const [distance, setDistance] = useState(10000); // 기본 거리 10km
   const [userLocation, setUserLocation] = useState({ x: null, y: null });
 
+  // URL 파라미터를 읽어 위치 상태 업데이트
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const x = params.get("x");
+    const y = params.get("y");
+    if (x && y) {
+      setUserLocation({ x: parseFloat(x), y: parseFloat(y) });
+      setLocationBased(true);
+    }
+  }, []);
+
   const toggleDropdown = () => setIsOpen((prev) => !prev);
 
   // "내 주변" 토글 핸들러
@@ -50,7 +61,7 @@ const FilterDropdown = ({ categories, onFilterChange }) => {
   const applyFilters = () => {
     let appliedFilters = { ...selectedFilters };
 
-    if (locationBased && userLocation.x !== null && userLocation.y !== null) {
+    if (userLocation.x !== null && userLocation.y !== null) {
       appliedFilters["location"] = { x: userLocation.x, y: userLocation.y, distance };
     } else {
       appliedFilters["location"] = null;
@@ -87,7 +98,7 @@ const FilterDropdown = ({ categories, onFilterChange }) => {
               <input
                 type="checkbox"
                 className="sr-only peer"
-                checked={locationBased}
+                checked={locationBased || (userLocation.x !== null && userLocation.y !== null)}
                 onChange={handleToggleLocation}
               />
               <div
@@ -104,7 +115,9 @@ const FilterDropdown = ({ categories, onFilterChange }) => {
           {/* 거리 조절 슬라이더 (내 주변 ON일 때만 표시) */}
           {locationBased && (
             <div className="mb-4">
-              <label className="text-gray-700 text-sm">반경: {distance >= 1000 ? `${(distance / 1000).toFixed(1)} km` : `${distance} m`}</label>
+              <label className="text-gray-700 text-sm">
+                반경: {distance >= 1000 ? `${(distance / 1000).toFixed(1)} km` : `${distance} m`}
+              </label>
               <input
                 type="range"
                 min="0"

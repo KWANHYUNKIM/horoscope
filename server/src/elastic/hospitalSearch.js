@@ -45,10 +45,10 @@ router.get('/', async (req, res) => {
       filter.push({ term: { region: region } });
     }
 
-    if (subject && subject !== "전체") {
-      filter.push({ term: { subject: subject } });
+    if (category && category !== "전체") {
+      filter.push({ term: { "category.keyword": category } });
     }
-
+    
     if (major && major !== "전체") {
       filter.push({ term: { major: major } });
     }

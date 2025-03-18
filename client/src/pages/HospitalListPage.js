@@ -251,7 +251,7 @@ const HospitalListPage = () => {
       }
 
       if (selectedSubject !== "전체") {
-        params.subject = selectedSubject;
+        params.category = selectedSubject;
       }
 
       if (selectedMajor !== "전체") {
@@ -421,9 +421,9 @@ const HospitalListPage = () => {
                 className="relative bg-white shadow-md hover:shadow-lg rounded-lg overflow-hidden hover:scale-105 transition-transform duration-300"
               >
                 {/* 병원 유형 */}
-                {hospital.subject && (
+                {hospital.category && (
                   <div className="absolute top-3 left-3 bg-blue-100 text-blue-700 px-3 py-1 rounded-md text-xs font-semibold">
-                    {hospital.subject}
+                    {hospital.category}
                   </div>
                 )}
 

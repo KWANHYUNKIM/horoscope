@@ -30,6 +30,7 @@
     "mongoose": "^8.8.1",
     "pg": "^8.13.1",
     "pg-hstore": "^2.3.4",
+    "react-joyride": "^2.9.3",
     "sequelize": "^6.37.5",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
