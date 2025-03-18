@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import Joyride, { EVENTS, STATUS } from "react-joyride";
-import Cookies from "js-cookie";
 
 const AppTour = () => {
   const [run, setRun] = useState(false);
-  const [stepIndex, setStepIndex] = useState(0);
+  const [visited, setVisited] = useState(localStorage.getItem("visited")); // ✅ 초기 상태에 localStorage 값 저장
   const joyrideRef = useRef(null);
   const autoAdvanceTimeoutRef = useRef(null);
 
@@ -13,7 +12,6 @@ const AppTour = () => {
       target: ".header-title",
       content: "여기는 사이트 제목입니다. 클릭하면 홈페이지로 이동할 수 있어요.",
       disableBeacon: true,
-
     },
     {
       target: ".search-bar",
@@ -31,41 +29,35 @@ const AppTour = () => {
   ];
 
   useEffect(() => {
-    const visited = Cookies.get("visited");
+    console.log("투어 실행 여부:", visited); // ✅ 디버깅용 로그
+
     if (!visited) {
-      // 페이지 로드 후 자동으로 투어 실행
       setRun(true);
     }
-    // 컴포넌트 언마운트 시 타이머 정리
+
     return () => {
       if (autoAdvanceTimeoutRef.current) {
         clearTimeout(autoAdvanceTimeoutRef.current);
       }
     };
-  }, []);
+  }, [visited]); // ✅ `visited` 값이 변경될 때만 useEffect 실행
 
   const handleJoyrideCallback = (data) => {
     const { status, type } = data;
 
     if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
       setRun(false);
-      Cookies.set("visited", "true", { expires: 7 });
+      localStorage.setItem("visited", "true");
+      setVisited("true"); // ✅ 상태 업데이트로 재렌더링 방지
       if (autoAdvanceTimeoutRef.current) {
         clearTimeout(autoAdvanceTimeoutRef.current);
       }
     } else if (type === EVENTS.TOOLTIP_RENDERED) {
-      // 툴팁이 렌더링되면 2초 후 자동으로 다음 단계로 이동
       autoAdvanceTimeoutRef.current = setTimeout(() => {
         if (joyrideRef.current) {
           joyrideRef.current.helpers.next();
         }
       }, 2000);
-    } else if (type === EVENTS.STEP_AFTER) {
-      // 사용자가 클릭하지 않아도 자동 진행 시, stepIndex를 업데이트합니다.
-      setStepIndex((prev) => prev + 1);
-      if (autoAdvanceTimeoutRef.current) {
-        clearTimeout(autoAdvanceTimeoutRef.current);
-      }
     }
   };
 
@@ -73,7 +65,6 @@ const AppTour = () => {
     <Joyride
       steps={steps}
       run={run}
-      stepIndex={stepIndex}
       continuous={true}
       disableBeacon={true}
       scrollToFirstStep={true}
@@ -93,4 +84,3 @@ const AppTour = () => {
 };
 
 export default AppTour;
-
