@@ -25,9 +25,6 @@ router.get('/', async (req, res) => {
     const pageNumber = parseInt(page, 10) || 1;
     const limitNumber = parseInt(limit, 10) || 10;
 
-    console.log("Received query parameters:", req.query);
-    console.log("Distance parameter:", distance);
-
     const must = [];
     const filter = [];
 
@@ -45,22 +42,34 @@ router.get('/', async (req, res) => {
       filter.push({ term: { region: region } });
     }
 
-    if (category && category !== "전체") {
-      filter.push({ term: { "category.keyword": category } });
-    }
-    
-    if (major && major !== "전체") {
-      filter.push({ term: { major: major } });
-    }
+    // 1. 현재 시간 및 요일 계산 (타임존을 고려하여 계산)
+    const now = moment().tz(TIMEZONE);
+    const currentTime = now.hours() * 60 + now.minutes();
+    const currentDay = now.format('dddd'); // 예: "Saturday"
 
     // category 필터 처리
-    if (category) {
+    if (category && category !== "전체") {
       if (category === "응급야간진료") {
-        filter.push({ term: { nightCare: true } });
+        filter.push({
+          bool: {
+            should: [
+              { term: { emergencyNight: true } },
+              { term: { nightCare: true } },
+              { term: { twentyfourCare: true } }
+            ]
+          }
+        });
       } else if (category === "응급주말진료") {
-        filter.push({ term: { weekendCare: true } });
+        filter.push({
+          bool: {
+            should: [
+              { term: { emergencyDay: true } },
+              { term: { weekendCare: true } },
+              { term: { twentyfourCare: true } }
+            ]
+          }
+        });
       } else if (category === "영업중") {
-        // 영업중 필터: 현재 운영중인 병원만 반환
         filter.push({
           script: {
             script: {
@@ -68,41 +77,52 @@ router.get('/', async (req, res) => {
               source: `
                 int currentTime = params.currentTime;
                 String currentDay = params.currentDay;
-                // 먼저 필드의 값이 존재하는지 size()로 확인
-                if (doc["schedule." + currentDay + ".openTime"].size() == 0 ||
-                    doc["schedule." + currentDay + ".closeTime"].size() == 0) {
+        
+                if (!doc.containsKey('schedule.' + currentDay + '.openTime') ||
+                    !doc.containsKey('schedule.' + currentDay + '.closeTime')) {
                   return false;
                 }
-                // null 체크
-                if (doc["schedule." + currentDay + ".openTime"].value == null ||
-                    doc["schedule." + currentDay + ".closeTime"].value == null) {
+        
+                if (doc['schedule.' + currentDay + '.openTime'].size() == 0 ||
+                    doc['schedule.' + currentDay + '.closeTime'].size() == 0) {
                   return false;
                 }
-                String openTimeStr = doc["schedule." + currentDay + ".openTime"].value.toString();
-                String closeTimeStr = doc["schedule." + currentDay + ".closeTime"].value.toString();
-                if (openTimeStr.equals("-") || closeTimeStr.equals("-")) {
+        
+                String openTimeStr = doc['schedule.' + currentDay + '.openTime'].value.toString();
+                String closeTimeStr = doc['schedule.' + currentDay + '.closeTime'].value.toString();
+        
+                if (openTimeStr.equals('-') || closeTimeStr.equals('-')) {
                   return false;
                 }
-                // 길이 체크: "HHmm" 형식이어야 함
+        
                 if (openTimeStr.length() < 4 || closeTimeStr.length() < 4) {
                   return false;
                 }
-                int openHour = Integer.parseInt(openTimeStr.substring(0,2));
-                int openMin = Integer.parseInt(openTimeStr.substring(2,4));
-                int closeHour = Integer.parseInt(closeTimeStr.substring(0,2));
-                int closeMin = Integer.parseInt(closeTimeStr.substring(2,4));
+        
+                int openHour = Integer.parseInt(openTimeStr.substring(0, 2));
+                int openMin = Integer.parseInt(openTimeStr.substring(2, 4));
+                int closeHour = Integer.parseInt(closeTimeStr.substring(0, 2));
+                int closeMin = Integer.parseInt(closeTimeStr.substring(2, 4));
+        
                 int openTime = openHour * 60 + openMin;
                 int closeTime = closeHour * 60 + closeMin;
+        
                 return currentTime >= openTime && currentTime < closeTime;
               `,
               params: {
-                currentTime: null,
-                currentDay: null
+                currentTime: currentTime,
+                currentDay: currentDay
               }
             }
           }
         });
+      } else {
+        filter.push({ term: { "category.keyword": category } });
       }
+    }
+    
+    if (major && major !== "전체") {
+      filter.push({ term: { major: major } });
     }
 
     if (x && y) {
@@ -117,12 +137,6 @@ router.get('/', async (req, res) => {
         }
       });
     }
-
-    // 1. 현재 시간 및 요일 계산 (타임존을 고려하여 계산)
-    const now = moment().tz(TIMEZONE);
-    const currentTime = now.hours() * 60 + now.minutes();
-    const currentDay = now.format('dddd'); // 예: "Saturday"
-    console.log(`Calculated currentTime: ${currentTime}, currentDay: ${currentDay} (Timezone: ${TIMEZONE})`);
 
     // 만약 category가 "영업중"이면, 스크립트 필터의 파라미터 값을 설정
     if (category === "영업중") {

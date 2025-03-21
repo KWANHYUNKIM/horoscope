@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-//const baseUrl = "http://localhost:3001";
-const baseUrl = "https://my-server-284451238916.asia-northeast3.run.app";
+const baseUrl = "http://localhost:3001";
+//const baseUrl = "https://my-server-284451238916.asia-northeast3.run.app";
 
 const AutoComplete = ({ searchQuery, setSearchQuery }) => {
   const [suggestions, setSuggestions] = useState({ hospital: [] });

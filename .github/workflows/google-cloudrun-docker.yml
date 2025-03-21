@@ -40,8 +40,6 @@ jobs:
           MONGO_URI=${{ secrets.MONGO_URI }}
           EOF
           
-          echo "✅ Created .env file content:"
-          cat server/.env
         
       - name: 📄 Create Client .env File
         run: |

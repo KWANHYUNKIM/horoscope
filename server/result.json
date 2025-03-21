@@ -1,0 +1,617 @@
+{
+  "took" : 472,
+  "timed_out" : false,
+  "_shards" : {
+    "total" : 1,
+    "successful" : 1,
+    "skipped" : 0,
+    "failed" : 0
+  },
+  "hits" : {
+    "total" : {
+      "value" : 10000,
+      "relation" : "gte"
+    },
+    "max_score" : 1.0,
+    "hits" : [
+      {
+        "_index" : "hospitals",
+        "_id" : "JDQ4MTYyMiM1MSMkMSMkMCMkOTkkNTgxMzUxIzMxIyQxIyQ3IyQ3OSQyNjEwMDIjNDEjJDEjJDgjJDgz",
+        "_score" : 1.0,
+        "_source" : {
+          "yadmNm" : "의료법인 능곡의료재단 능곡요양병원",
+          "addr" : "경기도 시흥시 승지로60번길 36, 월드프라자 301호,303호,304호,401호501호601호 (능곡동)",
+          "region" : "경기",
+          "subject" : "외과",
+          "category" : "요양병원",
+          "major" : [
+            "외과"
+          ],
+          "nightCare" : false,
+          "weekendCare" : true,
+          "location" : {
+            "lat" : 37.3686584,
+            "lon" : 126.8106976
+          },
+          "hospUrl" : "-",
+          "telno" : "031-404-2888",
+          "schedule" : {
+            "Monday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Tuesday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Wednesday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Thursday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Friday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Saturday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Sunday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "lunch" : "-",
+            "receptionWeek" : "-",
+            "receptionSat" : "-",
+            "noTreatmentHoliday" : "-",
+            "emergencyDay" : false,
+            "emergencyNight" : false
+          }
+        }
+      },
+      {
+        "_index" : "hospitals",
+        "_id" : "JDQ4MTYyMiM4MSMkMSMkNCMkOTkkNTgxMzUxIzIxIyQxIyQxIyQ4OSQyNjEwMDIjODEjJDEjJDYjJDgz",
+        "_score" : 1.0,
+        "_source" : {
+          "yadmNm" : "의료법인 덕산의료재단 한마음노인요양병원",
+          "addr" : "경상남도 사천시 향촌4길 127, (향촌동)",
+          "region" : "경남",
+          "subject" : "신경과, 가정의학과, 한방부인과",
+          "category" : "요양병원",
+          "major" : [
+            "신경과",
+            "가정의학과",
+            "한방부인과"
+          ],
+          "nightCare" : false,
+          "weekendCare" : true,
+          "location" : {
+            "lat" : 34.9350153,
+            "lon" : 128.0979487
+          },
+          "hospUrl" : "www.4000hanmaeum.com/",
+          "telno" : "055-832-3311",
+          "schedule" : {
+            "Monday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Tuesday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Wednesday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Thursday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Friday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Saturday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Sunday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "lunch" : "-",
+            "receptionWeek" : "-",
+            "receptionSat" : "-",
+            "noTreatmentHoliday" : "-",
+            "emergencyDay" : false,
+            "emergencyNight" : false
+          }
+        }
+      },
+      {
+        "_index" : "hospitals",
+        "_id" : "JDQ4MTYyMiM4MSMkMSMkMCMkOTkkNTgxMzUxIzExIyQxIyQzIyQxMyQyNjE0ODEjNTEjJDEjJDIjJDgz",
+        "_score" : 1.0,
+        "_source" : {
+          "yadmNm" : "의료법인 덕수의료재단 성주효요양병원",
+          "addr" : "경상북도 성주군 성주읍 성주순환로 239, (성주읍)",
+          "region" : "경북",
+          "subject" : "내과, 소아청소년과, 가정의학과",
+          "category" : "요양병원",
+          "major" : [
+            "내과",
+            "소아청소년과",
+            "가정의학과"
+          ],
+          "nightCare" : false,
+          "weekendCare" : true,
+          "location" : {
+            "lat" : 35.9222383,
+            "lon" : 128.2919766
+          },
+          "hospUrl" : "-",
+          "telno" : "054-933-5111",
+          "schedule" : {
+            "Monday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Tuesday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Wednesday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Thursday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Friday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Saturday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Sunday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "lunch" : "-",
+            "receptionWeek" : "-",
+            "receptionSat" : "-",
+            "noTreatmentHoliday" : "-",
+            "emergencyDay" : false,
+            "emergencyNight" : false
+          }
+        }
+      },
+      {
+        "_index" : "hospitals",
+        "_id" : "JDQ4MTAxMiM1MSMkMSMkMCMkOTkkNTgxMzUxIzIxIyQxIyQxIyQ5OSQyNjE0ODEjNDEjJDEjJDQjJDgz",
+        "_score" : 1.0,
+        "_source" : {
+          "yadmNm" : "의료법인 동일의료재단 금정나라요양병원",
+          "addr" : "부산광역시 금정구 무학송로 143, (부곡동)",
+          "region" : "부산",
+          "subject" : "내과, 신경과, 정형외과, 재활의학과, 가정의학과",
+          "category" : "요양병원",
+          "major" : [
+            "내과",
+            "신경과",
+            "정형외과",
+            "재활의학과",
+            "가정의학과"
+          ],
+          "nightCare" : false,
+          "weekendCare" : true,
+          "location" : {
+            "lat" : 35.2439302,
+            "lon" : 129.0938258
+          },
+          "hospUrl" : "http://naranetwork.net",
+          "telno" : "051-513-1284",
+          "schedule" : {
+            "Monday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Tuesday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Wednesday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Thursday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Friday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Saturday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Sunday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "lunch" : "-",
+            "receptionWeek" : "-",
+            "receptionSat" : "-",
+            "noTreatmentHoliday" : "-",
+            "emergencyDay" : false,
+            "emergencyNight" : false
+          }
+        }
+      },
+      {
+        "_index" : "hospitals",
+        "_id" : "JDQ4MTYyMiM4MSMkMSMkNCMkOTkkNTgxMzUxIzIxIyQxIyQ1IyQ4MiQzNjE4MzIjNDEjJDEjJDgjJDgz",
+        "_score" : 1.0,
+        "_source" : {
+          "yadmNm" : "의료법인 동림의료재단 로얄힐스요양병원",
+          "addr" : "경상남도 창녕군 부곡면 온천로 486, (부곡면)",
+          "region" : "경남",
+          "subject" : "가정의학과",
+          "category" : "요양병원",
+          "major" : [
+            "가정의학과"
+          ],
+          "nightCare" : false,
+          "weekendCare" : true,
+          "location" : {
+            "lat" : 35.4410324,
+            "lon" : 128.5764213
+          },
+          "hospUrl" : "-",
+          "telno" : "055-536-9000",
+          "schedule" : {
+            "Monday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Tuesday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Wednesday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Thursday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Friday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Saturday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Sunday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "lunch" : "-",
+            "receptionWeek" : "-",
+            "receptionSat" : "-",
+            "noTreatmentHoliday" : "-",
+            "emergencyDay" : false,
+            "emergencyNight" : false
+          }
+        }
+      },
+      {
+        "_index" : "hospitals",
+        "_id" : "JDQ4MTYyMiM1MSMkMSMkMCMkOTkkNTgxMzUxIzIxIyQxIyQ5IyQwMyQzNjEyMjIjODEjJDEjJDIjJDgz",
+        "_score" : 1.0,
+        "_source" : {
+          "yadmNm" : "의료법인 두현의료재단 그로스요양병원",
+          "addr" : "경기도 군포시 당산로 104, B102호,201호,301∼309호 (금정동, 두현타워)",
+          "region" : "경기",
+          "subject" : "-",
+          "category" : "요양병원",
+          "major" : [ ],
+          "nightCare" : false,
+          "weekendCare" : true,
+          "location" : {
+            "lat" : 37.3609823,
+            "lon" : 126.9464136
+          },
+          "hospUrl" : "http://www.groth.co.kr",
+          "telno" : "031-468-0303",
+          "schedule" : {
+            "Monday" : {
+              "openTime" : "0900",
+              "closeTime" : "1730"
+            },
+            "Tuesday" : {
+              "openTime" : "0900",
+              "closeTime" : "1730"
+            },
+            "Wednesday" : {
+              "openTime" : "0900",
+              "closeTime" : "1730"
+            },
+            "Thursday" : {
+              "openTime" : "0900",
+              "closeTime" : "1730"
+            },
+            "Friday" : {
+              "openTime" : "0900",
+              "closeTime" : "1730"
+            },
+            "Saturday" : {
+              "openTime" : "0900",
+              "closeTime" : "1230"
+            },
+            "Sunday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "lunch" : "12:30~13:30",
+            "receptionWeek" : "09:00 ~ 17:30",
+            "receptionSat" : "09:00 ~ 12:30",
+            "noTreatmentHoliday" : "종일휴진",
+            "emergencyDay" : false,
+            "emergencyNight" : false
+          }
+        }
+      },
+      {
+        "_index" : "hospitals",
+        "_id" : "JDQ4MTYyMiM4MSMkMSMkNCMkOTkkNTgxMzUxIzIxIyQxIyQxIyQxMyQyNjEwMDIjNzEjJDEjJDgjJDgz",
+        "_score" : 1.0,
+        "_source" : {
+          "yadmNm" : "의료법인 득명의료재단 씨엘요양병원",
+          "addr" : "울산광역시 남구 수암로128번길 7, 씨엘요양병원 1~4층, 6층 (야음동)",
+          "region" : "울산",
+          "subject" : "내과, 외과",
+          "category" : "요양병원",
+          "major" : [
+            "내과",
+            "외과"
+          ],
+          "nightCare" : false,
+          "weekendCare" : true,
+          "location" : {
+            "lat" : 35.5270587,
+            "lon" : 129.3213831
+          },
+          "hospUrl" : "-",
+          "telno" : "052-242-1234",
+          "schedule" : {
+            "Monday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Tuesday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Wednesday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Thursday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Friday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Saturday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Sunday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "lunch" : "-",
+            "receptionWeek" : "-",
+            "receptionSat" : "-",
+            "noTreatmentHoliday" : "-",
+            "emergencyDay" : false,
+            "emergencyNight" : false
+          }
+        }
+      },
+      {
+        "_index" : "hospitals",
+        "_id" : "JDQ4MTYyMiM2MSMkMSMkMiMkOTkkNTgxMzUxIzIxIyQxIyQxIyQ4OSQzNjE4MzIjNTEjJDEjJDYjJDgz",
+        "_score" : 1.0,
+        "_source" : {
+          "yadmNm" : "의료법인 디와이 의료재단 홍성요양병원",
+          "addr" : "충청남도 홍성군 홍성읍 조양로143번길 11, (홍성읍)",
+          "region" : "충남",
+          "subject" : "-",
+          "category" : "요양병원",
+          "major" : [ ],
+          "nightCare" : false,
+          "weekendCare" : true,
+          "location" : {
+            "lat" : 36.6022557,
+            "lon" : 126.6657384
+          },
+          "hospUrl" : "-",
+          "telno" : "041-631-2757",
+          "schedule" : {
+            "Monday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Tuesday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Wednesday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Thursday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Friday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Saturday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Sunday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "lunch" : "-",
+            "receptionWeek" : "-",
+            "receptionSat" : "-",
+            "noTreatmentHoliday" : "-",
+            "emergencyDay" : false,
+            "emergencyNight" : false
+          }
+        }
+      },
+      {
+        "_index" : "hospitals",
+        "_id" : "JDQ4MTYyMiM4MSMkMSMkNCMkOTkkNTgxMzUxIzExIyQxIyQ3IyQxMyQyNjE0ODEjNTEjJDEjJDIjJDgz",
+        "_score" : 1.0,
+        "_source" : {
+          "yadmNm" : "의료법인 리드의료재단 다정한요양병원",
+          "addr" : "경상남도 김해시 김해대로 2453, (삼정동)",
+          "region" : "경남",
+          "subject" : "외과",
+          "category" : "요양병원",
+          "major" : [
+            "외과"
+          ],
+          "nightCare" : false,
+          "weekendCare" : true,
+          "location" : {
+            "lat" : 35.2281328,
+            "lon" : 128.8948904
+          },
+          "hospUrl" : "-",
+          "telno" : "055-337-2001",
+          "schedule" : {
+            "Monday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Tuesday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Wednesday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Thursday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Friday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Saturday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Sunday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "lunch" : "-",
+            "receptionWeek" : "-",
+            "receptionSat" : "-",
+            "noTreatmentHoliday" : "-",
+            "emergencyDay" : false,
+            "emergencyNight" : false
+          }
+        }
+      },
+      {
+        "_index" : "hospitals",
+        "_id" : "JDQ4MTYyMiM4MSMkMSMkNCMkOTkkNTgxMzUxIzExIyQxIyQzIyQ4OSQyNjEwMDIjNjEjJDEjJDgjJDgz",
+        "_score" : 1.0,
+        "_source" : {
+          "yadmNm" : "의료법인 목화의료재단 목화요양병원",
+          "addr" : "경상남도 진주시 천수로163번길 25, (망경동)",
+          "region" : "경남",
+          "subject" : "내과, 외과, 재활의학과, 가정의학과",
+          "category" : "요양병원",
+          "major" : [
+            "내과",
+            "외과",
+            "재활의학과",
+            "가정의학과"
+          ],
+          "nightCare" : false,
+          "weekendCare" : true,
+          "location" : {
+            "lat" : 35.1791584,
+            "lon" : 128.0814633
+          },
+          "hospUrl" : "http://www.mokhwasilver.or.kr",
+          "telno" : "055-755-7000",
+          "schedule" : {
+            "Monday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Tuesday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Wednesday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Thursday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Friday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Saturday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "Sunday" : {
+              "openTime" : "-",
+              "closeTime" : "-"
+            },
+            "lunch" : "-",
+            "receptionWeek" : "-",
+            "receptionSat" : "-",
+            "noTreatmentHoliday" : "-",
+            "emergencyDay" : false,
+            "emergencyNight" : false
+          }
+        }
+      }
+    ]
+  }
+}

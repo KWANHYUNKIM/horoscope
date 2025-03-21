@@ -6,17 +6,30 @@ const { createHospitalDetailIndex } = require('./createDetailIndex');
 const { bulkDetailIndex } = require('./bulkDetailIndex');
 
 async function reindex() {
-  console.log("🔄 Reindexing process started...");
+  try {
+    console.log("🔄 Starting reindexing process...");
+    
+    console.log("Step 1: Deleting existing hospitals index...");
+    await deleteHospitalsIndex();
+    
+    console.log("Step 2: Creating new hospitals index...");
+    await createHospitalIndex();
+    
+    console.log("Step 3: Bulk indexing hospitals...");
+    await bulkIndex();
+    
 
-  await deleteHospitalsIndex();  // 기존 색인 삭제
-  await createHospitalIndex();  // 새 색인 생성
-  await bulkIndex();  // 데이터 색인
-
-  //await deleteHospitalDetailIndex();
-  //await createHospitalDetailIndex();
-  //await bulkDetailIndex();
-
-  console.log("✅ Reindexing complete!");
+    //await deleteHospitalDetailIndex();
+    //await createHospitalDetailIndex();
+    //await bulkDetailIndex();
+    
+    console.log("✅ Reindexing process completed successfully!");
+  } catch (error) {
+    console.error("❌ Error during reindexing process:");
+    console.error("Error message:", error.message);
+    console.error("Stack trace:", error.stack);
+    throw error; // 상위로 에러를 전파
+  }
 }
 
 module.exports = { reindex };

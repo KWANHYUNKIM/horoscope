@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const client = require("../config/elasticsearch");
-const Hospital = require("../models/hospital");
+const { Hospital } = require("../models/hospital");
 const BULK_SIZE = 500;
 
 const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/horoscope_db";
@@ -133,9 +133,6 @@ async function bulkIndex() {
     console.log("🔄 Elasticsearch 인덱스 새로 고침 완료.");
   } catch (error) {
     console.error("❌ 색인 오류:", error);
-  } finally {
-    await mongoose.connection.close();
-    console.log("🔌 MongoDB 연결 종료");
   }
 }
 

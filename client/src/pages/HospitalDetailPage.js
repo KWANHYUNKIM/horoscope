@@ -1,45 +1,56 @@
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
+import { fetchHospitalDetail } from '../service/api';
 
 const HospitalDetailPage = () => {
-  const { id } = useParams(); // URL에서 id 가져오기
+  const { id } = useParams();
+  const location = useLocation();
   const [hospital, setHospital] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
+  const [isNursingHospital, setIsNursingHospital] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [imgError, setImgError] = useState(false);
 
   // ✅ 환경 변수에서 백엔드 API URL 및 Elasticsearch 인증 정보 가져오기
 //const baseUrl = process.env.REACT_APP_BACKEND_URI || "http://localhost:3001";
-const baseUrl = "https://my-server-284451238916.asia-northeast3.run.app";
-//const baseUrl = "http://localhost:3001";
+//const baseUrl = "https://my-server-284451238916.asia-northeast3.run.app";
+const baseUrl = "http://localhost:3001";
   //const baseUrl = process.env.NODE_ENV === "development"
   //? "http://localhost:3001"  // 개발 환경: 로컬 서버 사용
   //: process.env.REACT_APP_BACKEND_URL
     
   useEffect(() => {
-    const fetchHospital = async () => {
+    const params = new URLSearchParams(location.search);
+    const lat = params.get('lat');
+    const lng = params.get('lng');
+    const type = params.get('type');
+
+    if (lat && lng) {
+      setUserLocation({ latitude: parseFloat(lat), longitude: parseFloat(lng) });
+    }
+
+    if (type === 'nursing') {
+      setIsNursingHospital(true);
+    }
+
+    const loadHospitalDetail = async () => {
       try {
-        const response = await fetch(
-          `${baseUrl}/api/hospitals/details/search/${id}`, // ✅ 백엔드 API 호출
-          {
-            method: "GET",
-            mode: "cors",
-          }
-        );
-        if (!response.ok) {
-          throw new Error("병원 정보를 가져오는데 실패했습니다.");
-        }
-        const data = await response.json();
+        const data = await fetchHospitalDetail(id, {
+          lat: lat || null,
+          lng: lng || null,
+          type: type || null
+        });
         setHospital(data);
-      } catch (err) {
-        setError(err.message);
+      } catch (error) {
+        console.error('병원 상세 정보 로딩 실패:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchHospital();
-  }, [id]); // ✅ baseUrl 제외 (환경 변수 값 변경 시 불필요한 재요청 방지)
+    loadHospitalDetail();
+  }, [id, location.search]);
 
   if (loading)
     return <div className="text-center mt-10">🔄 로딩 중...</div>;
@@ -108,6 +119,24 @@ const baseUrl = "https://my-server-284451238916.asia-northeast3.run.app";
             >
               지도보기 🗺️
             </a>
+          </div>
+
+          {/* 요양병원 뱃지 */}
+          {isNursingHospital && (
+            <div className="inline-block bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium mb-4">
+              요양병원
+            </div>
+          )}
+
+          {/* 위치 정보 */}
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold mb-2">위치 정보</h2>
+            <p className="text-gray-600">{hospital.addr}</p>
+            {userLocation && (
+              <p className="text-sm text-gray-500 mt-1">
+                현재 위치에서 약 {hospital.distance}km
+              </p>
+            )}
           </div>
 
           {/* 진료과 정보 */}

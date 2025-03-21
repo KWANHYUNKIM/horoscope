@@ -6,7 +6,9 @@ const hospitalSearchRouter = require('./elastic/hospitalSearch');
 const hospitalSubjectRoutes = require('./routes/hospitalSubjectRoutes'); // 새로운 라우터 추가
 const hospitalDetailSearchRoutes = require('./elastic/hospitalDetailSearch');
 const autoCompleteRouter = require('./elastic/autoComplete');
-
+const chatRouter = require('./routes/chat'); // 채팅 라우터 추가
+const adminRouter = require('./routes/admin'); // 관리자 라우터 추가
+const chatRoutes = require('./routes/chatRoutes');
 //const { reindex } = require('./elastic/elastics'); // reindex 불러오기
 const User = require('./models/User');
 const cors = require('cors');
@@ -42,37 +44,51 @@ app.use(express.json());
 // MongoDB 연결
 connectDB();
 
-//reindex().then(() => {
-//    console.log("🚀 Elasticsearch Reindexing Complete!");
-//  }).catch(err => console.error("❌ Error in reindexing:", err));
+// Elasticsearch Reindexing
+//console.log("🔄 Starting Elasticsearch reindexing process...");
+//reindex()
+//  .then(() => {
+//    console.log("✅ Elasticsearch Reindexing Complete!");
+//  })
+//  .catch(err => {
+//    console.error("❌ Error in reindexing:", err);
+//    console.error("Stack trace:", err.stack);
+//  });
 
 
-//app.post('/api/login', async (req, res) => {
-//  const { username, password } = req.body;
-// try {
-//   const user = await User.findOne({ username });
-//    if (!user) {
-//      return res.status(401).json({ success: false, message: '아이디 또는 비밀번호가 올바르지 않습니다.' });
-//    }
-//    const isMatch = await user.comparePassword(password);
-//    if (!isMatch) {
-//      return res.status(401).json({ success: false, message: '아이디 또는 비밀번호가 올바르지 않습니다.' });
-//    }
-    // 인증 성공 시 role 반환 (실제 환경에서는 JWT 토큰 발행을 권장)
-//    return res.json({ success: true, role: user.role });
-//  } catch (error) {
-//    console.error('로그인 에러:', error);
-//    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
-//  }
-//});
+app.post('/api/login', async (req, res) => {
+  const { username, password } = req.body;
+ try {
+   const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(401).json({ success: false, message: '아이디 또는 비밀번호가 올바르지 않습니다.' });
+    }
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: '아이디 또는 비밀번호가 올바르지 않습니다.' });
+    }
+// 인증 성공 시 role 반환 (실제 환경에서는 JWT 토큰 발행을 권장)
+    return res.json({ success: true, role: user.role });
+  } catch (error) {
+    console.error('로그인 에러:', error);
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+  }
+});
 
 // 라우트
-
+app.use('/api/admin', adminRouter);
 app.use('/api/autocomplete', autoCompleteRouter);
 app.use('/api/hospitals', hospitalRoutes);
 app.use('/api/hospitals/search', hospitalSearchRouter);
 app.use('/api/hospitals/details/search', hospitalDetailSearchRoutes);
 app.use('/api/hospitals/subjects', hospitalSubjectRoutes); // 새로운 라우터 사용
+app.use('/api/chat', chatRoutes);
+
+// 에러 핸들링 미들웨어
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+});
 
 // 서버 실행
 const PORT = process.env.PORT || 3001;

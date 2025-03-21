@@ -3,9 +3,9 @@ const express = require('express');
 const router = express.Router();
 
 // 이미 선언되어 있다고 가정
-const Hospital = require('../models/hospital');
-const HospitalSubject = require('../models/hospitalSubject'); // HospitalSubject 모델 추가
-const HospitalTime = require('../models/hospitalTime');
+const { Hospital } = require('../models/hospital');
+const { HospitalSubject } = require('../models/hospitalSubject');
+const { HospitalTime } = require('../models/hospitalTime');
 
 
 router.get('/filter', async (req, res) => {
@@ -169,5 +169,41 @@ router.post('/:ykiho/time', async (req, res) => {
   }
 });
 
+// 위치 기반 병원 검색
+router.post('/nearby', async (req, res) => {
+  try {
+    const { latitude, longitude, radius = 5000 } = req.body; // radius는 미터 단위
+
+    // 위도/경도 기반으로 반경 내 병원 검색
+    const hospitals = await Hospital.find({
+      location: {
+        $near: {
+          $geometry: {
+            type: 'Point',
+            coordinates: [longitude, latitude]
+          },
+          $maxDistance: radius
+        }
+      }
+    }).limit(10);
+
+    // 병원 정보에 진료과목과 진료시간 정보 추가
+    const hospitalsWithDetails = await Promise.all(hospitals.map(async (hospital) => {
+      const subjects = await HospitalSubject.find({ ykiho: hospital.ykiho });
+      const times = await HospitalTime.find({ ykiho: hospital.ykiho });
+      
+      return {
+        ...hospital.toObject(),
+        subjects,
+        times
+      };
+    }));
+
+    res.json({ hospitals: hospitalsWithDetails });
+  } catch (error) {
+    console.error('위치 기반 병원 검색 오류:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다.' });
+  }
+});
 
 module.exports = router;

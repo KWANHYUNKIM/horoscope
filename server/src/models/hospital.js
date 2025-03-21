@@ -1,36 +1,46 @@
 const mongoose = require('mongoose');
 
-const HospitalSchema = new mongoose.Schema({
-  yadmNm: { type: String, required: true },
-  addr: { type: String, required: true },
-  telno: { type: String, required: false },
-  clCd: { type: Number, required: false },
-  clCdNm: { type: String, required: false },
-  cmdcGdrCnt: { type: Number, required: false },
-  cmdcIntnCnt: { type: Number, required: false },
-  cmdcResdntCnt: { type: Number, required: false },
-  cmdcSdrCnt: { type: Number, required: false },
-  detyGdrCnt: { type: Number, required: false },
-  detyIntnCnt: { type: Number, required: false },
-  detyResdntCnt: { type: Number, required: false },
-  detySdrCnt: { type: Number, required: false },
-  drTotCnt: { type: Number, required: false },
-  emdongNm: { type: String, required: false },
-  estbDd: { type: Number, required: false },
-  hospUrl: { type: String, required: false },
-  mdeptGdrCnt: { type: Number, required: false },
-  mdeptIntnCnt: { type: Number, required: false },
-  mdeptResdntCnt: { type: Number, required: false },
-  mdeptSdrCnt: { type: Number, required: false },
-  pnursCnt: { type: Number, required: false },
-  postNo: { type: Number, required: false },
-  sgguCd: { type: Number, required: false },
-  sgguCdNm: { type: String, required: false },
-  sidoCd: { type: Number, required: false },
-  sidoCdNm: { type: String, required: false },
-  XPos: { type: Number, required: false },
-  YPos: { type: Number, required: false },
-  ykiho: { type: String, required: false },
+// 스키마 정의
+const hospitalSchema = new mongoose.Schema({
+  yadmNm: String,
+  addr: String,
+  telno: String,
+  clCd: Number,
+  clCdNm: String,
+  cmdcGdrCnt: Number,
+  cmdcIntnCnt: Number,
+  cmdcResdntCnt: Number,
+  cmdcSdrCnt: Number,
+  detyGdrCnt: Number,
+  detyIntnCnt: Number,
+  detyResdntCnt: Number,
+  detySdrCnt: Number,
+  drTotCnt: Number,
+  emdongNm: String,
+  estbDd: Number,
+  hospUrl: String,
+  mdeptGdrCnt: Number,
+  mdeptIntnCnt: Number,
+  mdeptResdntCnt: Number,
+  mdeptSdrCnt: Number,
+  pnursCnt: Number,
+  postNo: Number,
+  sgguCd: Number,
+  sgguCdNm: String,
+  sidoCd: Number,
+  sidoCdNm: String,
+  XPos: Number,
+  YPos: Number,
+  ykiho: String,
+  updatedAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('hospital', HospitalSchema);
+// 모델이 이미 존재하는지 확인
+let Hospital;
+try {
+    Hospital = mongoose.model('Hospital');
+} catch (error) {
+    Hospital = mongoose.model('Hospital', hospitalSchema);
+}
+
+module.exports = { Hospital };

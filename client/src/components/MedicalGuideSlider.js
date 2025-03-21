@@ -1,96 +1,157 @@
-import React, { useState } from "react";
-import Slider from "react-slick";
+import React from 'react';
+import Slider from 'react-slick';
+import { useNavigate } from 'react-router-dom';
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
 const MedicalGuideSlider = () => {
-  const [selectedGuide, setSelectedGuide] = useState(null);
+  const navigate = useNavigate();
 
-  // 긴급 의료 정보 및 병원 이용 가이드 데이터
-  const guides = [
+  const medicalGuides = [
     {
-      id: 1,
-      title: "🚑 응급실 방문 가이드",
-      description: "응급실 방문 전 반드시 확인해야 할 사항!",
-      image: "/images/emergency.jpg", // 실제 이미지 경로로 변경
-      details: "응급실 방문 시 건강보험증, 신분증, 현재 복용 중인 약 리스트를 챙기세요. 또한 방문 전 대기 시간을 확인하면 보다 원활한 진료를 받을 수 있습니다.",
+      title: "응급실 이용 가이드",
+      content: "응급실은 생명이 위급한 상황에서만 이용해야 합니다. 응급실 이용 시 준비물과 절차를 알아보세요.",
+      image: "/images/emergency-guide.jpg",
+      link: "/guide/emergency"
     },
     {
-      id: 2,
-      title: "📞 119 신고 방법",
-      description: "올바른 신고 방법을 알아두세요.",
-      image: "/images/call119.jpg",
-      details: "119 신고 시 증상을 간결하고 정확하게 설명하세요. 또한 신고자의 위치를 정확히 전달하면 구조가 빠르게 이루어질 수 있습니다.",
+      title: "야간진료 찾는 방법",
+      content: "야간에 갑자기 아플 때! 야간진료 병원 찾는 방법과 주의사항을 알려드립니다.",
+      image: "/images/night-care.jpg",
+      link: "/guide/night-care"
     },
     {
-      id: 3,
-      title: "❤️ 심폐소생술 가이드",
-      description: "응급 상황에서 CPR을 시행하는 방법",
-      image: "/images/cpr.jpg",
-      details: "심정지 발생 시 즉시 심폐소생술(CPR)을 시행해야 합니다. 가슴 압박을 100~120회/분 속도로 시행하며, 구조 요청을 병행하세요.",
+      title: "주말진료 병원 찾기",
+      content: "주말에도 진료하는 병원을 쉽게 찾을 수 있습니다. 주말진료 병원 찾는 방법을 알아보세요.",
+      image: "/images/weekend-care.jpg",
+      link: "/guide/weekend-care"
     },
     {
-      id: 4,
-      title: "🏥 병원 예약 가이드",
-      description: "병원 예약을 하면 대기 시간을 줄일 수 있습니다.",
-      image: "/images/hospital_booking.jpg",
-      details: "진료 예약을 하면 대기 시간을 줄일 수 있으며, 병원별 예약 방법이 다를 수 있으므로 홈페이지 또는 전화 예약 방법을 확인하세요.",
-    },
+      title: "응급상황 대처법",
+      content: "갑작스러운 응급상황 발생 시 대처 방법과 응급실 이용 시기, 준비물을 알아보세요.",
+      image: "/images/emergency-care.jpg",
+      link: "/guide/emergency-care"
+    }
   ];
 
-  // 슬라이더 설정
   const settings = {
     dots: true,
     infinite: true,
     speed: 500,
-    slidesToShow: 2, // 한 번에 표시할 카드 개수
+    slidesToShow: 1,
     slidesToScroll: 1,
     autoplay: true,
     autoplaySpeed: 5000,
-    arrows: true,
+    pauseOnHover: true
   };
 
   return (
-    <section className="container mx-auto mt-10 p-4 px-4 md:px-40">
-      <h2 className="text-xl font-bold mb-4">🩺 긴급 의료 정보 & 병원 이용 가이드</h2>
-
-      {/* 슬라이더 */}
+    <div className="medical-guide-slider">
       <Slider {...settings}>
-        {guides.map((guide) => (
-          <div
-            key={guide.id}
-            className="relative p-4 cursor-pointer"
-            onClick={() => setSelectedGuide(guide)}
-          >
-            <img
-              src={guide.image}
-              alt={guide.title}
-              className="w-full h-48 object-cover rounded-lg shadow-md"
-            />
-            <div className="absolute bottom-4 left-4 bg-white bg-opacity-80 p-2 rounded-md">
-              <h3 className="text-lg font-semibold">{guide.title}</h3>
-              <p className="text-sm text-gray-600">{guide.description}</p>
+        {medicalGuides.map((guide, index) => (
+          <div key={index} className="guide-slide" onClick={() => navigate(guide.link)}>
+            <div className="guide-content">
+              <h2>{guide.title}</h2>
+              <p>{guide.content}</p>
+              <span className="guide-link">
+                자세히 보기 →
+              </span>
+            </div>
+            <div className="guide-image">
+              <img src={guide.image} alt={guide.title} onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = '/images/default-guide.jpg';
+              }} />
             </div>
           </div>
         ))}
       </Slider>
-
-      {/* 모달창 (자세한 정보 표시) */}
-      {selectedGuide && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg max-w-lg text-center">
-            <h2 className="text-2xl font-bold mb-2">{selectedGuide.title}</h2>
-            <p className="text-gray-700 mb-4">{selectedGuide.details}</p>
-            <button
-              className="px-4 py-2 bg-red-500 text-white rounded-md"
-              onClick={() => setSelectedGuide(null)}
-            >
-              닫기
-            </button>
-          </div>
-        </div>
-      )}
-    </section>
+      <style jsx>{`
+        .medical-guide-slider {
+          margin: 0;
+          padding: 0;
+          background: transparent;
+          border-radius: 0;
+          box-shadow: none;
+        }
+        .guide-slide {
+          display: flex;
+          align-items: center;
+          padding: 30px;
+          background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+          border-radius: 12px;
+          margin: 10px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          border: 1px solid rgba(0,0,0,0.05);
+        }
+        .guide-slide:hover {
+          transform: translateY(-5px);
+          box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+        }
+        .guide-content {
+          flex: 1;
+          padding: 20px;
+        }
+        .guide-content h2 {
+          color: #2c3e50;
+          margin-bottom: 15px;
+          font-size: 1.8rem;
+          font-weight: 700;
+        }
+        .guide-content p {
+          color: #4a5568;
+          margin-bottom: 20px;
+          line-height: 1.7;
+          font-size: 1.1rem;
+        }
+        .guide-link {
+          display: inline-block;
+          padding: 10px 20px;
+          background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+          color: white;
+          text-decoration: none;
+          border-radius: 8px;
+          transition: all 0.3s ease;
+          font-weight: 500;
+          box-shadow: 0 2px 4px rgba(52, 152, 219, 0.2);
+        }
+        .guide-link:hover {
+          background: linear-gradient(135deg, #2980b9 0%, #2472a4 100%);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+        }
+        .guide-image {
+          flex: 1;
+          padding: 20px;
+        }
+        .guide-image img {
+          width: 100%;
+          height: 300px;
+          object-fit: cover;
+          border-radius: 12px;
+          box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        @media (max-width: 768px) {
+          .guide-slide {
+            flex-direction: column;
+            padding: 20px;
+          }
+          .guide-content, .guide-image {
+            width: 100%;
+          }
+          .guide-content h2 {
+            font-size: 1.5rem;
+          }
+          .guide-content p {
+            font-size: 1rem;
+          }
+          .guide-image img {
+            height: 200px;
+          }
+        }
+      `}</style>
+    </div>
   );
 };
 

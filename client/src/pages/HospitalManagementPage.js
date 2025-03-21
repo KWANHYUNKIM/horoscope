@@ -25,6 +25,9 @@ const HospitalManagementPage = () => {
   const [combinedJson, setCombinedJson] = useState('');
   const [timeBulkJson, setTimeBulkJson] = useState('');
 
+  const [qualityMetrics, setQualityMetrics] = useState(null);
+  const [enhancementStatus, setEnhancementStatus] = useState(null);
+
   useEffect(() => {
     if (modalOpen) {
       setRawJsonText(JSON.stringify(modalForm, null, 2));
@@ -69,34 +72,34 @@ const HospitalManagementPage = () => {
     { label: "세종시", icon: "🏢" },
   ];
 
- 
-  useEffect(() => {
-    const fetchHospitals = async () => {
-      setLoading(true);
-      try {
-        const queryParams = new URLSearchParams();
-        queryParams.append('page', page);
-        queryParams.append('limit', limit);
-        if (searchQuery) {
-          queryParams.append('search', searchQuery);
-        }
-        if (selectedRegion !== "전국") {
-          queryParams.append("region", selectedRegion);
-        }
-
-        const res = await fetch(`http://localhost:3001/api/hospitals?${queryParams.toString()}`);
-        const data = await res.json();
-        // 서버가 { hospitals: [...], totalCount: number } 형태로 응답한다고 가정
-        setHospitals(data.hospitals);
-        const count = data.hospitals.filter(hospital => !hospital.time).length;
-        setMissingTimeCount(count);
-        setTotalPages(Math.ceil(data.totalCount / limit));
-      } catch (err) {
-        setError(err.message);
+  // fetchHospitals 함수 정의
+  const fetchHospitals = async () => {
+    setLoading(true);
+    try {
+      const queryParams = new URLSearchParams();
+      queryParams.append('page', page);
+      queryParams.append('limit', limit);
+      if (searchQuery) {
+        queryParams.append('search', searchQuery);
       }
-      setLoading(false);
-    };
+      if (selectedRegion !== "전국") {
+        queryParams.append("region", selectedRegion);
+      }
 
+      const res = await fetch(`http://localhost:3001/api/hospitals?${queryParams.toString()}`);
+      const data = await res.json();
+      setHospitals(data.hospitals);
+      const count = data.hospitals.filter(hospital => !hospital.time).length;
+      setMissingTimeCount(count);
+      setTotalPages(Math.ceil(data.totalCount / limit));
+    } catch (err) {
+      setError(err.message);
+    }
+    setLoading(false);
+  };
+
+  // useEffect에서 fetchHospitals 호출
+  useEffect(() => {
     fetchHospitals();
   }, [page, searchQuery, selectedRegion]);
 
@@ -227,9 +230,91 @@ const HospitalManagementPage = () => {
     }
   };
   
+  // 데이터 품질 평가 함수
+  const fetchQualityMetrics = async () => {
+    try {
+      const response = await fetch('http://localhost:3001/api/admin/data-quality');
+      const data = await response.json();
+      setQualityMetrics(data);
+    } catch (error) {
+      console.error('데이터 품질 평가 실패:', error);
+    }
+  };
+
+  // 데이터 자동 보완 함수
+  const enhanceData = async () => {
+    try {
+      const response = await fetch('http://localhost:3001/api/admin/auto-enhance', {
+        method: 'POST'
+      });
+      const data = await response.json();
+      setEnhancementStatus(data);
+      // 데이터 갱신
+      fetchHospitals();
+      fetchQualityMetrics();
+    } catch (error) {
+      console.error('데이터 자동 보완 실패:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchQualityMetrics();
+  }, []);
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-6 text-center">병원 관리</h1>
+
+      {/* 데이터 품질 관리 섹션 */}
+      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h2 className="text-xl font-bold mb-4">데이터 품질 관리</h2>
+        
+        {qualityMetrics && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div className="bg-blue-50 p-4 rounded">
+              <h3 className="font-semibold">기본 정보 완성도</h3>
+              <p className="text-2xl">{qualityMetrics.completeness.basic}%</p>
+            </div>
+            <div className="bg-green-50 p-4 rounded">
+              <h3 className="font-semibold">진료과목 정보</h3>
+              <p className="text-2xl">{qualityMetrics.completeness.subject}%</p>
+            </div>
+            <div className="bg-purple-50 p-4 rounded">
+              <h3 className="font-semibold">진료시간 정보</h3>
+              <p className="text-2xl">{qualityMetrics.completeness.time}%</p>
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-between items-center">
+          <button
+            onClick={enhanceData}
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          >
+            데이터 자동 보완
+          </button>
+        </div>
+
+        {enhancementStatus && (
+          <div className="mt-4">
+            <h3 className="font-semibold mb-2">보완 결과</h3>
+            <p>성공: {enhancementStatus.enhanced}건</p>
+            <p>실패: {enhancementStatus.failed}건</p>
+            {enhancementStatus.details.length > 0 && (
+              <div className="mt-2">
+                <h4 className="font-semibold">실패 상세</h4>
+                <ul className="list-disc pl-5">
+                  {enhancementStatus.details.map((detail, index) => (
+                    <li key={index}>
+                      {detail.ykiho}: {detail.reason}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* 🔹 `time` 값이 없는 병원 수 표시 */}
       <div className="text-center text-lg font-semibold text-red-500 mb-4">
