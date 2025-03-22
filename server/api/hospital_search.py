@@ -11,6 +11,8 @@ from langchain.prompts import ChatPromptTemplate
 from langchain.schema import StrOutputParser
 from langchain.schema.runnable import RunnablePassthrough
 from fastapi.middleware.cors import CORSMiddleware
+from langchain.memory import ConversationBufferMemory
+from typing import List, Optional
 
 # 환경 변수 로드
 load_dotenv()
@@ -47,12 +49,20 @@ except:
 # OpenAI 클라이언트 초기화
 openai_client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
+# 대화 메모리 초기화
+memory = ConversationBufferMemory(
+    memory_key="chat_history",
+    return_messages=True
+)
+
 class QueryRequest(BaseModel):
     query: str
     n_results: int = 4  # 기본값으로 4개의 결과를 반환
 
 class ChatRequest(BaseModel):
     message: str
+    recommended_hospitals: Optional[List[dict]] = None
+    criteria: Optional[str] = None
 
 def create_embedding(text):
     response = openai_client.embeddings.create(
@@ -93,20 +103,37 @@ llm = ChatOpenAI(
     temperature=0.7
 )
 
+# 프롬프트 템플릿 수정
 prompt = ChatPromptTemplate.from_messages([
     ("system", """당신은 병원 검색을 도와주는 AI 어시스턴트입니다. 
     사용자의 질문에 대해 관련된 병원 정보를 찾아주고, 
     병원에 대한 자세한 설명과 추천을 해주세요.
     
+    이전 대화 기록을 참고하여 맥락을 이해하고, 사용자의 추가 질문에 대해 이전에 추천한 병원들을 고려하여 답변해주세요.
+    
+    사용자가 병원 선택에 대해 도움을 요청하면, 이전에 추천한 병원들의 특징을 비교하여 구체적인 추천을 해주세요.
+    
     다음 병원 정보를 참고하여 답변해주세요:
     {hospital_info}
+    
+    이전 대화 기록:
+    {chat_history}
     
     답변은 친근하고 전문적인 톤으로 해주세요."""),
     ("human", "{message}")
 ])
 
+# 체인 구성 수정
+def get_hospital_info(message):
+    results = get_relevant_hospitals(message)
+    return str(format_hospital_info(results))
+
 chain = (
-    {"hospital_info": lambda x: format_hospital_info(get_relevant_hospitals(x["message"])), "message": RunnablePassthrough()}
+    {
+        "hospital_info": lambda x: get_hospital_info(x["message"]),
+        "chat_history": lambda x: memory.load_memory_variables({})["chat_history"],
+        "message": RunnablePassthrough()
+    }
     | prompt
     | llm
     | StrOutputParser()
@@ -124,6 +151,12 @@ async def chat_with_ai(request: ChatRequest):
         # LangChain 응답 생성
         response = chain.invoke({"message": request.message})
         print(f"Generated response: {response}")
+        
+        # 대화 기록 저장
+        memory.save_context(
+            {"input": request.message},
+            {"output": response}
+        )
         
         return {"response": response}
     except Exception as e:
