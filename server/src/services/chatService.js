@@ -1,183 +1,131 @@
-const { ChatOpenAI } = require('@langchain/openai');
-const { HumanMessage, SystemMessage } = require('@langchain/core/messages');
-const { OpenAIEmbeddings } = require('@langchain/openai');
-const { Hospital } = require('../models/hospital');
-const { HospitalSubject } = require('../models/hospitalSubject');
-const { HospitalTime } = require('../models/hospitalTime');
 const { Redis } = require('ioredis');
-
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
-
-// 시스템 프롬프트 정의
-const INTENT_CLASSIFICATION_PROMPT = `당신은 사용자의 의도를 분류하는 AI 어시스턴트입니다.
-사용자의 메시지를 다음 4가지 의도 중 하나로 분류해주세요:
-1. HOSPITAL_SEARCH: 병원 검색 관련 질문
-2. SYMPTOM_INQUIRY: 증상 문의
-3. GENERAL_INQUIRY: 일반적인 문의
-4. END_CONVERSATION: 대화 종료 의도
-
-응답은 의도 코드만 반환해주세요.`;
-
-const HOSPITAL_SEARCH_PROMPT = `당신은 병원 검색을 도와주는 AI 어시스턴트입니다.
-사용자의 질문에 대해 친절하고 전문적으로 답변해주세요.
-병원 정보는 제공된 데이터를 기반으로 답변해주세요.
-만약 검색 결과가 없다면 "죄송합니다. 해당 지역의 병원 정보를 찾을 수 없습니다."라고 답변해주세요.`;
-
-const SYMPTOM_INQUIRY_PROMPT = `당신은 의료 상담을 도와주는 AI 어시스턴트입니다.
-사용자의 증상에 대해 공감하고, 적절한 의료 기관을 추천해주세요.
-단, 진단이나 처방은 하지 마세요.`;
-
-const GENERAL_INQUIRY_PROMPT = `당신은 친절한 AI 어시스턴트입니다.
-사용자의 일반적인 질문에 대해 친절하게 답변해주세요.`;
+const { Hospital } = require('../models/hospital');
+const axios = require('axios');
 
 class ChatService {
   constructor() {
-    this.llm = new ChatOpenAI({
-      modelName: 'gpt-3.5-turbo',
-      temperature: 0.7,
-      openAIApiKey: process.env.OPENAI_API_KEY
-    });
+    this.sessionData = {};
   }
 
-  // 사용자 세션 저장
-  async saveUserSession(userId, sessionData) {
+  async getSession(userId) {
     try {
-      await redis.set(`chat:${userId}`, JSON.stringify(sessionData));
+      const sessionData = await redis.get(`chat:${userId}`);
+      if (!sessionData) {
+        return { messages: [] };
+      }
+      return JSON.parse(sessionData);
     } catch (error) {
-      console.error('세션 저장 중 오류:', error);
+      console.error('세션 데이터 조회 실패:', error);
+      return { messages: [] };
     }
   }
 
-  // 사용자 세션 조회
-  async getUserSession(userId) {
+  async saveSession(userId, sessionData) {
     try {
-      const sessionData = await redis.get(`chat:${userId}`);
-      return sessionData ? JSON.parse(sessionData) : null;
+      await redis.set(`chat:${userId}`, JSON.stringify(sessionData));
     } catch (error) {
-      console.error('세션 조회 중 오류:', error);
+      console.error('세션 데이터 저장 실패:', error);
+    }
+  }
+
+  async resetSession(userId) {
+    try {
+      await redis.del(`chat:${userId}`);
+      return { success: true, message: '채팅 세션이 초기화되었습니다.' };
+    } catch (error) {
+      console.error('세션 초기화 실패:', error);
+      return { success: false, message: '세션 초기화 중 오류가 발생했습니다.' };
+    }
+  }
+
+  async searchSimilarHospitals(query) {
+    try {
+      // ChromaDB API 호출
+      const response = await axios.post('http://localhost:8000/api/query', {
+        query_texts: [query],
+        n_results: 5
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('벡터 검색 실패:', error);
       return null;
     }
   }
 
-  // 의도 분류
-  async classifyIntent(message) {
+  async generateResponse(userId, userMessage) {
     try {
-      const response = await this.llm.call([
-        new SystemMessage(INTENT_CLASSIFICATION_PROMPT),
-        new HumanMessage(message)
-      ]);
-      return response.content.trim();
-    } catch (error) {
-      console.error('의도 분류 중 오류:', error);
-      return 'GENERAL_INQUIRY';
-    }
-  }
-
-  // 병원 검색
-  async searchHospitals(query) {
-    try {
-      // 지역명 추출 (예: "서울", "부산" 등)
-      const locationMatch = query.match(/(서울|부산|대구|인천|광주|대전|울산|제주|경기|강원|충북|충남|전북|전남|경북|경남)/);
-      const location = locationMatch ? locationMatch[1] : null;
-
-      // 검색 조건 구성
-      const searchQuery = {};
-      if (location) {
-        searchQuery.sidoNm = location;
+      let sessionData = await this.getSession(userId);
+      if (!sessionData.messages) {
+        sessionData.messages = [];
       }
 
-      // 병원 검색
-      const hospitals = await Hospital.find(searchQuery).limit(5);
-      return hospitals;
-    } catch (error) {
-      console.error('병원 검색 중 오류:', error);
-      return [];
-    }
-  }
+      // 사용자 메시지 저장
+      sessionData.messages.push({ role: 'user', content: userMessage });
 
-  // 응답 생성
-  async generateResponse(userId, message) {
-    try {
-      const session = await this.getUserSession(userId) || {
-        history: [],
-        currentIntent: null,
-        lastSearchResults: null
-      };
+      let response = '';
+      let hospitals = [];
 
-      // 의도 분류
-      const intent = await this.classifyIntent(message);
-      session.currentIntent = intent;
+      // 병원 검색 관련 키워드 확인
+      const searchKeywords = ['병원', '의원', '검색', '찾아'];
+      const isSearchQuery = searchKeywords.some(keyword => userMessage.includes(keyword));
 
-      let response;
-      switch (intent) {
-        case 'HOSPITAL_SEARCH':
-          const hospitals = await this.searchHospitals(message);
-          session.lastSearchResults = hospitals;
-          
-          response = await this.llm.call([
-            new SystemMessage(HOSPITAL_SEARCH_PROMPT),
-            new HumanMessage(`질문: ${message}\n\n검색된 병원 정보:\n${JSON.stringify(hospitals, null, 2)}`)
-          ]);
-          break;
+      if (isSearchQuery) {
+        // 벡터 검색 수행
+        const searchResults = await this.searchSimilarHospitals(userMessage);
 
-        case 'SYMPTOM_INQUIRY':
-          response = await this.llm.call([
-            new SystemMessage(SYMPTOM_INQUIRY_PROMPT),
-            new HumanMessage(message)
-          ]);
-          break;
+        if (searchResults && searchResults.documents && searchResults.documents[0]) {
+          response = '검색 결과입니다:\n\n';
+          searchResults.documents[0].forEach((doc, index) => {
+            response += `${doc}\n\n`;
+          });
+        } else {
+          // 벡터 검색 실패 시 일반 검색으로 전환
+          hospitals = await Hospital.find({
+            $or: [
+              { yadmNm: { $regex: userMessage, $options: 'i' } },
+              { addr: { $regex: userMessage, $options: 'i' } }
+            ]
+          }).limit(5);
 
-        case 'GENERAL_INQUIRY':
-          response = await this.llm.call([
-            new SystemMessage(GENERAL_INQUIRY_PROMPT),
-            new HumanMessage(message)
-          ]);
-          break;
-
-        case 'END_CONVERSATION':
-          response = "대화를 종료합니다. 다른 도움이 필요하시다면 언제든 말씀해주세요.";
-          break;
-
-        default:
-          response = "죄송합니다. 질문을 이해하지 못했습니다. 다시 말씀해주시겠어요?";
+          if (hospitals.length > 0) {
+            response = '검색 결과입니다:\n\n';
+            hospitals.forEach(hospital => {
+              response += `🏥 ${hospital.yadmNm}\n`;
+              response += `📍 주소: ${hospital.addr}\n`;
+              if (hospital.dgsbjtCdNm) {
+                response += `🏷 진료과목: ${hospital.dgsbjtCdNm}\n`;
+              }
+              if (hospital.telno) {
+                response += `📞 전화번호: ${hospital.telno}\n`;
+              }
+              response += '\n';
+            });
+          } else {
+            response = '죄송합니다. 검색 결과가 없습니다. 다른 키워드로 다시 검색해보시겠어요?';
+          }
+        }
+      } else {
+        response = '병원을 검색하시려면 "병원 찾아줘" 또는 "근처 병원"과 같이 말씀해주세요.';
       }
 
-      // 대화 이력 업데이트
-      session.history.push({
-        role: 'user',
-        content: message
-      });
-      session.history.push({
-        role: 'assistant',
-        content: response.content || response
-      });
-
-      // 세션 저장
-      await this.saveUserSession(userId, session);
+      // 응답 메시지 저장
+      sessionData.messages.push({ role: 'assistant', content: response });
+      await this.saveSession(userId, sessionData);
 
       return {
-        message: response.content || response,
-        intent,
-        hospitals: session.lastSearchResults
+        success: true,
+        message: response,
+        hospitals: hospitals
       };
     } catch (error) {
-      console.error('응답 생성 중 오류:', error);
+      console.error('응답 생성 실패:', error);
       return {
-        message: "죄송합니다. 현재 서비스에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.",
-        intent: 'ERROR',
+        success: false,
+        message: '죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
         hospitals: []
       };
-    }
-  }
-
-  // 세션 초기화
-  async resetSession(userId) {
-    try {
-      await redis.del(`chat:${userId}`);
-      return { message: "대화가 초기화되었습니다." };
-    } catch (error) {
-      console.error('세션 초기화 중 오류:', error);
-      return { message: "세션 초기화 중 오류가 발생했습니다." };
     }
   }
 }

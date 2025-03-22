@@ -141,8 +141,11 @@ const Chat = () => {
     setMessages(prev => [...prev, { type: 'user', content: userMessage }]);
 
     try {
-      const response = await axios.post('/api/chat', { message: userMessage });
+      console.log('Client: Sending message to server:', userMessage);
+      const response = await axios.post('/api/chat/send', { message: userMessage });
+      console.log('Client: Received response from server:', response.data);
       const botResponse = response.data.message;
+      console.log('Client: Bot response:', botResponse);
 
       // 병원 검색인 경우 위치 정보 확인
       if (botResponse.includes('내 주변 병원 검색 결과') && !coordinates && locationPermission !== 'granted') {
@@ -160,12 +163,24 @@ const Chat = () => {
         response: botResponse
       }]);
 
-      setMessages(prev => [...prev, { type: 'bot', content: botResponse }]);
-    } catch (error) {
-      console.error('Error sending message:', error);
+      console.log('Client: Setting message in state:', {
+        type: 'bot',
+        content: botResponse,
+        timestamp: new Date().toISOString()
+      });
+
       setMessages(prev => [...prev, { 
         type: 'bot', 
-        content: '죄송합니다. 메시지를 처리하는 중 오류가 발생했습니다.' 
+        content: botResponse,
+        timestamp: new Date().toISOString()
+      }]);
+    } catch (error) {
+      console.error('Client: Error sending message:', error);
+      console.error('Client: Error details:', error.response?.data || error.message);
+      setMessages(prev => [...prev, { 
+        type: 'bot', 
+        content: '죄송합니다. 메시지를 처리하는 중 오류가 발생했습니다.',
+        timestamp: new Date().toISOString()
       }]);
     }
   };
@@ -185,31 +200,60 @@ const Chat = () => {
       <div className="flex-1 overflow-y-auto p-5 bg-white rounded-lg shadow-sm mb-5">
         {messages.map((message, index) => (
           <div key={index} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} mb-4`}>
+            {message.type === 'bot' && (
+              <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center mr-2 flex-shrink-0">
+                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                </svg>
+              </div>
+            )}
             <div className={`relative max-w-[70%] ${message.type === 'user' 
-              ? 'bg-purple-600 text-white rounded-lg'
-              : 'bg-gray-100 text-gray-800 rounded-lg'
-            }`}>
+              ? 'bg-purple-600 text-white'
+              : 'bg-gray-100 text-gray-800'
+            } rounded-lg`}>
               {message.type === 'user' && (
-                // 사용자 말풍선 꼬리 (오른쪽)
                 <div className="absolute right-[-10px] top-2 w-0 h-0 border-t-8 border-t-transparent border-b-8 border-b-transparent border-l-10 border-l-purple-600"></div>
               )}
               {message.type === 'bot' && (
-                // 챗봇 말풍선 꼬리 (왼쪽)
                 <div className="absolute left-[-10px] top-2 w-0 h-0 border-t-8 border-t-transparent border-b-8 border-b-transparent border-r-10 border-r-gray-100"></div>
               )}
-              <div className="p-3">
+              <div className="p-3"> 
                 {message.type === 'bot' ? (
                   <div 
-                    className="message-content prose prose-sm max-w-none"
+                    className="message-content"
+                    style={{
+                      padding: '10px',
+                      borderRadius: '8px',
+                      maxWidth: '100%',
+                      wordBreak: 'break-word',
+                      whiteSpace: 'pre-wrap',
+                      color: '#1f2937',
+                      fontSize: '0.875rem',
+                      lineHeight: '1.25rem'
+                    }}
                     dangerouslySetInnerHTML={{ 
-                      __html: message.content.replace(
-                        /<div class="message-content"/g, 
-                        '<div class="message-content" style="padding: 10px; border-radius: 8px; max-width: 100%; word-break: break-word;"'
-                      )
+                      __html: message.content
+                        .replace(/\n/g, '<br />')
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
                     }} 
                   />
                 ) : (
-                  message.content
+                  <div 
+                    className="message-content"
+                    style={{
+                      padding: '10px',
+                      borderRadius: '8px',
+                      maxWidth: '100%',
+                      wordBreak: 'break-word',
+                      whiteSpace: 'pre-wrap',
+                      color: '#ffffff',
+                      fontSize: '0.875rem',
+                      lineHeight: '1.25rem'
+                    }}
+                  >
+                    {message.content}
+                  </div>
                 )}
               </div>
             </div>

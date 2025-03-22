@@ -82,8 +82,8 @@ app.use('/api/hospitals', hospitalRoutes);
 app.use('/api/hospitals/search', hospitalSearchRouter);
 app.use('/api/hospitals/details/search', hospitalDetailSearchRoutes);
 app.use('/api/hospitals/subjects', hospitalSubjectRoutes); // 새로운 라우터 사용
-app.use('/api/chat', chatRoutes);
-
+//app.use('/api/chat', chatRoutes);
+app.use('/aip/chat' ,chatRouter);
 // 에러 핸들링 미들웨어
 app.use((err, req, res, next) => {
   console.error(err.stack);

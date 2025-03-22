@@ -59,38 +59,27 @@ const ChatWindow = () => {
 };
 
 const Message = ({ message }) => {
-  if (message.type === 'bot') {
-    return (
-      <div className="flex items-start mb-4">
-        {/* 챗봇 프로필 이미지 */}
-        <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center mr-2 flex-shrink-0">
-          <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+  if (!message || !message.content) return null;
+
+  const messageContent = message.content
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/\n/g, '<br />');
+
+  return (
+    <div className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} mb-4`}>
+      {message.type === 'bot' && (
+        <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center mr-2">
+          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
           </svg>
         </div>
-        {/* 챗봇 메시지 */}
-        <div className="relative max-w-[70%]">
-          {/* 말풍선 꼬리 (왼쪽) */}
-          <div className="absolute left-[-10px] top-2 w-0 h-0 border-t-8 border-t-transparent border-b-8 border-b-transparent border-r-10 border-r-gray-100"></div>
-          <div className="bg-gray-100 text-gray-800 p-3 rounded-lg">
-            <div 
-              className="message-content prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ __html: message.content }}
-            />
-          </div>
-        </div>
-      </div>
-    );
-  }
-  return (
-    <div className="flex items-start justify-end mb-4">
-      {/* 사용자 메시지 */}
-      <div className="relative max-w-[70%]">
-        {/* 말풍선 꼬리 (오른쪽) */}
-        <div className="absolute right-[-10px] top-2 w-0 h-0 border-t-8 border-t-transparent border-b-8 border-b-transparent border-l-10 border-l-purple-600"></div>
-        <div className="bg-purple-600 text-white p-3 rounded-lg">
-          <div className="message-content">{message.content}</div>
-        </div>
+      )}
+      <div className={`max-w-[70%] ${message.type === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-800'} p-3 rounded-lg`}>
+        <div 
+          className="message-content prose prose-sm max-w-none"
+          dangerouslySetInnerHTML={{ __html: messageContent }}
+        />
       </div>
     </div>
   );
@@ -194,8 +183,69 @@ const BigChatModal = () => {
     setIsLoading(true);
 
     try {
+      let coordinates = null;
+      
+      // "내 주변" 검색인 경우 위치 정보 가져오기
+      if (inputMessage.toLowerCase().includes('내 주변')) {
+        try {
+          coordinates = await getUserLocation();
+          setUserLocation(coordinates);
+          
+          // 위치 기반 병원 검색
+          const locationResponse = await fetch('http://localhost:8001/api/hospitals/nearby', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              latitude: coordinates.latitude,
+              longitude: coordinates.longitude,
+              radius: 5000 // 5km 반경
+            }),
+          });
+
+          if (!locationResponse.ok) {
+            throw new Error('주변 병원 검색 실패');
+          }
+
+          const locationData = await locationResponse.json();
+          
+          // 챗봇 응답 생성
+          const response = await fetch('http://localhost:8001/api/chat/send', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId: 'test-user',
+              message: inputMessage.trim(),
+              hospitals: locationData.hospitals
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error('API 요청 실패');
+          }
+
+          const data = await response.json();
+          console.log('Client: Received response from server:', data);
+          
+          const botMessage = data.response || data.message || '응답을 받지 못했습니다.';
+          setMessages(prev => [...prev, { type: 'bot', content: botMessage }]);
+          return;
+        } catch (error) {
+          console.error('위치 정보 가져오기 실패:', error);
+          setMessages(prev => [...prev, { 
+            type: 'bot', 
+            content: '위치 정보를 가져올 수 없습니다. 위치 정보 접근 권한을 확인해주세요.' 
+          }]);
+          setIsLoading(false);
+          return;
+        }
+      }
+
       // 일반 검색
-      const response = await fetch('http://localhost:3001/api/chat/send', {
+      const response = await fetch('http://localhost:8001/api/chat/send', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -211,9 +261,12 @@ const BigChatModal = () => {
       }
 
       const data = await response.json();
-      setMessages(prev => [...prev, { type: 'bot', content: data.message }]);
+      console.log('Client: Received response from server:', data);
+      
+      const botMessage = data.response || data.message || '응답을 받지 못했습니다.';
+      setMessages(prev => [...prev, { type: 'bot', content: botMessage }]);
     } catch (error) {
-      console.error('Chat API Error:', error);
+      console.error('Client: Chat API Error:', error);
       setMessages(prev => [...prev, { 
         type: 'bot', 
         content: '죄송합니다. 현재 서비스에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.' 
