@@ -108,9 +108,24 @@ router.get("/", async (req, res) => {
     // 🔹 각 병원마다 subject & time 데이터 조회
     const results = await Promise.all(
       hospitals.map(async (hospital) => {
-        const subject = await HospitalSubject.findOne({ ykiho: hospital.ykiho });
-        const time = await HospitalTime.findOne({ ykiho: hospital.ykiho });
-        return { ...hospital.toObject(), subject, time };
+        try {
+          console.log("▶ 병원:", hospital.yadmNm, hospital.ykiho);
+          
+          console.log("✅ HospitalSubject 타입:", typeof HospitalSubject);
+          console.log("✅ HospitalTime 타입:", typeof HospitalTime);
+
+          const subject = await HospitalSubject.findOne({ ykiho: hospital.ykiho });
+          const time = await HospitalTime.findOne({ ykiho: hospital.ykiho });
+          
+          
+          console.log("  ↪️ 조회된 subject:", subject);
+          console.log("  ↪️ 조회된 time:", time);
+    
+          return { ...hospital.toObject(), subject, time };
+        } catch (e) {
+          console.error('병원 데이터 오류:', hospital, e);
+          return { ...hospital.toObject(), subject: null, time: null };
+        }
       })
     );
 

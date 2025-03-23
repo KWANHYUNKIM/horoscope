@@ -2,15 +2,13 @@ const mongoose = require('mongoose');
 
 // 스키마 정의
 const hospitalSubjectSchema = new mongoose.Schema({
-    ykiho: String,
-    dgsbjtCd: String,
-    dgsbjtCdNm: String,
-    cdiagDrCnt: Number,
-    dgsbjtPrSdrCnt: Number,
-    updatedAt: { type: Date, default: Date.now }
+    ykiho: { type: String },
+    dgsbjtCd: { type: String },
+    dgsbjtCdNm: { type: String },
+    cdiagDrCnt: { type: Number },
+    dgsbjtPrSdrCnt: { type: Number },
 });
 
-// 모델이 이미 존재하는지 확인
 let HospitalSubject;
 try {
     HospitalSubject = mongoose.model('HospitalSubject');
@@ -18,4 +16,5 @@ try {
     HospitalSubject = mongoose.model('HospitalSubject', hospitalSubjectSchema);
 }
 
-module.exports = HospitalSubject;
+
+module.exports = { HospitalSubject };
