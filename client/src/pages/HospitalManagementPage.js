@@ -25,9 +25,6 @@ const HospitalManagementPage = () => {
   const [combinedJson, setCombinedJson] = useState('');
   const [timeBulkJson, setTimeBulkJson] = useState('');
 
-  const [qualityMetrics, setQualityMetrics] = useState(null);
-  const [enhancementStatus, setEnhancementStatus] = useState(null);
-
   useEffect(() => {
     if (modalOpen) {
       setRawJsonText(JSON.stringify(modalForm, null, 2));
@@ -35,19 +32,19 @@ const HospitalManagementPage = () => {
   }, [modalOpen, modalForm]);
 
   useEffect(() => {
+    if (!Array.isArray(hospitals)) return;
+  
     const combined = hospitals.map(h => {
       return `${h.yadmNm} ${h.addr} 조사하고 "ykiho": "${h.ykiho}" "_id :" "${h.time?._id ?? 'null'}" 추가해줘라`;
     });
-    // JSON 배열 형식으로 저장
+  
     setCombinedJson(JSON.stringify(combined, null, 2));
   }, [hospitals]);
-
+  
   useEffect(() => {
-    const times = hospitals.map(h => {
-      return {
-        time: h.time || null
-      };
-    });
+    if (!Array.isArray(hospitals)) return;
+  
+    const times = hospitals.map(h => ({ time: h.time || null }));
     setTimeBulkJson(JSON.stringify(times, null, 2));
   }, [hospitals]);
 
@@ -85,17 +82,34 @@ const HospitalManagementPage = () => {
       if (selectedRegion !== "전국") {
         queryParams.append("region", selectedRegion);
       }
-
+  
       const res = await fetch(`http://localhost:3001/api/hospitals?${queryParams.toString()}`);
+      
+      // 🔐 응답 타입과 상태 체크
+      const contentType = res.headers.get("content-type");
+      if (!res.ok || !contentType?.includes("application/json")) {
+        const text = await res.text(); // HTML 등 응답 내용 보기
+        throw new Error(`서버 오류 (${res.status}): ${text}`);
+      }
+  
       const data = await res.json();
+  
+      // 🛡️ data.hospitals가 없으면 에러 발생하지 않도록 보호
+      if (!Array.isArray(data.hospitals)) {
+        throw new Error("서버에서 병원 데이터가 올바르지 않게 반환되었습니다.");
+      }
+  
       setHospitals(data.hospitals);
+  
       const count = data.hospitals.filter(hospital => !hospital.time).length;
       setMissingTimeCount(count);
       setTotalPages(Math.ceil(data.totalCount / limit));
     } catch (err) {
-      setError(err.message);
+      console.error("🚨 fetchHospitals 오류:", err);
+      setError(err.message); // 여기에 걸림
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   // useEffect에서 fetchHospitals 호출
@@ -230,92 +244,10 @@ const HospitalManagementPage = () => {
     }
   };
   
-  // 데이터 품질 평가 함수
-  const fetchQualityMetrics = async () => {
-    try {
-      const response = await fetch('http://localhost:3001/api/admin/data-quality');
-      const data = await response.json();
-      setQualityMetrics(data);
-    } catch (error) {
-      console.error('데이터 품질 평가 실패:', error);
-    }
-  };
-
-  // 데이터 자동 보완 함수
-  const enhanceData = async () => {
-    try {
-      const response = await fetch('http://localhost:3001/api/admin/auto-enhance', {
-        method: 'POST'
-      });
-      const data = await response.json();
-      setEnhancementStatus(data);
-      // 데이터 갱신
-      fetchHospitals();
-      fetchQualityMetrics();
-    } catch (error) {
-      console.error('데이터 자동 보완 실패:', error);
-    }
-  };
-
-  useEffect(() => {
-    fetchQualityMetrics();
-  }, []);
-
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-6 text-center">병원 관리</h1>
-
-      {/* 데이터 품질 관리 섹션 */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h2 className="text-xl font-bold mb-4">데이터 품질 관리</h2>
-        
-        {qualityMetrics && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div className="bg-blue-50 p-4 rounded">
-              <h3 className="font-semibold">기본 정보 완성도</h3>
-              <p className="text-2xl">{qualityMetrics.completeness.basic}%</p>
-            </div>
-            <div className="bg-green-50 p-4 rounded">
-              <h3 className="font-semibold">진료과목 정보</h3>
-              <p className="text-2xl">{qualityMetrics.completeness.subject}%</p>
-            </div>
-            <div className="bg-purple-50 p-4 rounded">
-              <h3 className="font-semibold">진료시간 정보</h3>
-              <p className="text-2xl">{qualityMetrics.completeness.time}%</p>
-            </div>
-          </div>
-        )}
-
-        <div className="flex justify-between items-center">
-          <button
-            onClick={enhanceData}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-          >
-            데이터 자동 보완
-          </button>
-        </div>
-
-        {enhancementStatus && (
-          <div className="mt-4">
-            <h3 className="font-semibold mb-2">보완 결과</h3>
-            <p>성공: {enhancementStatus.enhanced}건</p>
-            <p>실패: {enhancementStatus.failed}건</p>
-            {enhancementStatus.details.length > 0 && (
-              <div className="mt-2">
-                <h4 className="font-semibold">실패 상세</h4>
-                <ul className="list-disc pl-5">
-                  {enhancementStatus.details.map((detail, index) => (
-                    <li key={index}>
-                      {detail.ykiho}: {detail.reason}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
+      
       {/* 🔹 `time` 값이 없는 병원 수 표시 */}
       <div className="text-center text-lg font-semibold text-red-500 mb-4">
         "Time 없음" 입력이 필요한 병원: {missingTimeCount} 개

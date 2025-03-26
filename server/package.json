@@ -31,6 +31,7 @@
     "express": "^4.21.1",
     "horoscope": "^2.0.1",
     "ioredis": "^5.6.0",
+    "jsonwebtoken": "^9.0.2",
     "kafka-node": "^5.0.0",
     "langchain": "^0.3.19",
     "mongoose": "^8.8.1",

@@ -1,6 +1,7 @@
 //require('dotenv').config(); // 운영서버 , if not 주석
 const express = require('express');
 const connectDB = require('./config/mongoose'); // MongoDB 연결
+const jwt = require('jsonwebtoken');
 const hospitalRoutes = require('./routes/hospitalRoutes');
 const hospitalSearchRouter = require('./elastic/hospitalSearch');
 const hospitalSubjectRoutes = require('./routes/hospitalSubjectRoutes'); // 새로운 라우터 추가
@@ -55,11 +56,40 @@ connectDB();
 //    console.error("Stack trace:", err.stack);
 //  });
 
+// JWT 시크릿 키 설정
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+
+// JWT 인증 미들웨어
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+        return res.status(401).json({ message: '인증 토큰이 필요합니다.' });
+    }
+
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) {
+            return res.status(403).json({ message: '유효하지 않은 토큰입니다.' });
+        }
+        req.user = user;
+        next();
+    });
+};
+
+// 관리자 권한 확인 미들웨어
+const isAdmin = (req, res, next) => {
+    if (req.user && req.user.role === 'admin') {
+        next();
+    } else {
+        res.status(403).json({ message: '관리자 권한이 필요합니다.' });
+    }
+};
 
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
- try {
-   const user = await User.findOne({ username });
+  try {
+    const user = await User.findOne({ username });
     if (!user) {
       return res.status(401).json({ success: false, message: '아이디 또는 비밀번호가 올바르지 않습니다.' });
     }
@@ -67,23 +97,41 @@ app.post('/api/login', async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({ success: false, message: '아이디 또는 비밀번호가 올바르지 않습니다.' });
     }
-// 인증 성공 시 role 반환 (실제 환경에서는 JWT 토큰 발행을 권장)
-    return res.json({ success: true, role: user.role });
+
+    // JWT 토큰 생성
+    const token = jwt.sign(
+      { 
+        id: user._id, 
+        username: user.username,
+        role: user.role 
+      }, 
+      JWT_SECRET, 
+      { expiresIn: '24h' }
+    );
+
+    return res.json({ 
+      success: true, 
+      token,
+      role: user.role 
+    });
   } catch (error) {
     console.error('로그인 에러:', error);
     res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
 
-// 라우트
-app.use('/api/admin', adminRouter);
+// 보호된 라우트에 인증 미들웨어 추가
+app.use('/api/admin', authenticateToken, isAdmin, adminRouter);
+
+// 인증이 필요 없는 라우트
 app.use('/api/autocomplete', autoCompleteRouter);
 app.use('/api/hospitals', hospitalRoutes);
 app.use('/api/hospitals/search', hospitalSearchRouter);
 app.use('/api/hospitals/details/search', hospitalDetailSearchRoutes);
-app.use('/api/hospitals/subjects', hospitalSubjectRoutes); // 새로운 라우터 사용
+app.use('/api/hospitals/subjects', hospitalSubjectRoutes);
+app.use('/aip/chat', chatRouter);
 //app.use('/api/chat', chatRoutes);
-app.use('/aip/chat' ,chatRouter);
+
 // 에러 핸들링 미들웨어
 app.use((err, req, res, next) => {
   console.error(err.stack);

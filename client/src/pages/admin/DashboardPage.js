@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Bar, Pie } from 'react-chartjs-2';
+import { useNavigate } from 'react-router-dom';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -22,6 +23,7 @@ ChartJS.register(
 );
 
 const DashboardPage = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     collectionStats: {
       hospitals: { total: 0, complete: 0, partial: 0, incomplete: 0 }
@@ -35,15 +37,37 @@ const DashboardPage = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    // 토큰과 관리자 권한 확인
+    const token = localStorage.getItem('token');
+    const userRole = localStorage.getItem('userRole');
+    
+    if (!token || userRole !== 'admin') {
+      navigate('/admin/login');
+      return;
+    }
+
     fetchDashboardStats();
-  }, []);
+  }, [navigate]);
 
   const fetchDashboardStats = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch('http://localhost:3001/api/admin/dashboard/stats');
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch('http://localhost:3001/api/admin/dashboard/stats', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
       if (!response.ok) {
+        if (response.status === 403) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('userRole');
+          navigate('/admin/login');
+          return;
+        }
         throw new Error('서버 응답 오류');
       }
       const data = await response.json();

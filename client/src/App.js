@@ -32,7 +32,6 @@ function App() {
               <Route path="/" element={<><MainPage /><AdSense /></>} />
               <Route path="/hospitals" element={<><HospitalListPage /><AdSense /></>} />
               <Route path="/hospital/details/:id" element={<><HospitalDetailPage /><AdSense /></>} />
-              <Route path="/login" element={<LoginPage />} />
               <Route path="/logout" element={<LogoutPage />} />
               {/* 가이드 페이지 라우트 */}
               <Route path="/guide/emergency" element={<EmergencyGuidePage />} />
@@ -47,8 +46,9 @@ function App() {
               }>
                 <Route index element={<DashboardPage />} />
                 <Route path="hospitals" element={<HospitalManagementPage />} />
-                {/* 필요시 다른 하위 관리자 페이지 추가 */}
               </Route>
+              {/* 관리자 로그인 라우트 */}
+              <Route path="/authlogin" element={<LoginPage />} />
             </Routes>
           </div>
           <Footer />

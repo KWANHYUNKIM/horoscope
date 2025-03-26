@@ -1,4 +1,4 @@
-#!/Users/kwanhyunkim/Desktop/project/horoscope/crawl/venv/bin/python
+#!/Users/kwanhyunkim/Desktop/project/horoscope/crawl/venv/bin/python3.13
 # -*- coding: utf-8 -*-
 import re
 import sys
