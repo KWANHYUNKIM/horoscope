@@ -13,6 +13,9 @@ venv/
 server/.env
 client/.env
 
+# crawl 폴더 전체 제외
+crawl/*
+
 # mongo 백업 폴더 전체 제외
 mongo/backup/
 

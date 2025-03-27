@@ -7,16 +7,44 @@ import MedicalGuideSlider from "../components/MedicalGuideSlider";
 import NursingHospitalBannerSlider from "../components/NursingHospitalBannerSlider";
 import BigChatModal from "../components/BigChatModal";
 import MedicalInfoSection from '../components/MedicalInfoSection';
+import Board from '../components/Board';
+// import NavigationBar from '../components/NavigationBar';
 
 const MainPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
   const { handleQuickSearch } = useAuth();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userRole, setUserRole] = useState(null);
+  const [posts, setPosts] = useState([]); // 임시 데이터
+
+  useEffect(() => {
+    // 로그인 상태 확인
+    const token = localStorage.getItem('token');
+    const role = localStorage.getItem('userRole');
+    setIsLoggedIn(!!token);
+    setUserRole(role);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('userRole');
+    setIsLoggedIn(false);
+    setUserRole(null);
+    navigate('/login');
+  };
 
   return (
     <section className="bg-gray-50 min-h-screen">
       {/* 첫 방문 시 자동 투어 실행 */}
       <AppTour />
+
+      {/* 네비게이션 바 */}
+      {/* <NavigationBar 
+        isLoggedIn={isLoggedIn} 
+        userRole={userRole} 
+        onLogout={handleLogout} 
+      /> */}
 
       {/* 헤더 섹션 */}
       <header className="bg-gradient-to-r from-blue-400 to-purple-500 text-white py-10 shadow-md">

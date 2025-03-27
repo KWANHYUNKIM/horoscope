@@ -1,4 +1,4 @@
-import React, {useEffect} from "react";
+import React, {useEffect, useState} from "react";
 import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import MainPage from "./pages/MainPage";
 import HospitalListPage from "./pages/HospitalListPage";
@@ -17,55 +17,71 @@ import WeekendCareGuidePage from './pages/guides/WeekendCareGuidePage';
 import EmergencyCarePage from './pages/guides/EmergencyCarePage';
 import { AuthProvider } from './contexts/AuthContext';
 import DashboardPage from './pages/admin/DashboardPage';
-
-
-initializeGA();
+import RegisterPage from './pages/RegisterPage';
+import Login from './components/auth/Login';
+import CommunityPage from './pages/CommunityPage';
+import TermsAgreement from './components/auth/TermsAgreement';
+import NavigationBar from './components/NavigationBar';
 
 function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userRole, setUserRole] = useState(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const role = localStorage.getItem('userRole');
+    setIsLoggedIn(!!token);
+    setUserRole(role);
+  }, []);
+
+  useEffect(() => {
+    initializeGA();
+  }, []);
+
   return (
     <AuthProvider>
       <Router>
-        <PageTracker />
-        <div className="flex flex-col min-h-screen">
-          <div className="flex-grow">
-            <Routes>
-              <Route path="/" element={<><MainPage /><AdSense /></>} />
-              <Route path="/hospitals" element={<><HospitalListPage /><AdSense /></>} />
-              <Route path="/hospital/details/:id" element={<><HospitalDetailPage /><AdSense /></>} />
-              <Route path="/logout" element={<LogoutPage />} />
-              {/* 가이드 페이지 라우트 */}
-              <Route path="/guide/emergency" element={<EmergencyGuidePage />} />
-              <Route path="/guide/emergency-care" element={<EmergencyCarePage/>} />
-              <Route path="/guide/night-care" element={<NightCareGuidePage />} />
-              <Route path="/guide/weekend-care" element={<WeekendCareGuidePage />} />
-              {/* 관리자 전용 중첩 라우트 */}
-              <Route path="/admin" element={
-                <AdminRoute>
-                  <AdminPage />
-                </AdminRoute>
-              }>
-                <Route index element={<DashboardPage />} />
-                <Route path="hospitals" element={<HospitalManagementPage />} />
-              </Route>
-              {/* 관리자 로그인 라우트 */}
-              <Route path="/authlogin" element={<LoginPage />} />
-            </Routes>
-          </div>
-          <Footer />
+        <div className="min-h-screen bg-gray-50">
+          <NavigationBar isLoggedIn={isLoggedIn} userRole={userRole} />
+          <AppContent isLoggedIn={isLoggedIn} userRole={userRole} />
         </div>
       </Router>
     </AuthProvider>
   );
 }
 
-const PageTracker = () => {
+function AppContent({ isLoggedIn, userRole }) {
   const location = useLocation();
 
   useEffect(() => {
     trackPageView(location.pathname);
   }, [location]);
 
-  return null;
-};
+  return (
+    <div className="min-h-screen flex flex-col">
+      <div className="flex-grow">
+        <Routes>
+          <Route path="/" element={<MainPage isLoggedIn={isLoggedIn} userRole={userRole} />} />
+          <Route path="/hospitals" element={<HospitalListPage />} />
+          <Route path="/hospitals/:id" element={<HospitalDetailPage />} />
+          <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
+          <Route path="/admin/dashboard" element={<AdminRoute><DashboardPage /></AdminRoute>} />
+          <Route path="/admin/hospitals" element={<AdminRoute><HospitalManagementPage /></AdminRoute>} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/logout" element={<LogoutPage />} />
+          <Route path="/guides/emergency" element={<EmergencyGuidePage />} />
+          <Route path="/guides/night-care" element={<NightCareGuidePage />} />
+          <Route path="/guides/weekend-care" element={<WeekendCareGuidePage />} />
+          <Route path="/guides/emergency-care" element={<EmergencyCarePage />} />
+          <Route path="/terms" element={<TermsAgreement />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/community" element={<CommunityPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </div>
+      <Footer />
+    </div>
+  );
+}
 
 export default App;
