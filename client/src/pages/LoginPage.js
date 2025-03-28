@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useAuth } from '../contexts/AuthContext';
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { setIsLoggedIn, setUserRole } = useAuth();
   const [formData, setFormData] = useState({
     username: '',
     password: ''
@@ -13,31 +15,52 @@ const LoginPage = () => {
   const [successMessage, setSuccessMessage] = useState('');
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccessMessage('');
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:3001/api/auth/login', formData);
-      
-      if (response.data.token) {
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('userRole', response.data.role);
-        localStorage.setItem('isLoggedIn', 'true');
+      const response = await axios.post('http://localhost:3001/api/auth/login', {
+        username: formData.username,
+        password: formData.password
+      }, {
+        withCredentials: true
+      });
+
+      if (response.data.user) {
+        console.log('로그인 성공, 사용자 역할:', response.data.user.role);
+        await Promise.all([
+          new Promise(resolve => {
+            setIsLoggedIn(true);
+            resolve();
+          }),
+          new Promise(resolve => {
+            setUserRole(response.data.user.role);
+            resolve();
+          })
+        ]);
         
-        setSuccessMessage('로그인이 완료되었습니다.');
-        window.location.href = '/';
+        setSuccessMessage('로그인 성공!');
+        
+        setTimeout(() => {
+          if (response.data.user.role === 'admin') {
+            navigate('/admin/dashboard');
+          } else {
+            navigate('/');
+          }
+        }, 1000);
       }
-    } catch (err) {
-      setError(err.response?.data?.message || '로그인에 실패했습니다.');
+    } catch (error) {
+      console.error('로그인 오류:', error);
+      setError(error.response?.data?.message || '로그인 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
     }

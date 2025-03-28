@@ -1,155 +1,349 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 const CommunityPage = () => {
   const navigate = useNavigate();
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [boards, setBoards] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [selectedBoard, setSelectedBoard] = useState(null);
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newBoard, setNewBoard] = useState({
+    category_id: '',
+    title: '',
+    summary: '',
+    content: '',
+    additional_info: ''
+  });
 
-  // 커뮤니티 카테고리 데이터
-  const categories = [
-    {
-      id: 'cancer',
-      name: '암 커뮤니티',
-      description: '암 환자와 보호자를 위한 정보 공유와 경험 나누기',
-      icon: '🏥',
-      memberCount: 1234,
-      postCount: 567
-    },
-    {
-      id: 'nursing',
-      name: '요양병원 커뮤니티',
-      description: '요양병원 이용과 관련된 정보와 경험 공유',
-      icon: '👨‍⚕️',
-      memberCount: 890,
-      postCount: 234
-    },
-    {
-      id: 'general',
-      name: '일반 의료 커뮤니티',
-      description: '일반적인 의료 정보와 건강 상담',
-      icon: '💊',
-      memberCount: 2345,
-      postCount: 789
-    },
-    {
-      id: 'mental',
-      name: '정신건강 커뮤니티',
-      description: '정신건강 관련 정보와 상담',
-      icon: '🧠',
-      memberCount: 678,
-      postCount: 123
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    setIsLoggedIn(!!token);
+    fetchBoards();
+    fetchCategories();
+  }, []);
+
+  const fetchBoards = async () => {
+    try {
+      const response = await axios.get('http://localhost:3001/api/boards');
+      setBoards(response.data);
+    } catch (error) {
+      console.error('게시글 목록을 불러오는데 실패했습니다:', error);
     }
-  ];
+  };
 
-  // 최근 게시글 데이터
-  const recentPosts = [
-    {
-      id: 1,
-      title: '암 진단 후 생활 관리 방법',
-      author: '김철수',
-      category: 'cancer',
-      date: '2024-03-20',
-      views: 123,
-      comments: 5
-    },
-    {
-      id: 2,
-      title: '요양병원 선택 시 고려사항',
-      author: '이영희',
-      category: 'nursing',
-      date: '2024-03-19',
-      views: 89,
-      comments: 3
-    },
-    // ... 더 많은 게시글
-  ];
+  const fetchCategories = async () => {
+    try {
+      const response = await axios.get('http://localhost:3001/api/boards/categories');
+      setCategories(response.data);
+    } catch (error) {
+      console.error('카테고리 목록을 불러오는데 실패했습니다:', error);
+    }
+  };
+
+  const fetchBoardDetail = async (id) => {
+    try {
+      const response = await axios.get(`http://localhost:3001/api/boards/${id}`);
+      setSelectedBoard(response.data);
+      fetchComments(id);
+    } catch (error) {
+      console.error('게시글 상세를 불러오는데 실패했습니다:', error);
+    }
+  };
+
+  const fetchComments = async (boardId) => {
+    try {
+      const response = await axios.get(`http://localhost:3001/api/boards/${boardId}/comments`);
+      setComments(response.data);
+    } catch (error) {
+      console.error('댓글 목록을 불러오는데 실패했습니다:', error);
+    }
+  };
+
+  const handleCreateBoard = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post('http://localhost:3001/api/boards', newBoard, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setShowCreateModal(false);
+      setNewBoard({
+        category_id: '',
+        title: '',
+        summary: '',
+        content: '',
+        additional_info: ''
+      });
+      fetchBoards();
+    } catch (error) {
+      console.error('게시글 작성에 실패했습니다:', error);
+    }
+  };
+
+  const handleDeleteBoard = async (id) => {
+    if (!window.confirm('정말로 이 게시글을 삭제하시겠습니까?')) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`http://localhost:3001/api/boards/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchBoards();
+      if (selectedBoard?.id === id) {
+        setSelectedBoard(null);
+        setComments([]);
+      }
+    } catch (error) {
+      console.error('게시글 삭제에 실패했습니다:', error);
+    }
+  };
+
+  const handleCreateComment = async (e) => {
+    e.preventDefault();
+    if (!selectedBoard) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(
+        `http://localhost:3001/api/boards/${selectedBoard.id}/comments`,
+        { comment: newComment },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setNewComment('');
+      fetchComments(selectedBoard.id);
+    } catch (error) {
+      console.error('댓글 작성에 실패했습니다:', error);
+    }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    if (!window.confirm('정말로 이 댓글을 삭제하시겠습니까?')) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(
+        `http://localhost:3001/api/boards/${selectedBoard.id}/comments/${commentId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      fetchComments(selectedBoard.id);
+    } catch (error) {
+      console.error('댓글 삭제에 실패했습니다:', error);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* 커뮤니티 헤더 */}
-      <div className="bg-white shadow">
-        <div className="max-w-7xl mx-auto py-16 px-4 sm:py-24 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-extrabold text-gray-900">의료 커뮤니티</h1>
-          <p className="mt-4 text-lg text-gray-500">
-            의료 정보를 공유하고 경험을 나누는 공간입니다.
-          </p>
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">커뮤니티</h1>
+        {isLoggedIn && (
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
+          >
+            글쓰기
+          </button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* 게시글 목록 */}
+        <div className="md:col-span-2">
+          <div className="bg-white rounded-lg shadow">
+            <div className="p-4">
+              {boards.map((board) => (
+                <div
+                  key={board.id}
+                  className="border-b p-4 hover:bg-gray-50 cursor-pointer"
+                  onClick={() => fetchBoardDetail(board.id)}
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="text-lg font-semibold">{board.title}</h3>
+                      <p className="text-gray-600 text-sm mt-1">{board.summary}</p>
+                      <div className="flex items-center text-sm text-gray-500 mt-2">
+                        <span>{board.category_name}</span>
+                        <span className="mx-2">•</span>
+                        <span>{board.username}</span>
+                        <span className="mx-2">•</span>
+                        <span>{new Date(board.created_at).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                    {isLoggedIn && board.user_id === parseInt(localStorage.getItem('userId')) && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteBoard(board.id);
+                        }}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        삭제
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* 게시글 상세 및 댓글 */}
+        <div className="md:col-span-1">
+          {selectedBoard ? (
+            <div className="bg-white rounded-lg shadow p-4">
+              <h2 className="text-xl font-bold mb-4">{selectedBoard.title}</h2>
+              <div className="prose max-w-none mb-4">
+                {selectedBoard.content}
+              </div>
+              {selectedBoard.additional_info && (
+                <div className="bg-gray-50 p-4 rounded-md mb-4">
+                  <h3 className="font-semibold mb-2">추가 정보</h3>
+                  <p>{selectedBoard.additional_info}</p>
+                </div>
+              )}
+
+              {/* 댓글 섹션 */}
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold mb-4">댓글</h3>
+                {isLoggedIn && (
+                  <form onSubmit={handleCreateComment} className="mb-4">
+                    <textarea
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      className="w-full p-2 border rounded-md"
+                      rows="3"
+                      placeholder="댓글을 입력하세요"
+                    />
+                    <button
+                      type="submit"
+                      className="mt-2 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
+                    >
+                      댓글 작성
+                    </button>
+                  </form>
+                )}
+                <div className="space-y-4">
+                  {comments.map((comment) => (
+                    <div key={comment.id} className="border-b pb-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-medium">{comment.username}</p>
+                          <p className="text-gray-700">{comment.comment}</p>
+                        </div>
+                        {isLoggedIn && comment.user_id === parseInt(localStorage.getItem('userId')) && (
+                          <button
+                            onClick={() => handleDeleteComment(comment.id)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            삭제
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg shadow p-4 text-center text-gray-500">
+              게시글을 선택해주세요
+            </div>
+          )}
         </div>
       </div>
 
-      {/* 메인 컨텐츠 */}
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* 왼쪽 사이드바 - 카테고리 목록 */}
-          <div className="lg:col-span-1">
-            <div className="bg-white shadow rounded-lg p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">커뮤니티 카테고리</h2>
-              <div className="space-y-4">
-                {categories.map((category) => (
-                  <button
-                    key={category.id}
-                    onClick={() => setSelectedCategory(category.id)}
-                    className={`w-full flex items-center p-4 rounded-lg transition-colors ${
-                      selectedCategory === category.id
-                        ? 'bg-indigo-50 border-indigo-500'
-                        : 'bg-gray-50 hover:bg-gray-100'
-                    }`}
-                  >
-                    <span className="text-2xl mr-3">{category.icon}</span>
-                    <div className="text-left">
-                      <h3 className="font-medium text-gray-900">{category.name}</h3>
-                      <p className="text-sm text-gray-500">{category.description}</p>
-                    </div>
-                  </button>
-                ))}
+      {/* 게시글 작성 모달 */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
+            <h2 className="text-xl font-bold mb-4">새 게시글 작성</h2>
+            <form onSubmit={handleCreateBoard}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  카테고리
+                </label>
+                <select
+                  value={newBoard.category_id}
+                  onChange={(e) => setNewBoard({ ...newBoard, category_id: e.target.value })}
+                  className="w-full p-2 border rounded-md"
+                  required
+                >
+                  <option value="">카테고리 선택</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.category_name}
+                    </option>
+                  ))}
+                </select>
               </div>
-            </div>
-          </div>
-
-          {/* 오른쪽 메인 컨텐츠 */}
-          <div className="lg:col-span-2">
-            {/* 최근 게시글 */}
-            <div className="bg-white shadow rounded-lg p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-lg font-medium text-gray-900">최근 게시글</h2>
-                <button className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700">
-                  글쓰기
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  제목
+                </label>
+                <input
+                  type="text"
+                  value={newBoard.title}
+                  onChange={(e) => setNewBoard({ ...newBoard, title: e.target.value })}
+                  className="w-full p-2 border rounded-md"
+                  required
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  요약
+                </label>
+                <input
+                  type="text"
+                  value={newBoard.summary}
+                  onChange={(e) => setNewBoard({ ...newBoard, summary: e.target.value })}
+                  className="w-full p-2 border rounded-md"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  내용
+                </label>
+                <textarea
+                  value={newBoard.content}
+                  onChange={(e) => setNewBoard({ ...newBoard, content: e.target.value })}
+                  className="w-full p-2 border rounded-md"
+                  rows="6"
+                  required
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  추가 정보
+                </label>
+                <textarea
+                  value={newBoard.additional_info}
+                  onChange={(e) => setNewBoard({ ...newBoard, additional_info: e.target.value })}
+                  className="w-full p-2 border rounded-md"
+                  rows="3"
+                />
+              </div>
+              <div className="flex justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="px-4 py-2 border rounded-md hover:bg-gray-50"
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                >
+                  작성
                 </button>
               </div>
-
-              <div className="space-y-4">
-                {recentPosts.map((post) => (
-                  <div
-                    key={post.id}
-                    className="border-b border-gray-200 pb-4 last:border-0"
-                  >
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-medium text-gray-900 hover:text-indigo-600 cursor-pointer">
-                        {post.title}
-                      </h3>
-                      <span className="text-sm text-gray-500">{post.date}</span>
-                    </div>
-                    <div className="mt-2 flex items-center text-sm text-gray-500">
-                      <span>{post.author}</span>
-                      <span className="mx-2">•</span>
-                      <span>조회 {post.views}</span>
-                      <span className="mx-2">•</span>
-                      <span>댓글 {post.comments}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* 인기 게시글 */}
-            <div className="mt-8 bg-white shadow rounded-lg p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">인기 게시글</h2>
-              <div className="space-y-4">
-                {/* 인기 게시글 목록 */}
-              </div>
-            </div>
+            </form>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

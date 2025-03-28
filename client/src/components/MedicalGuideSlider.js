@@ -3,6 +3,7 @@ import Slider from 'react-slick';
 import { useNavigate } from 'react-router-dom';
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
+import './MedicalGuideSlider.css';
 
 const MedicalGuideSlider = () => {
   const navigate = useNavigate();
@@ -66,91 +67,6 @@ const MedicalGuideSlider = () => {
           </div>
         ))}
       </Slider>
-      <style jsx>{`
-        .medical-guide-slider {
-          margin: 0;
-          padding: 0;
-          background: transparent;
-          border-radius: 0;
-          box-shadow: none;
-        }
-        .guide-slide {
-          display: flex;
-          align-items: center;
-          padding: 30px;
-          background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-          border-radius: 12px;
-          margin: 10px;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          border: 1px solid rgba(0,0,0,0.05);
-        }
-        .guide-slide:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 8px 15px rgba(0,0,0,0.1);
-        }
-        .guide-content {
-          flex: 1;
-          padding: 20px;
-        }
-        .guide-content h2 {
-          color: #2c3e50;
-          margin-bottom: 15px;
-          font-size: 1.8rem;
-          font-weight: 700;
-        }
-        .guide-content p {
-          color: #4a5568;
-          margin-bottom: 20px;
-          line-height: 1.7;
-          font-size: 1.1rem;
-        }
-        .guide-link {
-          display: inline-block;
-          padding: 10px 20px;
-          background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-          color: white;
-          text-decoration: none;
-          border-radius: 8px;
-          transition: all 0.3s ease;
-          font-weight: 500;
-          box-shadow: 0 2px 4px rgba(52, 152, 219, 0.2);
-        }
-        .guide-link:hover {
-          background: linear-gradient(135deg, #2980b9 0%, #2472a4 100%);
-          transform: translateY(-2px);
-          box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
-        }
-        .guide-image {
-          flex: 1;
-          padding: 20px;
-        }
-        .guide-image img {
-          width: 100%;
-          height: 300px;
-          object-fit: cover;
-          border-radius: 12px;
-          box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        @media (max-width: 768px) {
-          .guide-slide {
-            flex-direction: column;
-            padding: 20px;
-          }
-          .guide-content, .guide-image {
-            width: 100%;
-          }
-          .guide-content h2 {
-            font-size: 1.5rem;
-          }
-          .guide-content p {
-            font-size: 1rem;
-          }
-          .guide-image img {
-            height: 200px;
-          }
-        }
-      `}</style>
     </div>
   );
 };

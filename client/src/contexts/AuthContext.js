@@ -1,6 +1,76 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
+
+export const AuthProvider = ({ children }) => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userRole, setUserRole] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const updateAuthState = useCallback((user) => {
+    if (user) {
+      setIsLoggedIn(true);
+      setUserRole(user.role);
+      console.log('AuthContext 상태 업데이트:', { isLoggedIn: true, userRole: user.role });
+    } else {
+      setIsLoggedIn(false);
+      setUserRole(null);
+      console.log('AuthContext 상태 초기화');
+    }
+  }, []);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await axios.get('http://localhost:3001/api/auth/check-auth', {
+          withCredentials: true
+        });
+        console.log('인증 확인 응답:', response.data);
+        updateAuthState(response.data.user);
+      } catch (error) {
+        console.error('인증 확인 오류:', error);
+        updateAuthState(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, [updateAuthState]);
+
+  const handleLogout = async () => {
+    try {
+      await axios.post('http://localhost:3001/api/auth/logout', {}, {
+        withCredentials: true
+      });
+      updateAuthState(null);
+      window.location.href = '/';
+    } catch (error) {
+      console.error('로그아웃 오류:', error);
+    }
+  };
+
+  const value = {
+    isLoggedIn,
+    userRole,
+    isLoading,
+    setIsLoggedIn,
+    setUserRole,
+    handleLogout
+  };
+
+  // 로딩 중일 때는 아무것도 렌더링하지 않음
+  if (isLoading) {
+    return null;
+  }
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -8,35 +78,6 @@ export const useAuth = () => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
-
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  // 빠른 검색 처리 함수
-  const handleQuickSearch = (query) => {
-    // 여기에 검색 로직 구현
-    console.log('Quick search:', query);
-    // 실제 구현에서는 검색 결과를 처리하고 상태를 업데이트하는 로직이 들어갈 수 있습니다
-  };
-
-  const value = {
-    user,
-    loading,
-    error,
-    handleQuickSearch,
-    setUser,
-    setLoading,
-    setError
-  };
-
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
 };
 
 export default AuthContext; 

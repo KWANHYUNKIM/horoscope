@@ -8,10 +8,12 @@ const hospitalDetailSearchRoutes = require('./elastic/hospitalDetailSearch');
 const autoCompleteRouter = require('./elastic/autoComplete');
 const chatRouter = require('./routes/chat'); // 채팅 라우터 추가
 const adminRouter = require('./routes/admin'); // 관리자 라우터 추가
+const boardRoutes = require('./routes/boardRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 //const { reindex } = require('./elastic/elastics'); // reindex 불러오기
 const User = require('./models/User');
 const cors = require('cors');
+const cookieParser = require('cookie-parser'); // cookie-parser 추가
 const { router: authRouter, authenticateToken, isAdmin } = require('./routes/authRoutes');
 const emailRouter = require('./routes/emailRoutes');
 
@@ -38,10 +40,11 @@ app.use(cors({
   },
   credentials: true,
   methods: 'GET, POST, PUT, DELETE, OPTIONS',
-  allowedHeaders: 'Content-Type, Authorization' // 최소한의 헤더만 허용
+  allowedHeaders: 'Content-Type, Authorization, Cookie'
 }));
 
 app.use(express.json());
+app.use(cookieParser()); // cookie-parser 미들웨어 추가
 // MongoDB 연결
 connectDB();
 
@@ -66,6 +69,8 @@ app.use('/api/hospitals/search', hospitalSearchRouter);
 app.use('/api/hospitals/details/search', hospitalDetailSearchRoutes);
 app.use('/api/hospitals/subjects', hospitalSubjectRoutes);
 app.use('/aip/chat', chatRouter);
+app.use('/api/boards', boardRoutes);
+
 //app.use('/api/chat', chatRoutes);
 
 // 에러 핸들링 미들웨어
