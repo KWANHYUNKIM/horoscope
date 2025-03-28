@@ -1,8 +1,9 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const NavigationBar = ({ isLoggedIn, userRole, onLogout }) => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   return (
     <nav className="bg-white shadow-lg">
@@ -13,14 +14,35 @@ const NavigationBar = ({ isLoggedIn, userRole, onLogout }) => {
               <span className="text-xl font-bold text-indigo-600">삐뽀삐뽀119</span>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-              <a href="/" className="border-indigo-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+              <a 
+                href="/" 
+                className={`${
+                  location.pathname === '/' 
+                    ? 'border-indigo-500 text-gray-900' 
+                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
+              >
                 홈
               </a>
-              <a href="/community" className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+              <a 
+                href="/community" 
+                className={`${
+                  location.pathname === '/community' 
+                    ? 'border-indigo-500 text-gray-900' 
+                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
+              >
                 커뮤니티
               </a>
               {userRole === 'admin' && (
-                <a href="/admin/dashboard" className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                <a 
+                  href="/admin/dashboard" 
+                  className={`${
+                    location.pathname === '/admin/dashboard' 
+                      ? 'border-indigo-500 text-gray-900' 
+                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                  } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
+                >
                   관리자
                 </a>
               )}

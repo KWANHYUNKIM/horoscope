@@ -10,6 +10,7 @@ const LoginPage = () => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -32,8 +33,8 @@ const LoginPage = () => {
         localStorage.setItem('userRole', response.data.role);
         localStorage.setItem('isLoggedIn', 'true');
         
-        alert('로그인이 완료되었습니다.');
-        navigate('/');
+        setSuccessMessage('로그인이 완료되었습니다.');
+        window.location.href = '/';
       }
     } catch (err) {
       setError(err.response?.data?.message || '로그인에 실패했습니다.');
@@ -52,6 +53,41 @@ const LoginPage = () => {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          {successMessage && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white p-6 rounded-lg shadow-xl">
+                <div className="text-center">
+                  <div className="text-green-500 mb-4">
+                    <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">{successMessage}</h3>
+                  <p className="text-sm text-gray-500">잠시 후 홈페이지로 이동합니다.</p>
+                </div>
+              </div>
+            </div>
+          )}
+          {error && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white p-6 rounded-lg shadow-xl">
+                <div className="text-center">
+                  <div className="text-red-500 mb-4">
+                    <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">{error}</h3>
+                  <button
+                    onClick={() => setError('')}
+                    className="mt-4 bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
+                  >
+                    확인
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-700">
@@ -86,12 +122,6 @@ const LoginPage = () => {
                 />
               </div>
             </div>
-
-            {error && (
-              <div className="text-red-600 text-sm">
-                {error}
-              </div>
-            )}
 
             <div>
               <button

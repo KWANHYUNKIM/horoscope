@@ -1,33 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Pagination } from 'swiper/modules';
+import { useNavigate } from 'react-router-dom';
 import 'swiper/css';
 import 'swiper/css/pagination';
 
 const NursingHospitalBannerSlider = () => {
+  const navigate = useNavigate();
   const [banners, setBanners] = useState([
     {
       id: 1,
       title: "요양병원 찾기",
       description: "전문적인 요양 서비스를 제공하는 요양병원을 찾아보세요",
       image: "/images/nursing-home-1.jpg",
-      link: "/hospitals?type=nursing"
+      link: "/hospitals"
     },
     {
       id: 2,
       title: "장기요양 시설",
       description: "장기요양 시설에 대한 상세 정보를 확인하세요",
       image: "/images/nursing-home-2.jpg",
-      link: "/guide/nursing-care"
+      link: "/guides/emergency"
     },
     {
       id: 3,
       title: "요양 서비스 안내",
       description: "요양 서비스 이용 방법과 절차를 알아보세요",
       image: "/images/nursing-home-3.jpg",
-      link: "/guide/nursing-service"
+      link: "/guides/night-care"
     }
   ]);
+
+  const handleClick = (link) => {
+    navigate(link);
+  };
 
   return (
     <div className="w-full">
@@ -57,12 +63,12 @@ const NursingHospitalBannerSlider = () => {
                 <div className="absolute inset-0 flex flex-col justify-center items-center text-white p-6">
                   <h3 className="text-2xl font-bold mb-2">{banner.title}</h3>
                   <p className="text-center text-lg">{banner.description}</p>
-                  <a 
-                    href={banner.link}
+                  <button 
+                    onClick={() => handleClick(banner.link)}
                     className="mt-4 px-6 py-2 bg-white text-gray-800 rounded-full hover:bg-gray-100 transition-colors"
                   >
                     자세히 보기
-                  </a>
+                  </button>
                 </div>
               </div>
             </div>

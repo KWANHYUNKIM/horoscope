@@ -38,11 +38,20 @@ function App() {
     initializeGA();
   }, []);
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('isLoggedIn');
+    setIsLoggedIn(false);
+    setUserRole(null);
+    window.location.href = '/';
+  };
+
   return (
     <AuthProvider>
       <Router>
         <div className="min-h-screen bg-gray-50">
-          <NavigationBar isLoggedIn={isLoggedIn} userRole={userRole} />
+          <NavigationBar isLoggedIn={isLoggedIn} userRole={userRole} onLogout={handleLogout} />
           <AppContent isLoggedIn={isLoggedIn} userRole={userRole} />
         </div>
       </Router>
