@@ -160,36 +160,36 @@ const BoardDetail = () => {
 
     return (
       <div className={`mb-4 ${isDeleted ? 'opacity-50' : ''}`}>
-        <div className="flex items-start space-x-4">
+        <div className="flex items-start space-x-3">
           <div className="flex-shrink-0">
-            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-              <span className="text-gray-600 font-semibold">
+            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+              <span className="text-blue-600 font-semibold text-sm">
                 {isDeleted ? 'X' : (comment.username?.charAt(0).toUpperCase() || '?')}
               </span>
             </div>
           </div>
           <div className="flex-grow">
-            <div className="bg-white rounded-lg p-4 shadow-sm">
+            <div className="bg-gray-50 rounded-lg p-4">
               <div className="flex justify-between items-start">
                 <div>
-                  <span className="font-semibold text-gray-800">
+                  <span className="font-semibold text-gray-800 text-sm">
                     {isDeleted ? '삭제됨' : comment.username}
                   </span>
-                  <span className="text-sm text-gray-500 ml-2">
+                  <span className="text-xs text-gray-500 ml-2">
                     {new Date(comment.created_at).toLocaleString()}
                   </span>
                 </div>
                 {!isDeleted && isAuthor && (
-                  <div className="flex space-x-2">
+                  <div className="flex space-x-3">
                     <button
                       onClick={() => handleEditClick(comment)}
-                      className="text-blue-600 hover:text-blue-800 text-sm"
+                      className="text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
                     >
                       수정
                     </button>
                     <button
                       onClick={() => handleDeleteComment(comment.id)}
-                      className="text-red-600 hover:text-red-800 text-sm"
+                      className="text-xs text-red-600 hover:text-red-800 font-medium transition-colors"
                     >
                       삭제
                     </button>
@@ -197,61 +197,61 @@ const BoardDetail = () => {
                 )}
               </div>
               {isEditing ? (
-                <div className="mt-2">
+                <div className="mt-3">
                   <textarea
                     value={editContent}
                     onChange={(e) => setEditContent(e.target.value)}
-                    className="w-full p-2 border rounded-lg"
-                    rows="3"
+                    className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
+                    rows="2"
                   />
-                  <div className="flex justify-end space-x-2 mt-2">
+                  <div className="flex justify-end space-x-3 mt-2">
                     <button
                       onClick={() => setEditingComment(null)}
-                      className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
+                      className="px-3 py-1 text-xs text-gray-600 hover:text-gray-800 font-medium transition-colors"
                     >
                       취소
                     </button>
                     <button
                       onClick={() => handleCommentEdit(comment.id)}
-                      className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                      className="px-3 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
                     >
                       저장
                     </button>
                   </div>
                 </div>
               ) : (
-                <p className="mt-2 text-gray-700 whitespace-pre-wrap">
+                <p className="mt-2 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
                   {isDeleted ? '삭제된 댓글입니다.' : comment.comment}
                 </p>
               )}
               {!isDeleted && !isReplying && (
                 <button
                   onClick={() => setReplyingTo(comment.id)}
-                  className="mt-2 text-sm text-blue-600 hover:text-blue-800"
+                  className="mt-2 text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
                 >
                   답글 달기
                 </button>
               )}
             </div>
             {isReplying && (
-              <div className="mt-2 ml-4">
+              <div className="mt-3 ml-4">
                 <textarea
                   value={replyContent}
                   onChange={(e) => setReplyContent(e.target.value)}
-                  className="w-full p-2 border rounded-lg"
+                  className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
                   rows="2"
                   placeholder="답글을 입력하세요..."
                 />
-                <div className="flex justify-end space-x-2 mt-2">
+                <div className="flex justify-end space-x-3 mt-2">
                   <button
                     onClick={() => setReplyingTo(null)}
-                    className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
+                    className="px-3 py-1 text-xs text-gray-600 hover:text-gray-800 font-medium transition-colors"
                   >
                     취소
                   </button>
                   <button
                     onClick={() => handleReplySubmit(comment.id)}
-                    className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                    className="px-3 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
                   >
                     답글 작성
                   </button>
@@ -350,78 +350,76 @@ const BoardDetail = () => {
     }
   };
 
-  const renderComments = () => {
-    if (!board) return null;
-
-    const rootComments = buildCommentTree(comments);
-    const activeCommentsCount = comments.filter(c => !c.is_deleted).length;
-
-    return (
-      <div className="mt-8">
-        <h3 className="text-xl font-semibold mb-4">
-          댓글 ({activeCommentsCount})
-        </h3>
-        
-        {/* 새 댓글 작성 폼 */}
-        <div className="mb-8">
-          <textarea
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            className="w-full p-2 border rounded-lg"
-            rows="3"
-            placeholder="댓글을 입력하세요..."
-          />
-          <div className="flex justify-end mt-2">
-            <button
-              onClick={handleNewCommentSubmit}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              댓글 작성
-            </button>
-          </div>
-        </div>
-
-        {/* 댓글 목록 */}
-        <div className="space-y-6">
-          {rootComments.map(comment => renderCommentTree(comment))}
-        </div>
-      </div>
-    );
-  };
-
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="max-w-4xl mx-auto px-4 py-6">
       {board && (
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-          <div className="flex justify-between items-start mb-4">
-            <h1 className="text-2xl font-bold">{board.title}</h1>
-            {isLoggedIn && (board.user_id === userId || userRole === 'admin') && (
-              <div className="flex space-x-2">
+        <div className="bg-white rounded-lg shadow-md p-6">
+          {/* 상단 헤더 영역 */}
+          <div className="border-b border-gray-100 pb-4 mb-6">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-800 font-['Pretendard'] mb-2">{board.title}</h1>
+                <div className="flex items-center text-gray-600 text-xs">
+                  <span className="mr-4">작성자: {board.username}</span>
+                  <span>작성일: {new Date(board.created_at).toLocaleString()}</span>
+                </div>
+              </div>
+              {isLoggedIn && (board.user_id === userId || userRole === 'admin') && (
+                <div className="flex space-x-3">
+                  <button
+                    onClick={handleEditBoard}
+                    className="px-3 py-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                  >
+                    수정
+                  </button>
+                  <button
+                    onClick={handleDeleteBoard}
+                    className="px-3 py-1.5 text-sm text-red-600 hover:text-red-800 font-medium transition-colors"
+                  >
+                    삭제
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 본문 내용 */}
+          <div className="prose max-w-none mb-8 border-b border-gray-100 pb-8">
+            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{board.content}</p>
+          </div>
+
+          {/* 댓글 섹션 */}
+          <div className="mt-4">
+            <h3 className="text-xl font-bold text-gray-800 mb-4 font-['Pretendard']">
+              댓글 ({comments.filter(c => !c.is_deleted).length})
+            </h3>
+            
+            {/* 새 댓글 작성 폼 */}
+            <div className="mb-6 bg-gray-50 rounded-lg p-4">
+              <textarea
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                className="w-full p-3 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
+                rows="2"
+                placeholder="댓글을 입력하세요..."
+              />
+              <div className="flex justify-end mt-3">
                 <button
-                  onClick={handleEditBoard}
-                  className="text-blue-600 hover:text-blue-800"
+                  onClick={handleNewCommentSubmit}
+                  className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
                 >
-                  수정
-                </button>
-                <button
-                  onClick={handleDeleteBoard}
-                  className="text-red-600 hover:text-red-800"
-                >
-                  삭제
+                  댓글 작성
                 </button>
               </div>
-            )}
-          </div>
-          <div className="flex items-center text-gray-600 mb-4">
-            <span className="mr-4">작성자: {board.username}</span>
-            <span>작성일: {new Date(board.created_at).toLocaleString()}</span>
-          </div>
-          <div className="prose max-w-none">
-            <p className="whitespace-pre-wrap">{board.content}</p>
+            </div>
+
+            {/* 댓글 목록 */}
+            <div className="space-y-4">
+              {buildCommentTree(comments).map(comment => renderCommentTree(comment))}
+            </div>
           </div>
         </div>
       )}
-      {renderComments()}
     </div>
   );
 };

@@ -1,65 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
+import { getBoards, getCategories } from '../../redux/actions/communityActions';
 
 const CommunityPage = () => {
   const navigate = useNavigate();
-  const { isLoggedIn, isLoading } = useAuth();
-  const [boards, setBoards] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  const dispatch = useDispatch();
+  const { boards, categories } = useSelector(state => state.community);
+  const { isLoggedIn } = useSelector(state => state.auth);
   const [categoryId, setCategoryId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [boardsResponse, categoriesResponse] = await Promise.all([
-          axios.get('http://localhost:3001/api/boards', { withCredentials: true }),
-          axios.get('http://localhost:3001/api/boards/categories', { withCredentials: true })
-        ]);
-        setBoards(boardsResponse.data);
-        
-        // 기존 카테고리 데이터 필터링 및 소아과 카테고리 추가
-        const validCategories = categoriesResponse.data.filter(cat => cat && cat.name);
-        const defaultCategories = [
-          { id: 'pediatrics', name: '소아과', category_name: '소아과' },
-          ...validCategories
-        ];
-        setCategories(defaultCategories);
-      } catch (error) {
-        console.error('데이터 로딩 실패:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    dispatch(getBoards(categoryId, currentPage));
+    dispatch(getCategories());
+  }, [dispatch, categoryId, currentPage]);
 
-    fetchData();
-  }, []);
-
-  const handleCreateBoardClick = () => {
-    if (!isLoggedIn) {
-      navigate('/login');
-      return;
-    }
-    navigate('/community/create');
+  const handleBoardClick = (id) => {
+    navigate(`/community/board/${id}`);
   };
-
-  const handleBoardClick = (boardId) => {
-    navigate(`/community/board/${boardId}`);
-  };
-
-  const handleCategoryClick = (categoryId) => {
-    setSelectedCategory(categoryId);
-    navigate(`/community/category/${categoryId}`);
-  };
-
-  if (loading || isLoading) {
-    return <div className="text-center p-4">로딩 중...</div>;
-  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6">
@@ -92,21 +53,19 @@ const CommunityPage = () => {
             >
               전체
             </button>
-            {categories
-              .filter(cat => cat && cat.name) // null 값과 name이 없는 카테고리 필터링
-              .map(cat => (
-                <button
-                  key={cat.id}
-                  onClick={() => setCategoryId(cat.id)}
-                  className={`px-3 py-1.5 text-sm rounded-lg font-medium transition-colors ${
-                    categoryId === cat.id
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {cat.name}
-                </button>
-              ))}
+            {categories.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => setCategoryId(cat.id)}
+                className={`px-3 py-1.5 text-sm rounded-lg font-medium transition-colors ${
+                  categoryId === cat.id
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {cat.name}
+              </button>
+            ))}
           </div>
         </div>
 
