@@ -6,7 +6,6 @@ import HospitalDetailPage from "./pages/HospitalDetailPage";
 import Footer from "./components/Footer";
 import AdSense from "./components/AdSense";
 import { initializeGA, trackPageView } from "./utils/GoogleAnalytics";
-import AdminPage from "./pages/AdminPage";
 import LoginPage from "./pages/LoginPage";
 import LogoutPage from "./pages/LogoutPage";
 import AdminRoute from "./components/AdminRoute";
@@ -24,6 +23,8 @@ import CommunityPage from './pages/CommunityPage';
 import TermsAgreement from './components/auth/TermsAgreement';
 import NavigationBar from './components/NavigationBar';
 import axios from 'axios';
+import CreateBoardPage from './pages/community/CreateBoardPage';
+import BoardDetail from './pages/community/BoardDetail';
 
 const App = () => {
   const { isLoggedIn, userRole, handleLogout } = useAuth();
@@ -41,7 +42,7 @@ const App = () => {
             <Route path="/" element={<MainPage isLoggedIn={isLoggedIn} userRole={userRole} />} />
             <Route path="/hospitals" element={<HospitalListPage />} />
             <Route path="/hospitals/:id" element={<HospitalDetailPage />} />
-            <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
+            <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="/admin/dashboard" element={<AdminRoute><DashboardPage /></AdminRoute>} />
             <Route path="/admin/hospitals" element={<AdminRoute><HospitalManagementPage /></AdminRoute>} />
             <Route path="/admin/categories" element={<AdminRoute><CategoryManagementPage /></AdminRoute>} />
@@ -54,6 +55,10 @@ const App = () => {
             <Route path="/terms" element={<TermsAgreement />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/community" element={<CommunityPage />} />
+            <Route path="/community/category/:categoryId" element={<CommunityPage />} />
+            <Route path="/community/board/:id" element={<BoardDetail />} />
+            <Route path="/community/create" element={<CreateBoardPage />} />
+            <Route path="/community/edit/:id" element={<CreateBoardPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>

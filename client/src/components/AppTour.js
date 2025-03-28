@@ -29,8 +29,6 @@ const AppTour = () => {
   ];
 
   useEffect(() => {
-    console.log("투어 실행 여부:", visited); // ✅ 디버깅용 로그
-
     if (!visited) {
       setRun(true);
     }

@@ -6,17 +6,18 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState(null);
+  const [userId, setUserId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const updateAuthState = useCallback((user) => {
     if (user) {
       setIsLoggedIn(true);
       setUserRole(user.role);
-      console.log('AuthContext 상태 업데이트:', { isLoggedIn: true, userRole: user.role });
+      setUserId(user.id);
     } else {
       setIsLoggedIn(false);
       setUserRole(null);
-      console.log('AuthContext 상태 초기화');
+      setUserId(null);
     }
   }, []);
 
@@ -26,10 +27,8 @@ export const AuthProvider = ({ children }) => {
         const response = await axios.get('http://localhost:3001/api/auth/check-auth', {
           withCredentials: true
         });
-        console.log('인증 확인 응답:', response.data);
         updateAuthState(response.data.user);
       } catch (error) {
-        console.error('인증 확인 오류:', error);
         updateAuthState(null);
       } finally {
         setIsLoading(false);
@@ -54,13 +53,14 @@ export const AuthProvider = ({ children }) => {
   const value = {
     isLoggedIn,
     userRole,
+    userId,
     isLoading,
     setIsLoggedIn,
     setUserRole,
+    setUserId,
     handleLogout
   };
 
-  // 로딩 중일 때는 아무것도 렌더링하지 않음
   if (isLoading) {
     return null;
   }

@@ -18,7 +18,9 @@ const CategoryManagementPage = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await axios.get('http://localhost:3001/api/boards/categories');
+      const response = await axios.get('http://localhost:3001/api/boards/categories', {
+        withCredentials: true
+      });
       setCategories(response.data);
     } catch (error) {
       setError('카테고리 목록을 불러오는데 실패했습니다.');
@@ -28,9 +30,8 @@ const CategoryManagementPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token');
       await axios.post('http://localhost:3001/api/boards/categories', newCategory, {
-        headers: { Authorization: `Bearer ${token}` }
+        withCredentials: true
       });
       setSuccess('카테고리가 성공적으로 생성되었습니다.');
       setNewCategory({
@@ -49,9 +50,8 @@ const CategoryManagementPage = () => {
     if (!window.confirm('정말로 이 카테고리를 삭제하시겠습니까?')) return;
 
     try {
-      const token = localStorage.getItem('token');
       await axios.delete(`http://localhost:3001/api/boards/categories/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        withCredentials: true
       });
       setSuccess('카테고리가 성공적으로 삭제되었습니다.');
       fetchCategories();
@@ -62,13 +62,13 @@ const CategoryManagementPage = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-8">게시판 카테고리 관리</h1>
+      <h1 className="text-2xl font-bold mb-6">게시판 카테고리 관리</h1>
 
       {/* 카테고리 생성 폼 */}
-      <div className="bg-white rounded-lg shadow p-6 mb-8">
-        <h2 className="text-xl font-semibold mb-4">새 카테고리 생성</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
+      <div className="bg-white rounded-lg shadow mb-6">
+        <h2 className="text-xl font-semibold p-6 border-b">새 카테고리 생성</h2>
+        <form onSubmit={handleSubmit} className="p-6">
+          <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               카테고리 이름
             </label>
@@ -80,7 +80,7 @@ const CategoryManagementPage = () => {
               required
             />
           </div>
-          <div>
+          <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               설명
             </label>
@@ -91,7 +91,7 @@ const CategoryManagementPage = () => {
               className="w-full p-2 border rounded-md"
             />
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="mb-4">
             <label className="flex items-center">
               <input
                 type="checkbox"
@@ -99,8 +99,10 @@ const CategoryManagementPage = () => {
                 onChange={(e) => setNewCategory({ ...newCategory, allow_comments: e.target.checked })}
                 className="mr-2"
               />
-              <span className="text-sm text-gray-700">댓글 허용</span>
+              <span className="text-sm font-medium text-gray-700">댓글 허용</span>
             </label>
+          </div>
+          <div className="mb-4">
             <label className="flex items-center">
               <input
                 type="checkbox"
@@ -108,7 +110,7 @@ const CategoryManagementPage = () => {
                 onChange={(e) => setNewCategory({ ...newCategory, is_secret_default: e.target.checked })}
                 className="mr-2"
               />
-              <span className="text-sm text-gray-700">기본 비밀글</span>
+              <span className="text-sm font-medium text-gray-700">기본 비밀글</span>
             </label>
           </div>
           <button
