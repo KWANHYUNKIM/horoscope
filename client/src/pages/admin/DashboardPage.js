@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bar, Pie } from 'react-chartjs-2';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { api } from '../../utils/api';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -14,6 +14,7 @@ import {
 } from 'chart.js';
 import CorsManager from '../../components/admin/CorsManager';
 import SocialConfigManager from '../../components/admin/SocialConfigManager';
+import ServerConfigManager from '../../components/admin/ServerConfigManager';
 
 ChartJS.register(
   CategoryScale,
@@ -70,6 +71,14 @@ const DashboardPage = () => {
       path: '#',
       color: 'bg-yellow-500',
       onClick: () => setActiveTab('social')
+    },
+    {
+      title: '서버 설정',
+      description: 'API 서버 주소 등 서버 설정을 관리합니다.',
+      icon: '⚙️',
+      path: '#',
+      color: 'bg-red-500',
+      onClick: () => setActiveTab('server')
     }
   ];
 
@@ -84,9 +93,7 @@ const DashboardPage = () => {
       setLoading(true);
       setError(null);
       
-      const response = await axios.get('http://localhost:3001/api/admin/dashboard/stats', {
-        withCredentials: true
-      });
+      const response = await api.get('/api/admin/dashboard/stats');
       
       if (!response.data) {
         throw new Error('서버 응답 오류');
@@ -268,6 +275,13 @@ const DashboardPage = () => {
           <h1 className="text-2xl font-bold mb-6">소셜 로그인 설정</h1>
           <div className="bg-white rounded-lg shadow-lg">
             <SocialConfigManager />
+          </div>
+        </div>
+      ) : activeTab === 'server' ? (
+        <div className="p-6">
+          <h1 className="text-2xl font-bold mb-6">서버 설정 관리</h1>
+          <div className="bg-white rounded-lg shadow-lg">
+            <ServerConfigManager />
           </div>
         </div>
       ) : null}

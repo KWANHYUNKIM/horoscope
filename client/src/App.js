@@ -25,7 +25,6 @@ import NavigationBar from './components/NavigationBar';
 import axios from 'axios';
 import CreateBoardPage from './pages/community/CreateBoardPage';
 import BoardDetail from './pages/community/BoardDetail';
-import NaverCallback from './pages/auth/NaverCallback';
 
 const App = () => {
   const { isLoggedIn, userRole, handleLogout } = useAuth();
@@ -60,7 +59,6 @@ const App = () => {
             <Route path="/community/board/:id" element={<BoardDetail />} />
             <Route path="/community/create" element={<CreateBoardPage />} />
             <Route path="/community/edit/:id" element={<CreateBoardPage />} />
-            <Route path="/auth/naver/callback" element={<NaverCallback />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>

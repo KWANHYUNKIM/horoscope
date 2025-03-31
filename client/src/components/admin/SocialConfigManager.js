@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { api } from '../../utils/api';
 import {
   Box,
   Card,
@@ -40,9 +40,7 @@ const SocialConfigManager = () => {
 
   const fetchConfigs = async () => {
     try {
-      const response = await axios.get('http://localhost:3001/api/admin/social-configs', {
-        withCredentials: true
-      });
+      const response = await api.get('/api/admin/social-configs');
       setConfigs(response.data);
     } catch (error) {
       setMessage({ type: 'error', text: '설정을 불러오는데 실패했습니다.' });
@@ -63,17 +61,15 @@ const SocialConfigManager = () => {
   const handleSubmit = async () => {
     try {
       if (selectedConfig) {
-        await axios.put(
-          `http://localhost:3001/api/admin/social-configs/${selectedConfig.provider}`,
-          formData,
-          { withCredentials: true }
+        await api.put(
+          `/api/admin/social-configs/${selectedConfig.provider}`,
+          formData
         );
         setMessage({ type: 'success', text: '설정이 수정되었습니다.' });
       } else {
-        await axios.post(
-          'http://localhost:3001/api/admin/social-configs',
-          formData,
-          { withCredentials: true }
+        await api.post(
+          '/api/admin/social-configs',
+          formData
         );
         setMessage({ type: 'success', text: '설정이 추가되었습니다.' });
       }
@@ -86,9 +82,8 @@ const SocialConfigManager = () => {
 
   const handleConfirmDelete = async () => {
     try {
-      await axios.delete(
-        `http://localhost:3001/api/admin/social-configs/${selectedConfig.provider}`,
-        { withCredentials: true }
+      await api.delete(
+        `/api/admin/social-configs/${selectedConfig.provider}`
       );
       setMessage({ type: 'success', text: '설정이 삭제되었습니다.' });
       setDeleteDialogOpen(false);

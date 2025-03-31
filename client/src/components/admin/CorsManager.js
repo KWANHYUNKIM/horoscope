@@ -23,7 +23,7 @@ import {
   DialogContentText
 } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon, Block as BlockIcon, CheckCircle as CheckCircleIcon } from '@mui/icons-material';
-import axios from 'axios';
+import { api } from '../../utils/api';
 
 const CorsManager = () => {
   const [origins, setOrigins] = useState([]);
@@ -42,9 +42,7 @@ const CorsManager = () => {
 
   const fetchOrigins = async () => {
     try {
-      const response = await axios.get('http://localhost:3001/api/origins', {
-        withCredentials: true
-      });
+      const response = await api.get('/api/origins');
       setOrigins(response.data);
     } catch (error) {
       console.error('Origin 목록 조회 실패:', error);
@@ -99,9 +97,7 @@ const CorsManager = () => {
 
   const confirmDelete = async () => {
     try {
-      await axios.delete(`http://localhost:3001/api/origins/${editingOrigin.id}`, {
-        withCredentials: true
-      });
+      await api.delete(`/api/origins/${editingOrigin.id}`);
       fetchOrigins();
       setDeleteDialogOpen(false);
       alert('Origin이 비활성화되었습니다.');
@@ -113,11 +109,9 @@ const CorsManager = () => {
 
   const confirmActivate = async () => {
     try {
-      await axios.put(`http://localhost:3001/api/origins/${editingOrigin.id}`, {
+      await api.put(`/api/origins/${editingOrigin.id}`, {
         ...editingOrigin,
         is_active: true
-      }, {
-        withCredentials: true
       });
       fetchOrigins();
       setActivateDialogOpen(false);
@@ -141,13 +135,9 @@ const CorsManager = () => {
       console.log('Submitting data:', submitData);
 
       if (editingOrigin) {
-        await axios.put(`http://localhost:3001/api/origins/${editingOrigin.id}`, submitData, {
-          withCredentials: true
-        });
+        await api.put(`/api/origins/${editingOrigin.id}`, submitData);
       } else {
-        await axios.post('http://localhost:3001/api/origins', submitData, {
-          withCredentials: true
-        });
+        await api.post('/api/origins', submitData);
       }
       fetchOrigins();
       handleClose();

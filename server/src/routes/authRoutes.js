@@ -5,7 +5,6 @@ const bcrypt = require('bcryptjs');
 const pool = require('../config/mysql');
 const User = require('../models/User');
 const axios = require('axios');
-const SocialConfig = require('../models/SocialConfig');
 
 // JWT 시크릿 키 설정
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -303,26 +302,6 @@ router.post('/naver/callback', async (req, res) => {
       success: false,
       message: '네이버 로그인 처리 중 오류가 발생했습니다.'
     });
-  }
-});
-
-// 소셜 로그인 설정 조회
-router.get('/social-config/:provider', async (req, res) => {
-  try {
-    const { provider } = req.params;
-    const [rows] = await pool.query(
-      'SELECT client_id, redirect_uri FROM hospital_social_configs WHERE provider = ? AND is_active = 1',
-      [provider]
-    );
-    
-    if (rows.length === 0) {
-      return res.status(404).json({ message: '설정을 찾을 수 없거나 비활성화되어 있습니다.' });
-    }
-
-    res.json(rows[0]);
-  } catch (error) {
-    console.error('소셜 설정 조회 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
   }
 });
 

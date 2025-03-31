@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { api } from '../../utils/api';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -17,9 +17,9 @@ const BoardDetail = () => {
     const fetchData = async () => {
       try {
         const [boardResponse, commentsResponse, categoriesResponse] = await Promise.all([
-          axios.get(`http://localhost:3001/api/boards/${id}`, { withCredentials: true }),
-          axios.get(`http://localhost:3001/api/boards/${id}/comments`, { withCredentials: true }),
-          axios.get('http://localhost:3001/api/boards/categories', { withCredentials: true })
+          api.get(`/api/boards/${id}`),
+          api.get(`/api/boards/${id}/comments`),
+          api.get('/api/boards/categories')
         ]);
 
         setBoard(boardResponse.data);
@@ -38,12 +38,8 @@ const BoardDetail = () => {
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(
-        `http://localhost:3001/api/boards/${id}/comments`,
-        { comment: newComment },
-        { withCredentials: true }
-      );
-      const response = await axios.get(`http://localhost:3001/api/boards/${id}/comments`, { withCredentials: true });
+      await api.post(`/api/boards/${id}/comments`, { comment: newComment });
+      const response = await api.get(`/api/boards/${id}/comments`);
       setComments(response.data);
       setNewComment('');
     } catch (error) {
@@ -53,8 +49,8 @@ const BoardDetail = () => {
 
   const handleDeleteComment = async (commentId) => {
     try {
-      await axios.delete(`http://localhost:3001/api/boards/${id}/comments/${commentId}`, { withCredentials: true });
-      const response = await axios.get(`http://localhost:3001/api/boards/${id}/comments`, { withCredentials: true });
+      await api.delete(`/api/boards/${id}/comments/${commentId}`);
+      const response = await api.get(`/api/boards/${id}/comments`);
       setComments(response.data);
     } catch (error) {
       console.error('댓글 삭제 실패:', error);
@@ -64,7 +60,7 @@ const BoardDetail = () => {
   const handleDeleteBoard = async () => {
     if (window.confirm('정말로 이 게시글을 삭제하시겠습니까?')) {
       try {
-        await axios.delete(`http://localhost:3001/api/boards/${id}`, { withCredentials: true });
+        await api.delete(`/api/boards/${id}`);
         navigate('/community');
       } catch (error) {
         console.error('게시글 삭제 실패:', error);
