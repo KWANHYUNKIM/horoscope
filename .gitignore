@@ -44,3 +44,9 @@ build/
 
 # 특정 설정 파일
 config/secret-config.js
+
+# npm 캐시
+.npm
+.npm/_cacache
+.npm/_logs
+.npm/_npx

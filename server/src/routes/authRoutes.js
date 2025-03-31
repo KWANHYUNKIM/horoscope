@@ -4,6 +4,8 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const pool = require('../config/mysql');
 const User = require('../models/User');
+const axios = require('axios');
+const SocialConfig = require('../models/SocialConfig');
 
 // JWT 시크릿 키 설정
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -226,6 +228,101 @@ router.get('/check-email', async (req, res) => {
   } catch (error) {
     console.error('이메일 중복 확인 에러:', error);
     res.status(500).json({ message: '서버 에러가 발생했습니다.' });
+  }
+});
+
+// 네이버 로그인 콜백 처리
+router.post('/naver/callback', async (req, res) => {
+  try {
+    const { code, state } = req.body;
+
+    // 네이버 액세스 토큰 받기
+    const tokenResponse = await axios.post('https://nid.naver.com/oauth2.0/token', null, {
+      params: {
+        grant_type: 'authorization_code',
+        client_id: process.env.NAVER_CLIENT_ID,
+        client_secret: process.env.NAVER_CLIENT_SECRET,
+        code,
+        state
+      }
+    });
+
+    const { access_token } = tokenResponse.data;
+
+    // 네이버 사용자 정보 가져오기
+    const userResponse = await axios.get('https://openapi.naver.com/v1/nid/me', {
+      headers: { Authorization: `Bearer ${access_token}` }
+    });
+
+    const userInfo = userResponse.data.response;
+    
+    // DB에서 사용자 찾기 또는 생성
+    let user = await User.findOne({ where: { social_id: userInfo.id, social_provider: 'naver' } });
+
+    if (!user) {
+      // 새 사용자 생성
+      user = await User.create({
+        username: `naver_${userInfo.id}`,
+        email: userInfo.email,
+        nickname: userInfo.nickname || `네이버사용자${userInfo.id.slice(-4)}`,
+        social_id: userInfo.id,
+        social_provider: 'naver',
+        profile_image: userInfo.profile_image,
+        is_email_verified: true
+      });
+    }
+
+    // JWT 토큰 생성
+    const token = jwt.sign(
+      { id: user.id, role: user.role || 'user' },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    // 쿠키에 토큰 저장
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 24 * 60 * 60 * 1000 // 24시간
+    });
+
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        nickname: user.nickname,
+        role: user.role || 'user'
+      }
+    });
+  } catch (error) {
+    console.error('네이버 로그인 처리 오류:', error);
+    res.status(500).json({
+      success: false,
+      message: '네이버 로그인 처리 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 소셜 로그인 설정 조회
+router.get('/social-config/:provider', async (req, res) => {
+  try {
+    const { provider } = req.params;
+    const [rows] = await pool.query(
+      'SELECT client_id, redirect_uri FROM hospital_social_configs WHERE provider = ? AND is_active = 1',
+      [provider]
+    );
+    
+    if (rows.length === 0) {
+      return res.status(404).json({ message: '설정을 찾을 수 없거나 비활성화되어 있습니다.' });
+    }
+
+    res.json(rows[0]);
+  } catch (error) {
+    console.error('소셜 설정 조회 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
   }
 });
 

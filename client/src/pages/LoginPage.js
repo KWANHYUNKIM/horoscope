@@ -66,6 +66,61 @@ const LoginPage = () => {
     }
   };
 
+  const handleNaverLogin = async () => {
+    try {
+      const response = await axios.get('http://localhost:3001/api/auth/social-config/naver');
+      const { client_id, redirect_uri } = response.data;
+      
+      if (!client_id || !redirect_uri) {
+        alert('네이버 로그인 설정이 완료되지 않았습니다.');
+        return;
+      }
+
+      const STATE = generateRandomString(16);
+      const NAVER_AUTH_URL = `https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=${client_id}&redirect_uri=${redirect_uri}&state=${STATE}`;
+      window.location.href = NAVER_AUTH_URL;
+    } catch (error) {
+      console.error('네이버 로그인 설정 조회 실패:', error);
+      alert('네이버 로그인을 시도하는 중 오류가 발생했습니다.');
+    }
+  };
+
+  const generateRandomString = (length) => {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    const charactersLength = characters.length;
+    for (let i = 0; i < length; i++) {
+      result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    }
+    return result;
+  };
+
+  const handleKakaoLogin = async () => {
+    try {
+      const response = await axios.get('http://localhost:3001/api/auth/social-config/kakao');
+      const { client_id, redirect_uri } = response.data;
+      
+      if (!client_id || !redirect_uri) {
+        alert('카카오 로그인 설정이 완료되지 않았습니다.');
+        return;
+      }
+
+      const KAKAO_AUTH_URL = `https://kauth.kakao.com/oauth/authorize?client_id=${client_id}&redirect_uri=${redirect_uri}&response_type=code`;
+      window.location.href = KAKAO_AUTH_URL;
+    } catch (error) {
+      console.error('카카오 로그인 설정 조회 실패:', error);
+      alert('카카오 로그인을 시도하는 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleGoogleLogin = () => {
+    const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+    const REDIRECT_URI = 'http://localhost:3000/auth/google/callback';
+    const GOOGLE_AUTH_URL = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=email profile`;
+    
+    window.location.href = GOOGLE_AUTH_URL;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -156,6 +211,63 @@ const LoginPage = () => {
               </button>
             </div>
           </form>
+
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">
+                  간편 로그인
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-6 space-y-3">
+              <button
+                onClick={handleNaverLogin}
+                className="w-full inline-flex items-center justify-center py-3 px-4 border border-gray-300 rounded-md shadow-sm bg-[#03C75A] text-sm font-medium text-white hover:bg-[#02b351] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#03C75A]"
+              >
+                <div className="w-5 h-5 flex items-center justify-center mr-2">
+                  <img
+                    className="w-full h-full object-contain"
+                    src="/images/naver-icon.png"
+                    alt="네이버 로고"
+                  />
+                </div>
+                네이버 계정으로 로그인
+              </button>
+
+              <button
+                onClick={handleKakaoLogin}
+                className="w-full inline-flex items-center justify-center py-3 px-4 border border-gray-300 rounded-md shadow-sm bg-[#FEE500] text-sm font-medium text-[#000000] hover:bg-[#FDD800] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FEE500]"
+              >
+                <div className="w-5 h-5 flex items-center justify-center mr-2">
+                  <img
+                    className="w-full h-full object-contain"
+                    src="/images/kakao-icon.png"
+                    alt="카카오 로고"
+                  />
+                </div>
+                카카오 계정으로 로그인
+              </button>
+
+              <button
+                onClick={handleGoogleLogin}
+                className="w-full inline-flex items-center justify-center py-3 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4285F4]"
+              >
+                <div className="w-4 h-4 flex items-center justify-center mr-2">
+                  <img
+                    className="w-4 h-4 object-contain"
+                    src="/images/google-icon.png"
+                    alt="구글 로고"
+                  />
+                </div>
+                구글 계정으로 로그인
+              </button>
+            </div>
+          </div>
 
           <div className="mt-6">
             <div className="relative">

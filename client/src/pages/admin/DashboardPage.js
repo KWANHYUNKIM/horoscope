@@ -13,6 +13,7 @@ import {
   ArcElement,
 } from 'chart.js';
 import CorsManager from '../../components/admin/CorsManager';
+import SocialConfigManager from '../../components/admin/SocialConfigManager';
 
 ChartJS.register(
   CategoryScale,
@@ -61,6 +62,14 @@ const DashboardPage = () => {
       path: '#',
       color: 'bg-purple-500',
       onClick: () => setActiveTab('cors')
+    },
+    {
+      title: '소셜 로그인 설정',
+      description: '소셜 로그인 API 설정을 관리합니다.',
+      icon: '🔑',
+      path: '#',
+      color: 'bg-yellow-500',
+      onClick: () => setActiveTab('social')
     }
   ];
 
@@ -120,10 +129,10 @@ const DashboardPage = () => {
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-8">관리자 대시보드</h1>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {menuItems.map((item) => (
           <div
-            key={item.path}
+            key={item.title}
             className="bg-white rounded-lg shadow-lg p-6 cursor-pointer hover:shadow-xl transition-shadow"
             onClick={() => item.onClick ? item.onClick() : navigate(item.path)}
           >
@@ -247,14 +256,21 @@ const DashboardPage = () => {
             )}
           </div>
         </div>
-      ) : (
+      ) : activeTab === 'cors' ? (
         <div className="p-6">
           <h1 className="text-2xl font-bold mb-6">CORS 관리</h1>
           <div className="bg-white rounded-lg shadow-lg">
             <CorsManager />
           </div>
         </div>
-      )}
+      ) : activeTab === 'social' ? (
+        <div className="p-6">
+          <h1 className="text-2xl font-bold mb-6">소셜 로그인 설정</h1>
+          <div className="bg-white rounded-lg shadow-lg">
+            <SocialConfigManager />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };
