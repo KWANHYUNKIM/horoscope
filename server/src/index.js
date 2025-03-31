@@ -16,37 +16,67 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser'); // cookie-parser 추가
 const { router: authRouter, authenticateToken, isAdmin } = require('./routes/authRoutes');
 const emailRouter = require('./routes/emailRoutes');
+const HospitalOrigin = require('./models/HospitalOrigin');
+const hospitalOriginRoutes = require('./routes/hospitalOriginRoutes');
 
 const app = express();
 
-const allowedOrigins = [
-  'https://my-client-284451238916.asia-northeast3.run.app',  // 운영 환경 도메인
-  'https://bippobippo119.com.',
-  'https://bippobippo119.com',
-  'https://www.bippobippo119.com',
-  'https://www.bippobippo119.com.',
-  'http://localhost:8081', // 개발
-  'http://localhost:3001',
-  'https://my-server-284451238916.asia-northeast3.run.app'
-];
-
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+// 기본 origin 추가 함수
+const addDefaultOrigins = async () => {
+  try {
+    const origins = await HospitalOrigin.findAll({});
+    if (origins.length === 0) {
+      await HospitalOrigin.create({
+        origin_url: 'http://localhost:3000',
+        environment: process.env.NODE_ENV || 'development',
+        is_active: true,
+        description: '기본 개발 환경 origin'
+      });
+      console.log('기본 origin이 추가되었습니다.');
     }
-  },
-  credentials: true,
-  methods: 'GET, POST, PUT, DELETE, OPTIONS',
-  allowedHeaders: 'Content-Type, Authorization, Cookie'
-}));
+  } catch (error) {
+    console.error('기본 origin 추가 중 오류:', error);
+  }
+};
 
+// CORS 설정을 위한 미들웨어
+const corsMiddleware = async (req, res, next) => {
+  try {
+    const origins = await HospitalOrigin.findAll({
+      is_active: true,
+      environment: process.env.NODE_ENV || 'development'
+    });
+    
+    const allowedOrigins = origins.map(origin => origin.origin_url);
+    console.log('허용된 Origins:', allowedOrigins); // 디버깅용 로그
+    
+    cors({
+      origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          console.log('차단된 Origin:', origin); // 디버깅용 로그
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
+      credentials: true,
+      methods: 'GET, POST, PUT, DELETE, OPTIONS',
+      allowedHeaders: 'Content-Type, Authorization, Cookie'
+    })(req, res, next);
+  } catch (error) {
+    console.error('CORS 설정 중 오류 발생:', error);
+    next(error);
+  }
+};
+
+app.use(corsMiddleware);
 app.use(express.json());
 app.use(cookieParser()); // cookie-parser 미들웨어 추가
-// MongoDB 연결
+
 connectDB();
+
+// 기본 origin 추가
+addDefaultOrigins();
 
 // Elasticsearch Reindexing
 //console.log("🔄 Starting Elasticsearch reindexing process...");
@@ -70,6 +100,7 @@ app.use('/api/hospitals/details/search', hospitalDetailSearchRoutes);
 app.use('/api/hospitals/subjects', hospitalSubjectRoutes);
 app.use('/aip/chat', chatRouter);
 app.use('/api/boards', boardRoutes);
+app.use('/api/origins', hospitalOriginRoutes);
 
 //app.use('/api/chat', chatRoutes);
 

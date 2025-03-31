@@ -19,17 +19,33 @@ const RegisterPage = () => {
   const [isVerificationSent, setIsVerificationSent] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [passwordError, setPasswordError] = useState('');
+  const [remainingTime, setRemainingTime] = useState(180); // 3분 = 180초
   const [validationErrors, setValidationErrors] = useState({
     username: '',
     password: '',
     confirmPassword: '',
     realName: '',
-    nickname: ''
+    nickname: '',
+    email: ''
   });
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  // 타이머 효과
+  useEffect(() => {
+    let timer;
+    if (isVerificationSent && remainingTime > 0) {
+      timer = setInterval(() => {
+        setRemainingTime(prev => prev - 1);
+      }, 1000);
+    } else if (remainingTime === 0) {
+      setIsVerificationSent(false);
+      setError('인증 시간이 만료되었습니다. 다시 인증코드를 발급받아주세요.');
+    }
+    return () => clearInterval(timer);
+  }, [isVerificationSent, remainingTime]);
 
   const interests = [
     '암', '심장병', '당뇨병', '고혈압', '관절염', '호흡기질환',
@@ -103,14 +119,53 @@ const RegisterPage = () => {
 
   const handleSendVerification = async () => {
     try {
+      // 이메일 중복 확인
+      const checkResponse = await axios.get(`http://localhost:3001/api/auth/check-email?email=${formData.email}`, {
+        withCredentials: true
+      });
+
+      if (checkResponse.data.exists) {
+        setError('이미 가입된 이메일입니다. 다른 이메일을 사용해주세요.');
+        return;
+      }
+
+      // 이메일 인증 코드 전송
       const response = await axios.post('http://localhost:3001/api/email/send-verification', {
         email: formData.email
       });
 
       setIsVerificationSent(true);
-      alert('인증 코드가 이메일로 전송되었습니다. 1분 이내에 입력해주세요.');
+      setRemainingTime(180); // 타이머 초기화
+      alert('인증 코드가 이메일로 전송되었습니다. 3분 이내에 입력해주세요.');
     } catch (err) {
-      setError(err.response?.data?.message || '인증 코드 전송에 실패했습니다.');
+      if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else {
+        setError('인증 코드 전송에 실패했습니다.');
+      }
+    }
+  };
+
+  const handleEmailChange = async (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+
+    // 이메일 형식 검증
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(value)) {
+      setValidationErrors(prev => ({
+        ...prev,
+        email: '올바른 이메일 형식이 아닙니다.'
+      }));
+      return;
+    } else {
+      setValidationErrors(prev => ({
+        ...prev,
+        email: ''
+      }));
     }
   };
 
@@ -242,25 +297,30 @@ const RegisterPage = () => {
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 이메일
               </label>
-              <div className="mt-1 flex rounded-md shadow-sm">
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                />
+              <div className="mt-1 flex space-x-3">
+                <div className="flex-1">
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    required
+                    value={formData.email}
+                    onChange={handleEmailChange}
+                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  />
+                </div>
                 <button
                   type="button"
                   onClick={handleSendVerification}
-                  disabled={isVerificationSent || loading}
-                  className="ml-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                  disabled={isVerificationSent || loading || validationErrors.email}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 whitespace-nowrap"
                 >
                   {isVerificationSent ? '인증코드 전송됨' : '인증코드 전송'}
                 </button>
               </div>
+              {validationErrors.email && (
+                <p className="mt-1 text-sm text-red-600">{validationErrors.email}</p>
+              )}
             </div>
 
             {isVerificationSent && (
@@ -268,21 +328,28 @@ const RegisterPage = () => {
                 <label htmlFor="verificationCode" className="block text-sm font-medium text-gray-700">
                   인증코드
                 </label>
-                <div className="mt-1 flex rounded-md shadow-sm">
-                  <input
-                    id="verificationCode"
-                    name="verificationCode"
-                    type="text"
-                    required
-                    value={formData.verificationCode}
-                    onChange={handleChange}
-                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  />
+                <div className="mt-1 flex space-x-3">
+                  <div className="flex-1 relative">
+                    <input
+                      id="verificationCode"
+                      name="verificationCode"
+                      type="text"
+                      required
+                      value={formData.verificationCode}
+                      onChange={handleChange}
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    />
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      <span className="text-sm text-gray-500">
+                        {Math.floor(remainingTime / 60)}:{(remainingTime % 60).toString().padStart(2, '0')}
+                      </span>
+                    </div>
+                  </div>
                   <button
                     type="button"
                     onClick={handleVerifyCode}
-                    disabled={isVerified || loading}
-                    className="ml-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                    disabled={isVerified || loading || remainingTime === 0}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 whitespace-nowrap"
                   >
                     {isVerified ? '인증완료' : '인증하기'}
                   </button>

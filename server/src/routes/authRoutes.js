@@ -3,6 +3,7 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const pool = require('../config/mysql');
+const User = require('../models/User');
 
 // JWT 시크릿 키 설정
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -204,6 +205,27 @@ router.post('/register', async (req, res) => {
       success: false, 
       message: '서버 오류가 발생했습니다.' 
     });
+  }
+});
+
+// 이메일 중복 확인 API
+router.get('/check-email', async (req, res) => {
+  try {
+    const { email } = req.query;
+    
+    if (!email) {
+      return res.status(400).json({ message: '이메일이 필요합니다.' });
+    }
+
+    const user = await User.findByEmail(email);
+    
+    return res.json({
+      exists: !!user,
+      message: user ? '이미 가입된 이메일입니다.' : '사용 가능한 이메일입니다.'
+    });
+  } catch (error) {
+    console.error('이메일 중복 확인 에러:', error);
+    res.status(500).json({ message: '서버 에러가 발생했습니다.' });
   }
 });
 
