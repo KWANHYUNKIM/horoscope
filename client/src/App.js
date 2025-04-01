@@ -25,6 +25,8 @@ import NavigationBar from './components/NavigationBar';
 import axios from 'axios';
 import CreateBoardPage from './pages/community/CreateBoardPage';
 import BoardDetail from './pages/community/BoardDetail';
+import NaverCallback from './pages/auth/NaverCallback';
+import { AuthProvider } from './contexts/AuthContext';
 
 const App = () => {
   const { isLoggedIn, userRole, handleLogout } = useAuth();

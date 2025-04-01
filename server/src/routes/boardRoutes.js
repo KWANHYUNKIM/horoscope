@@ -1,6 +1,6 @@
 const express = require('express');
 const pool = require('../config/mysql');
-const { authenticateToken, isAdmin } = require('./authRoutes');
+const { authenticateToken, isAdmin } = require('./authRoutes');      
 const adminAuth = require('../middleware/adminAuth');
 
 const router = express.Router();

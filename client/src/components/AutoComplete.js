@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api } from '../utils/api';
 
 const baseUrl = "http://localhost:3001";
 //const baseUrl = "https://my-server-284451238916.asia-northeast3.run.app";
@@ -9,7 +8,6 @@ const AutoComplete = ({ searchQuery, setSearchQuery }) => {
   const [suggestions, setSuggestions] = useState({ hospital: [] });
   const [searchHistory, setSearchHistory] = useState([]);
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const storedHistory = JSON.parse(localStorage.getItem("searchHistory")) || [];
@@ -17,26 +15,26 @@ const AutoComplete = ({ searchQuery, setSearchQuery }) => {
   }, []);
 
   useEffect(() => {
-    const fetchSuggestions = async () => {
-      if (searchQuery.length < 2) {
-        setSuggestions({ hospital: [] });
-        return;
-      }
+    if (!searchQuery) {
+      setSuggestions({ hospital: [] });
+      return;
+    }
 
-      setLoading(true);
-      try {
-        const response = await api.get(`/api/hospitals/search?query=${encodeURIComponent(searchQuery)}`);
-        setSuggestions({ hospital: response.data });
-      } catch (error) {
-        console.error('검색어 자동완성 실패:', error);
-        setSuggestions({ hospital: [] });
-      } finally {
-        setLoading(false);
-      }
-    };
+    const timer = setTimeout(() => {
+      fetch(`${baseUrl}/api/autocomplete?query=${encodeURIComponent(searchQuery)}`, {
+        method: "GET",
+        mode: "cors",
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          setSuggestions({ hospital: data.hospital || [] }); // ⬅ 여기서 기본값 설정
+        })
+        .catch(() => {
+          setSuggestions({ hospital: [] });
+        });
+    }, 300);
 
-    const timeoutId = setTimeout(fetchSuggestions, 300);
-    return () => clearTimeout(timeoutId);
+    return () => clearTimeout(timer);
   }, [searchQuery]);
 
   const handleSearch = (queryParam = searchQuery) => {
@@ -90,12 +88,6 @@ const AutoComplete = ({ searchQuery, setSearchQuery }) => {
           검색
         </button>
       </div>
-
-      {loading && (
-        <div className="absolute right-2 top-2">
-          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
-        </div>
-      )}
 
       {searchQuery && (
         <div className="absolute z-10 bg-white border border-gray-300 mt-1 w-full rounded-lg shadow-lg overflow-hidden">

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import { api } from '../utils/api';
 
 const AuthContext = createContext(null);
 
@@ -24,11 +24,14 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await axios.get('http://localhost:3001/api/auth/check-auth', {
-          withCredentials: true
-        });
-        updateAuthState(response.data.user);
+        const response = await api.get('/api/auth/check-auth');
+        if (response.data && response.data.user) {
+          updateAuthState(response.data.user);
+        } else {
+          updateAuthState(null);
+        }
       } catch (error) {
+        console.error('인증 확인 오류:', error);
         updateAuthState(null);
       } finally {
         setIsLoading(false);
@@ -40,9 +43,7 @@ export const AuthProvider = ({ children }) => {
 
   const handleLogout = async () => {
     try {
-      await axios.post('http://localhost:3001/api/auth/logout', {}, {
-        withCredentials: true
-      });
+      await api.post('/api/auth/logout');
       updateAuthState(null);
       window.location.href = '/';
     } catch (error) {

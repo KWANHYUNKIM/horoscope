@@ -1,28 +1,34 @@
 import axios from 'axios';
 
 // 초기 API URL (데이터베이스 설정을 가져오기 전까지 사용)
-let apiUrl = 'http://localhost:3001';
+let API_URL = 'http://localhost:3001';
 
-export const initializeApi = async () => {
+// 서버 설정에서 API URL 가져오기
+const fetchServerConfig = async () => {
   try {
-    // 서버 설정에서 API URL 가져오기
-    const response = await axios.get(`${apiUrl}/api/admin/server-configs/current`, {
+    const response = await axios.get(`${API_URL}/api/admin/server-config`, {
       withCredentials: true
     });
-    
-    if (response.data.API_URL) {
-      apiUrl = response.data.API_URL;
-      // axios 인스턴스의 baseURL 업데이트
-      api.defaults.baseURL = apiUrl;
+    if (response.data && response.data.apiUrl) {
+      API_URL = response.data.apiUrl;
     }
   } catch (error) {
-    console.error('API URL 설정을 가져오는데 실패했습니다:', error);
+    console.error('서버 설정 로딩 실패:', error);
   }
 };
 
-export const getApiUrl = () => apiUrl;
+// 초기 설정 로드
+fetchServerConfig();
 
-export const api = axios.create({
-  baseURL: apiUrl,
-  withCredentials: true
-}); 
+// axios 인스턴스 생성
+const api = axios.create({
+  baseURL: API_URL,
+  withCredentials: true,
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
+export { api };
+
+export const getApiUrl = () => API_URL; 
