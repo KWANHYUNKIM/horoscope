@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-const baseUrl = "http://localhost:3001";
-//const baseUrl = "https://my-server-284451238916.asia-northeast3.run.app";
+import { api } from "../utils/api";
 
 const AutoComplete = ({ searchQuery, setSearchQuery }) => {
   const [suggestions, setSuggestions] = useState({ hospital: [] });
@@ -21,13 +19,9 @@ const AutoComplete = ({ searchQuery, setSearchQuery }) => {
     }
 
     const timer = setTimeout(() => {
-      fetch(`${baseUrl}/api/autocomplete?query=${encodeURIComponent(searchQuery)}`, {
-        method: "GET",
-        mode: "cors",
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          setSuggestions({ hospital: data.hospital || [] }); // ⬅ 여기서 기본값 설정
+      api.get(`/api/autocomplete?query=${encodeURIComponent(searchQuery)}`)
+        .then((response) => {
+          setSuggestions({ hospital: response.data.hospital || [] });
         })
         .catch(() => {
           setSuggestions({ hospital: [] });
