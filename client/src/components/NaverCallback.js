@@ -1,38 +1,28 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from '../utils/axios';
 
-const GoogleCallback = () => {
+const NaverCallback = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [error, setError] = useState(null);
-  const hasHandledRef = useRef(false);
 
   useEffect(() => {
-    const handleGoogleCallback = async () => {
-      if (hasHandledRef.current) return;
-      hasHandledRef.current = true;
-
+    const handleNaverCallback = async () => {
       try {
         const searchParams = new URLSearchParams(location.search);
         const code = searchParams.get('code');
-        const error = searchParams.get('error');
-
-        if (error) {
-          setError('구글 로그인 중 오류가 발생했습니다.');
-          return;
-        }
 
         if (!code) {
           setError('인증 코드가 없습니다.');
           return;
         }
 
-        console.log('구글 콜백 코드:', code); // 디버깅용 로그
+        console.log('네이버 콜백 코드:', code); // 디버깅용 로그
 
-        const response = await axios.post('/api/auth/google/callback', { code });
+        const response = await axios.post('/auth/naver/callback', { code });
 
-        console.log('구글 콜백 응답:', response.data); // 디버깅용 로그
+        console.log('네이버 콜백 응답:', response.data); // 디버깅용 로그
 
         if (response.data.success) {
           if (response.data.isNewUser) {
@@ -44,9 +34,7 @@ const GoogleCallback = () => {
                   nickname: response.data.nickname,
                   profile_image: response.data.profile_image,
                   social_id: response.data.social_id,
-                  provider: response.data.provider,
-                  name: response.data.name,
-                  given_name: response.data.given_name
+                  provider: 'naver'
                 }
               }
             });
@@ -58,9 +46,9 @@ const GoogleCallback = () => {
           setError(response.data.message || '로그인 처리 중 오류가 발생했습니다.');
         }
       } catch (error) {
-        console.error('구글 로그인 처리 중 오류 발생:', error);
+        console.error('네이버 로그인 처리 중 오류 발생:', error);
         if (error.response?.status === 404) {
-          setError('구글 로그인 설정을 찾을 수 없습니다.');
+          setError('네이버 로그인 설정을 찾을 수 없습니다.');
         } else if (error.response?.data?.error === 'invalid_grant') {
           setError('인증 코드가 만료되었습니다. 다시 로그인해주세요.');
         } else if (error.response?.data?.error === 'invalid_request') {
@@ -71,7 +59,7 @@ const GoogleCallback = () => {
       }
     };
 
-    handleGoogleCallback();
+    handleNaverCallback();
   }, [navigate, location]);
 
   if (error) {
@@ -101,4 +89,4 @@ const GoogleCallback = () => {
   );
 };
 
-export default GoogleCallback; 
+export default NaverCallback; 

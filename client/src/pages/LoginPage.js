@@ -18,21 +18,31 @@ const LoginPage = () => {
     client_id: '',
     redirect_uri: ''
   });
+  const [naverSettings, setNaverSettings] = useState({
+    client_id: '',
+    client_secret: '',
+    redirect_uri: ''
+  });
 
   useEffect(() => {
     setApiUrl(getApiUrl());
   }, []);
 
   useEffect(() => {
-    const fetchKakaoSettings = async () => {
+    const fetchSocialSettings = async () => {
       try {
-        const response = await api.get('/api/auth/social-config/kakao');
-        setKakaoSettings(response.data);
+        const [kakaoResponse, naverResponse] = await Promise.all([
+          api.get('/api/auth/social-config/kakao'),
+          api.get('/api/auth/social-config/naver')
+        ]);
+        
+        setKakaoSettings(kakaoResponse.data);
+        setNaverSettings(naverResponse.data);
       } catch (error) {
-        console.error('카카오 로그인 설정 조회 실패:', error);
+        console.error('소셜 로그인 설정 조회 실패:', error);
       }
     };
-    fetchKakaoSettings();
+    fetchSocialSettings();
   }, []);
 
   const handleChange = (e) => {
@@ -87,20 +97,19 @@ const LoginPage = () => {
 
   const handleNaverLogin = async () => {
     try {
-      const response = await api.get('/api/auth/social-config/naver');
-      const { client_id, redirect_uri } = response.data;
-      
-      if (!client_id || !redirect_uri) {
+      if (!naverSettings.client_id || !naverSettings.redirect_uri) {
         alert('네이버 로그인 설정이 완료되지 않았습니다.');
         return;
       }
 
-      const STATE = generateRandomString(16);
-      localStorage.setItem('naverState', STATE);
-      const NAVER_AUTH_URL = `https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=${client_id}&redirect_uri=${redirect_uri}&state=${STATE}`;
-      window.location.href = NAVER_AUTH_URL;
+      const state = generateRandomString(16);
+      localStorage.setItem('naverState', state);
+      
+      const naverLoginUrl = `https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=${naverSettings.client_id}&redirect_uri=${encodeURIComponent(naverSettings.redirect_uri)}&state=${state}`;
+      
+      window.location.href = naverLoginUrl;
     } catch (error) {
-      console.error('네이버 로그인 설정 조회 실패:', error);
+      console.error('네이버 로그인 시도 중 오류:', error);
       alert('네이버 로그인을 시도하는 중 오류가 발생했습니다.');
     }
   };

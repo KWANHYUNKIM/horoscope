@@ -259,16 +259,42 @@ router.get('/check-email', async (req, res) => {
 // 네이버 로그인 콜백 처리
 router.post('/naver/callback', async (req, res) => {
   try {
-    const { code, state } = req.body;
+    const { code } = req.body;
+
+    if (!code) {
+      return res.status(400).json({
+        success: false,
+        message: '인증 코드가 필요합니다.'
+      });
+    }
+
+    // 네이버 설정 가져오기
+    const [configs] = await pool.query(
+      'SELECT * FROM hospital_social_configs WHERE provider = ? AND is_active = 1',
+      ['naver']
+    );
+
+    if (configs.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: '네이버 로그인 설정을 찾을 수 없습니다.'
+      });
+    }
+
+    const config = configs[0];
+    console.log('네이버 설정:', config);
+
+    // client_secret에서 줄바꿈 문자 제거
+    const clientSecret = config.client_secret.trim();
 
     // 네이버 액세스 토큰 받기
     const tokenResponse = await axios.post('https://nid.naver.com/oauth2.0/token', null, {
       params: {
         grant_type: 'authorization_code',
-        client_id: process.env.NAVER_CLIENT_ID,
-        client_secret: process.env.NAVER_CLIENT_SECRET,
-        code,
-        state
+        client_id: config.client_id,
+        client_secret: clientSecret,
+        code: code,
+        redirect_uri: config.redirect_uri
       }
     });
 
@@ -276,57 +302,70 @@ router.post('/naver/callback', async (req, res) => {
 
     // 네이버 사용자 정보 가져오기
     const userResponse = await axios.get('https://openapi.naver.com/v1/nid/me', {
-      headers: { Authorization: `Bearer ${access_token}` }
-    });
-
-    const userInfo = userResponse.data.response;
-    
-    // DB에서 사용자 찾기 또는 생성
-    let user = await User.findOne({ where: { social_id: userInfo.id, social_provider: 'naver' } });
-
-    if (!user) {
-      // 새 사용자 생성
-      user = await User.create({
-        username: `naver_${userInfo.id}`,
-        email: userInfo.email,
-        nickname: userInfo.nickname || `네이버사용자${userInfo.id.slice(-4)}`,
-        social_id: userInfo.id,
-        social_provider: 'naver',
-        profile_image: userInfo.profile_image,
-        is_email_verified: true
-      });
-    }
-
-    // JWT 토큰 생성
-    const token = jwt.sign(
-      { id: user.id, role: user.role || 'user' },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-
-    // 쿠키에 토큰 저장
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 24 * 60 * 60 * 1000 // 24시간
-    });
-
-    res.json({
-      success: true,
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        nickname: user.nickname,
-        role: user.role || 'user'
+      headers: {
+        Authorization: `Bearer ${access_token}`
       }
     });
+
+    const naverUser = userResponse.data.response;
+    console.log('네이버 사용자 정보:', naverUser);
+
+    const naverId = naverUser.id;
+    const email = naverUser.email;
+    const nickname = naverUser.name || `네이버사용자${naverId.slice(-4)}`;
+    const profileImage = naverUser.profile_image;
+
+    // 기존 사용자 확인
+    const [existingUser] = await pool.query(
+      'SELECT * FROM hospital_users WHERE social_id = ? AND social_provider = ? OR email = ?',
+      [naverId, 'naver', email]
+    );
+
+    if (existingUser.length > 0) {
+      // 기존 사용자는 바로 로그인 처리
+      const user = existingUser[0];
+      const token = jwt.sign(
+        { id: user.id, role: user.role },
+        process.env.JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+
+      res.cookie('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 * 1000
+      });
+
+      return res.status(200).json({
+        success: true,
+        isNewUser: false,
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          nickname: user.nickname,
+          role: user.role
+        }
+      });
+    } else {
+      // 새로운 사용자는 회원가입 정보 반환
+      return res.status(200).json({
+        success: true,
+        isNewUser: true,
+        email: email,
+        nickname: nickname,
+        profile_image: profileImage,
+        social_id: naverId,
+        provider: 'naver'
+      });
+    }
   } catch (error) {
     console.error('네이버 로그인 처리 오류:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: '네이버 로그인 처리 중 오류가 발생했습니다.'
+      message: '서버 오류가 발생했습니다.',
+      error: error.message
     });
   }
 });
@@ -607,6 +646,30 @@ router.get('/social-config/:provider', async (req, res) => {
     res.json(rows[0]);
   } catch (error) {
     console.error('소셜 설정 조회 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 네이버 로그인 설정 조회
+router.get('/social-config/naver', async (req, res) => {
+  try {
+    const [configs] = await pool.query(
+      'SELECT client_id, client_secret, redirect_uri FROM hospital_social_configs WHERE provider = ? AND is_active = 1',
+      ['naver']
+    );
+
+    if (configs.length === 0) {
+      return res.status(404).json({ message: '네이버 로그인 설정을 찾을 수 없습니다.' });
+    }
+
+    const config = configs[0];
+    res.json({
+      client_id: config.client_id,
+      client_secret: config.client_secret,
+      redirect_uri: config.redirect_uri
+    });
+  } catch (error) {
+    console.error('네이버 설정 조회 오류:', error);
     res.status(500).json({ message: '서버 오류가 발생했습니다.' });
   }
 });

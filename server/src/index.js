@@ -48,7 +48,6 @@ const corsMiddleware = async (req, res, next) => {
     });
     
     const allowedOrigins = origins.map(origin => origin.origin_url);
-    console.log('허용된 Origins:', allowedOrigins); // 디버깅용 로그
     
     cors({
       origin: function (origin, callback) {

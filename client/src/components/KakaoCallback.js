@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from '../utils/axios';
 
@@ -6,13 +6,9 @@ const KakaoCallback = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [error, setError] = useState(null);
-  const hasHandledRef = useRef(false); // 중복 방지용 ref
 
   useEffect(() => {
     const handleKakaoCallback = async () => {
-      if (hasHandledRef.current) return; // 이미 처리했으면 return
-      hasHandledRef.current = true;
-
       try {
         const searchParams = new URLSearchParams(location.search);
         const code = searchParams.get('code');
@@ -22,20 +18,28 @@ const KakaoCallback = () => {
           return;
         }
 
-        const response = await axios.post('/api/auth/kakao/callback', { code });
+        console.log('카카오 콜백 코드:', code); // 디버깅용 로그
+
+        const response = await axios.post('/auth/kakao/callback', { code });
+
+        console.log('카카오 콜백 응답:', response.data); // 디버깅용 로그
 
         if (response.data.success) {
           if (response.data.isNewUser) {
+            // 새로운 사용자는 회원가입 페이지로 이동
             navigate('/register', {
               state: {
-                email: response.data.email,
-                nickname: response.data.nickname,
-                profile_image: response.data.profile_image,
-                social_id: response.data.social_id,
-                provider: response.data.provider
+                socialLoginData: {
+                  email: response.data.email,
+                  nickname: response.data.nickname,
+                  profile_image: response.data.profile_image,
+                  social_id: response.data.social_id,
+                  provider: 'kakao'
+                }
               }
             });
           } else {
+            // 기존 사용자는 메인 페이지로 이동
             navigate('/');
           }
         } else {
@@ -43,7 +47,9 @@ const KakaoCallback = () => {
         }
       } catch (error) {
         console.error('카카오 로그인 처리 중 오류 발생:', error);
-        if (error.response?.data?.error === 'invalid_grant') {
+        if (error.response?.status === 404) {
+          setError('카카오 로그인 설정을 찾을 수 없습니다.');
+        } else if (error.response?.data?.error === 'invalid_grant') {
           setError('인증 코드가 만료되었습니다. 다시 로그인해주세요.');
         } else if (error.response?.data?.error === 'invalid_request') {
           setError('요청이 너무 많습니다. 잠시 후 다시 시도해주세요.');
