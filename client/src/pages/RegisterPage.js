@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import { api } from '../utils/api';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
+  const location = useLocation(); 
+  const socialData = location.state?.socialData;
+  const provider = location.state?.provider;
+
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -12,7 +17,11 @@ const RegisterPage = () => {
     verificationCode: '',
     realName: '',
     nickname: '',
-    interests: []
+    interests: [],
+    social_provider: '',
+    social_id: '',
+    is_email_verified: false,
+    profile_image: ''
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,6 +41,43 @@ const RegisterPage = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  useEffect(() => {
+    if (socialData) {
+      setFormData(prev => ({
+        ...prev,
+        email: socialData.email || '',
+        nickname: socialData.nickname || '',
+        username: socialData.username || '',
+        // 소셜 로그인의 경우 비밀번호는 필요 없음
+        is_email_verified: true
+      }));
+    }
+  }, [socialData]);
+
+  useEffect(() => {
+    // 소셜 로그인 데이터가 있는 경우 필드 자동 채우기
+    if (location.state?.socialLoginData) {
+      const { email, nickname, profile_image, social_id, provider, name, given_name } = location.state.socialLoginData;
+      
+      console.log('소셜 로그인 데이터:', location.state.socialLoginData); // 디버깅용 로그
+
+      setFormData(prev => ({
+        ...prev,
+        email,
+        nickname: nickname || '',
+        profile_image: profile_image || '',
+        social_id,
+        social_provider: provider,
+        is_email_verified: true,
+        realName: provider === 'google' ? `${given_name} ${name}` : '',
+        interests: [],
+        username: '', // 사용자가 직접 입력하도록 비워둠
+        password: '', // 사용자가 직접 입력하도록 비워둠
+      }));
+      setIsVerified(true);
+    }
+  }, [location.state]);
 
   // 타이머 효과
   useEffect(() => {
@@ -186,35 +232,67 @@ const RegisterPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-
-    if (!validateField('username', formData.username)) {
-      return;
-    }
-
-    if (!validateField('password', formData.password)) {
-      return;
-    }
-
-    if (!validateField('confirmPassword', formData.confirmPassword)) {
-      return;
-    }
-
-    if (!isVerified) {
-      setError('이메일 인증을 완료해주세요.');
-      return;
-    }
-
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:3001/api/auth/register', formData);
-      
-      if (response.data.success) {
-        alert('회원가입이 완료되었습니다.');
-        navigate('/login');
+      // 소셜 로그인 사용자의 경우 이메일 인증 건너뛰기
+      if (!formData.social_provider && !isVerified) {
+        setError('이메일 인증이 필요합니다.');
+        setLoading(false);
+        return;
       }
-    } catch (err) {
-      setError(err.response?.data?.message || '회원가입에 실패했습니다.');
+
+      // interests를 JSON 문자열로 변환
+      const interestsJson = JSON.stringify(formData.interests);
+
+      // 회원가입 데이터 준비
+      const registerData = {
+        username: formData.username,
+        password: formData.password,
+        email: formData.email,
+        nickname: formData.nickname,
+        interests: interestsJson,
+        social_id: formData.social_id || null,
+        social_provider: formData.social_provider || null,
+        is_email_verified: formData.social_provider ? 1 : (formData.is_email_verified ? 1 : 0),
+        profile_image: formData.profile_image || null
+      };
+
+      console.log('회원가입 요청 데이터:', registerData); // 디버깅용 로그
+
+      const response = await api.post('/api/auth/register', registerData);
+      console.log('회원가입 응답:', response.data); // 디버깅용 로그
+
+      if (response.data.success) {
+        // 소셜 로그인 사용자의 경우 바로 로그인 처리
+        if (formData.social_provider) {
+          console.log('소셜 로그인 사용자 로그인 시도'); // 디버깅용 로그
+          const loginResponse = await api.post('/api/auth/login', {
+            username: formData.username,
+            password: formData.password
+          });
+
+          console.log('로그인 응답:', loginResponse.data); // 디버깅용 로그
+
+          if (loginResponse.data.user) {
+            navigate('/');
+          }
+        } else {
+          navigate('/login', { 
+            state: { 
+              message: '회원가입이 완료되었습니다. 로그인해주세요.' 
+            }
+          });
+        }
+      }
+    } catch (error) {
+      console.error('회원가입 에러 상세:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      setError(error.response?.data?.message || '회원가입 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
     }
@@ -224,13 +302,14 @@ const RegisterPage = () => {
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          회원가입
+          {formData.social_provider ? '소셜 계정 정보 입력' : '회원가입'}
         </h2>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           <form className="space-y-6" onSubmit={handleSubmit}>
+            {/* 아이디 필드 - 모든 사용자에게 표시 */}
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-700">
                 아이디
@@ -244,14 +323,11 @@ const RegisterPage = () => {
                   value={formData.username}
                   onChange={handleChange}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  placeholder="3자 이상, 영문/숫자/언더스코어(_) 사용 가능"
                 />
-                {validationErrors.username && (
-                  <p className="mt-1 text-sm text-red-600">{validationErrors.username}</p>
-                )}
               </div>
             </div>
 
+            {/* 비밀번호 필드 - 모든 사용자에게 표시 */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 비밀번호
@@ -265,34 +341,11 @@ const RegisterPage = () => {
                   value={formData.password}
                   onChange={handleChange}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  placeholder="6자 이상, 영문/숫자 포함"
                 />
-                {validationErrors.password && (
-                  <p className="mt-1 text-sm text-red-600">{validationErrors.password}</p>
-                )}
               </div>
             </div>
 
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                비밀번호 확인
-              </label>
-              <div className="mt-1">
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  required
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                />
-                {validationErrors.confirmPassword && (
-                  <p className="mt-1 text-sm text-red-600">{validationErrors.confirmPassword}</p>
-                )}
-              </div>
-            </div>
-
+            {/* 이메일 필드 - 소셜 로그인 사용자는 읽기 전용 */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 이메일
@@ -306,24 +359,30 @@ const RegisterPage = () => {
                     required
                     value={formData.email}
                     onChange={handleEmailChange}
-                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    readOnly={formData.social_provider}
+                    className={`appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${
+                      formData.social_provider ? 'bg-gray-100' : ''
+                    }`}
                   />
                 </div>
-                <button
-                  type="button"
-                  onClick={handleSendVerification}
-                  disabled={isVerificationSent || loading || validationErrors.email}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 whitespace-nowrap"
-                >
-                  {isVerificationSent ? '인증코드 전송됨' : '인증코드 전송'}
-                </button>
+                {!formData.social_provider && (
+                  <button
+                    type="button"
+                    onClick={handleSendVerification}
+                    disabled={isVerificationSent || loading || validationErrors.email}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 whitespace-nowrap"
+                  >
+                    {isVerificationSent ? '인증코드 전송됨' : '인증코드 전송'}
+                  </button>
+                )}
               </div>
               {validationErrors.email && (
                 <p className="mt-1 text-sm text-red-600">{validationErrors.email}</p>
               )}
             </div>
 
-            {isVerificationSent && (
+            {/* 이메일 인증 코드 입력 - 소셜 로그인 사용자는 제외 */}
+            {isVerificationSent && !formData.social_provider && (
               <div>
                 <label htmlFor="verificationCode" className="block text-sm font-medium text-gray-700">
                   인증코드
@@ -370,12 +429,11 @@ const RegisterPage = () => {
                   value={formData.realName}
                   onChange={handleChange}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  placeholder="2자 이상, 한글만 입력 가능"
                 />
-                {validationErrors.realName && (
-                  <p className="mt-1 text-sm text-red-600">{validationErrors.realName}</p>
-                )}
               </div>
+              {validationErrors.realName && (
+                <p className="mt-1 text-sm text-red-600">{validationErrors.realName}</p>
+              )}
             </div>
 
             <div>
@@ -427,10 +485,10 @@ const RegisterPage = () => {
             <div>
               <button
                 type="submit"
-                disabled={loading || Object.values(validationErrors).some(error => error)}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                disabled={loading}
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
-                {loading ? '가입 중...' : '회원가입'}
+                {loading ? '처리 중...' : '회원가입'}
               </button>
             </div>
           </form>

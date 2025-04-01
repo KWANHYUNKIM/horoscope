@@ -26,6 +26,8 @@ import axios from 'axios';
 import CreateBoardPage from './pages/community/CreateBoardPage';
 import BoardDetail from './pages/community/BoardDetail';
 import NaverCallback from './pages/auth/NaverCallback';
+import KakaoCallback from './components/KakaoCallback';
+import GoogleCallback from './components/GoogleCallback';
 import { AuthProvider } from './contexts/AuthContext';
 
 const App = () => {
@@ -61,6 +63,9 @@ const App = () => {
             <Route path="/community/board/:id" element={<BoardDetail />} />
             <Route path="/community/create" element={<CreateBoardPage />} />
             <Route path="/community/edit/:id" element={<CreateBoardPage />} />
+            <Route path="/auth/naver/callback" element={<NaverCallback />} />
+            <Route path="/auth/kakao/callback" element={<KakaoCallback />} />
+            <Route path="/auth/google/callback" element={<GoogleCallback />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>

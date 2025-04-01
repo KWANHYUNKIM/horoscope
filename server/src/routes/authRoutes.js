@@ -6,6 +6,7 @@ const pool = require('../config/mysql');
 const User = require('../models/User');
 const axios = require('axios');
 const SocialConfig = require('../models/SocialConfig');
+const crypto = require('crypto');
 
 // JWT 시크릿 키 설정
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -136,10 +137,22 @@ router.post('/register', async (req, res) => {
     email, 
     nickname, 
     interests,
-    isEmailVerified 
+    social_id,
+    social_provider,
+    is_email_verified
   } = req.body;
   
   try {
+    console.log('회원가입 요청 데이터:', {
+      username,
+      email,
+      nickname,
+      interests,
+      social_id,
+      social_provider,
+      is_email_verified
+    });
+
     // 아이디 중복 체크
     const [existingUsers] = await pool.execute(
       'SELECT id FROM hospital_users WHERE username = ?',
@@ -185,10 +198,21 @@ router.post('/register', async (req, res) => {
     // 사용자 등록
     const [result] = await pool.execute(
       `INSERT INTO hospital_users 
-       (username, password, email, nickname, interests, is_email_verified) 
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [username, hashedPassword, email, nickname, JSON.stringify(interests), isEmailVerified ? 1 : 0]
+       (username, password, email, nickname, interests, is_email_verified, social_id, social_provider) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        username, 
+        hashedPassword, 
+        email, 
+        nickname, 
+        interests, 
+        is_email_verified ? 1 : 0,
+        social_id,
+        social_provider
+      ]
     );
+
+    console.log('회원가입 성공:', result);
 
     // 기본 사용자 역할 부여
     await pool.execute(
@@ -205,7 +229,8 @@ router.post('/register', async (req, res) => {
     console.error('회원가입 에러:', error);
     res.status(500).json({ 
       success: false, 
-      message: '서버 오류가 발생했습니다.' 
+      message: '서버 오류가 발생했습니다.',
+      error: error.message
     });
   }
 });
@@ -302,6 +327,266 @@ router.post('/naver/callback', async (req, res) => {
     res.status(500).json({
       success: false,
       message: '네이버 로그인 처리 중 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 카카오 로그인 콜백 처리
+router.post('/kakao/callback', async (req, res) => {
+  try {
+    const { code } = req.body;
+
+    if (!code) {
+      return res.status(400).json({
+        success: false,
+        message: '인증 코드가 필요합니다.'
+      });
+    }
+
+    // 카카오 설정 가져오기
+    const [configs] = await pool.query(
+      'SELECT * FROM hospital_social_configs WHERE provider = ? AND is_active = 1',
+      ['kakao']
+    );
+
+    if (configs.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: '카카오 로그인 설정을 찾을 수 없습니다.'
+      });
+    }
+
+    const config = configs[0];
+    console.log('카카오 설정:', config);
+
+    // URL 인코딩된 폼 데이터 생성
+    const params = new URLSearchParams();
+    params.append('grant_type', 'authorization_code');
+    params.append('client_id', config.client_id);
+    params.append('code', code);
+    params.append('redirect_uri', config.redirect_uri);
+
+    try {
+      // 카카오 액세스 토큰 받기
+      const tokenResponse = await axios.post('https://kauth.kakao.com/oauth/token', params, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      });
+
+      console.log('토큰 응답:', tokenResponse.data);
+
+      const { access_token, refresh_token } = tokenResponse.data;
+
+      // 카카오 사용자 정보 가져오기
+      const userResponse = await axios.get('https://kapi.kakao.com/v2/user/me', {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      });
+
+      console.log('카카오 사용자 정보:', userResponse.data);
+
+      const kakaoUser = userResponse.data;
+      const kakaoId = kakaoUser.id.toString();
+      const email = kakaoUser.kakao_account.email;
+      const nickname = kakaoUser.properties.nickname;
+      const profileImage = kakaoUser.properties.profile_image;
+
+      // 기존 사용자 확인
+      const [existingUser] = await pool.query(
+        'SELECT * FROM hospital_users WHERE social_id = ? AND social_provider = ? OR email = ?',
+        [kakaoId, 'kakao', email]
+      );
+
+      if (existingUser.length > 0) {
+        // 기존 사용자는 바로 로그인 처리
+        const user = existingUser[0];
+        const token = jwt.sign(
+          { id: user.id, role: user.role },
+          process.env.JWT_SECRET,
+          { expiresIn: '24h' }
+        );
+
+        res.cookie('token', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 24 * 60 * 60 * 1000
+        });
+
+        return res.status(200).json({
+          success: true,
+          isNewUser: false,
+          user: {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            nickname: user.nickname,
+            role: user.role
+          }
+        });
+      } else {
+        // 새로운 사용자는 회원가입 정보 반환
+        return res.status(200).json({
+          success: true,
+          isNewUser: true,
+          email: email,
+          nickname: nickname,
+          profile_image: profileImage,
+          social_id: kakaoId,
+          provider: 'kakao'
+        });
+      }
+    } catch (error) {
+      console.error('카카오 API 호출 오류:', error.response?.data || error.message);
+      
+      // 토큰 요청 제한 오류 처리
+      if (error.response?.data?.error === 'invalid_request' && 
+          error.response?.data?.error_code === 'KOE237') {
+        return res.status(429).json({
+          success: false,
+          message: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
+          error: error.response.data
+        });
+      }
+
+      // 인증 코드 만료 오류 처리
+      if (error.response?.data?.error === 'invalid_grant') {
+        return res.status(400).json({
+          success: false,
+          message: '인증 코드가 만료되었습니다. 다시 로그인해주세요.',
+          error: error.response.data
+        });
+      }
+
+      return res.status(400).json({
+        success: false,
+        message: '카카오 API 호출 중 오류가 발생했습니다.',
+        error: error.response?.data || error.message
+      });
+    }
+  } catch (error) {
+    console.error('카카오 로그인 처리 오류:', error);
+    return res.status(500).json({
+      success: false,
+      message: '서버 오류가 발생했습니다.',
+      error: error.message
+    });
+  }
+});
+
+// 구글 로그인 콜백 처리
+router.post('/google/callback', async (req, res) => {
+  try {
+    const { code } = req.body;
+
+    if (!code) {
+      return res.status(400).json({
+        success: false,
+        message: '인증 코드가 필요합니다.'
+      });
+    }
+
+    // 구글 설정 가져오기
+    const [configs] = await pool.query(
+      'SELECT * FROM hospital_social_configs WHERE provider = ? AND is_active = 1',
+      ['google']
+    );
+
+    if (configs.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: '구글 로그인 설정을 찾을 수 없습니다.'
+      });
+    }
+
+    const config = configs[0];
+    console.log('구글 설정:', config);
+
+    // client_secret에서 줄바꿈 문자 제거
+    const clientSecret = config.client_secret.trim();
+
+    // 구글 액세스 토큰 받기
+    const tokenResponse = await axios.post('https://oauth2.googleapis.com/token', {
+      code,
+      client_id: config.client_id,
+      client_secret: clientSecret,
+      redirect_uri: config.redirect_uri,
+      grant_type: 'authorization_code'
+    });
+
+    const { access_token } = tokenResponse.data;
+
+    // 구글 사용자 정보 가져오기
+    const userResponse = await axios.get('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: {
+        Authorization: `Bearer ${access_token}`
+      }
+    });
+
+    const googleUser = userResponse.data;
+    console.log('구글 사용자 정보:', googleUser);
+
+    const googleId = googleUser.id;
+    const email = googleUser.email;
+    const nickname = googleUser.name;
+    const profileImage = googleUser.picture;
+
+    // 기존 사용자 확인
+    const [existingUser] = await pool.query(
+      'SELECT * FROM hospital_users WHERE social_id = ? AND social_provider = ? OR email = ?',
+      [googleId, 'google', email]
+    );
+
+    if (existingUser.length > 0) {
+      // 기존 사용자는 바로 로그인 처리
+      const user = existingUser[0];
+      const token = jwt.sign(
+        { id: user.id, role: user.role },
+        process.env.JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+
+      res.cookie('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 * 1000
+      });
+
+      return res.status(200).json({
+        success: true,
+        isNewUser: false,
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          nickname: user.nickname,
+          role: user.role
+        }
+      });
+    } else {
+      // 새로운 사용자는 회원가입 정보 반환
+      return res.status(200).json({
+        success: true,
+        isNewUser: true,
+        email: email,
+        nickname: nickname,
+        profile_image: profileImage,
+        social_id: googleId,
+        provider: 'google',
+        name: googleUser.name,
+        given_name: googleUser.given_name
+      });
+    }
+  } catch (error) {
+    console.error('구글 로그인 처리 오류:', error);
+    return res.status(500).json({
+      success: false,
+      message: '서버 오류가 발생했습니다.',
+      error: error.message
     });
   }
 });

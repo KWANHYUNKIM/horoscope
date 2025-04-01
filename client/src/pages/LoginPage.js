@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { api, getApiUrl } from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
 
 const LoginPage = () => {
@@ -13,6 +13,27 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [apiUrl, setApiUrl] = useState('');
+  const [kakaoSettings, setKakaoSettings] = useState({
+    client_id: '',
+    redirect_uri: ''
+  });
+
+  useEffect(() => {
+    setApiUrl(getApiUrl());
+  }, []);
+
+  useEffect(() => {
+    const fetchKakaoSettings = async () => {
+      try {
+        const response = await api.get('/api/auth/social-config/kakao');
+        setKakaoSettings(response.data);
+      } catch (error) {
+        console.error('카카오 로그인 설정 조회 실패:', error);
+      }
+    };
+    fetchKakaoSettings();
+  }, []);
 
   const handleChange = (e) => {
     setFormData({
@@ -28,11 +49,9 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:3001/api/auth/login', {
+      const response = await api.post('/api/auth/login', {
         username: formData.username,
         password: formData.password
-      }, {
-        withCredentials: true
       });
 
       if (response.data.user) {
@@ -68,7 +87,7 @@ const LoginPage = () => {
 
   const handleNaverLogin = async () => {
     try {
-      const response = await axios.get('http://localhost:3001/api/auth/social-config/naver');
+      const response = await api.get('/api/auth/social-config/naver');
       const { client_id, redirect_uri } = response.data;
       
       if (!client_id || !redirect_uri) {
@@ -77,6 +96,7 @@ const LoginPage = () => {
       }
 
       const STATE = generateRandomString(16);
+      localStorage.setItem('naverState', STATE);
       const NAVER_AUTH_URL = `https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=${client_id}&redirect_uri=${redirect_uri}&state=${STATE}`;
       window.location.href = NAVER_AUTH_URL;
     } catch (error) {
@@ -95,30 +115,31 @@ const LoginPage = () => {
     return result;
   };
 
-  const handleKakaoLogin = async () => {
+  const handleKakaoLogin = () => {
+    if (!kakaoSettings.client_id || !kakaoSettings.redirect_uri) {
+      alert('카카오 로그인 설정이 완료되지 않았습니다.');
+      return;
+    }
+    const KAKAO_AUTH_URL = `https://kauth.kakao.com/oauth/authorize?client_id=${kakaoSettings.client_id}&redirect_uri=${kakaoSettings.redirect_uri}&response_type=code&scope=account_email profile_nickname profile_image`;
+    window.location.href = KAKAO_AUTH_URL;
+  };
+
+  const handleGoogleLogin = async () => {
     try {
-      const response = await axios.get('http://localhost:3001/api/auth/social-config/kakao');
+      const response = await api.get('/api/auth/social-config/google');
       const { client_id, redirect_uri } = response.data;
       
       if (!client_id || !redirect_uri) {
-        alert('카카오 로그인 설정이 완료되지 않았습니다.');
+        alert('구글 로그인 설정이 완료되지 않았습니다.');
         return;
       }
 
-      const KAKAO_AUTH_URL = `https://kauth.kakao.com/oauth/authorize?client_id=${client_id}&redirect_uri=${redirect_uri}&response_type=code`;
-      window.location.href = KAKAO_AUTH_URL;
+      const GOOGLE_AUTH_URL = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${client_id}&redirect_uri=${encodeURIComponent(redirect_uri)}&response_type=code&scope=email profile`;
+      window.location.href = GOOGLE_AUTH_URL;
     } catch (error) {
-      console.error('카카오 로그인 설정 조회 실패:', error);
-      alert('카카오 로그인을 시도하는 중 오류가 발생했습니다.');
+      console.error('구글 로그인 설정 조회 실패:', error);
+      alert('구글 로그인을 시도하는 중 오류가 발생했습니다.');
     }
-  };
-
-  const handleGoogleLogin = () => {
-    const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
-    const REDIRECT_URI = 'http://localhost:3000/auth/google/callback';
-    const GOOGLE_AUTH_URL = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=email profile`;
-    
-    window.location.href = GOOGLE_AUTH_URL;
   };
 
   return (
