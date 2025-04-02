@@ -469,4 +469,70 @@ router.get('/category/:categoryId', async (req, res) => {
   }
 });
 
+// 관련 게시글 조회
+router.get('/related/:id', async (req, res) => {
+  try {
+    const boardId = req.params.id;
+    const page = parseInt(req.query.page) || 1;
+    const limit = 10;
+    const offset = (page - 1) * limit;
+    
+    // 현재 게시글의 카테고리 조회
+    const [currentBoard] = await pool.query(
+      'SELECT category_id FROM hospital_board WHERE id = ?',
+      [boardId]
+    );
+
+    if (currentBoard.length === 0) {
+      return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
+    }
+
+    // 전체 게시글 수 조회
+    const [countResult] = await pool.query(
+      'SELECT COUNT(*) as total FROM hospital_board WHERE category_id = ? AND id != ?',
+      [currentBoard[0].category_id, boardId]
+    );
+    const total = countResult[0].total;
+    const totalPages = Math.ceil(total / limit);
+
+    // 같은 카테고리의 게시글 조회 (현재 게시글 제외, 페이지네이션 적용)
+    const query = `
+      SELECT 
+        b.*,
+        c.category_name,
+        u.username,
+        (SELECT COUNT(*) FROM hospital_board_comments WHERE board_id = b.id) as comment_count
+      FROM hospital_board b
+      JOIN hospital_board_categories c ON b.category_id = c.id
+      JOIN hospital_users u ON b.user_id = u.id
+      WHERE b.category_id = ? AND b.id != ?
+      ORDER BY b.created_at DESC
+      LIMIT ? OFFSET ?
+    `;
+    
+    const [boards] = await pool.query(query, [currentBoard[0].category_id, boardId, limit, offset]);
+    
+    // 각 게시글의 content 추가
+    const boardsWithContent = await Promise.all(boards.map(async (board) => {
+      const [details] = await pool.query(
+        'SELECT content FROM hospital_board_details WHERE board_id = ?',
+        [board.id]
+      );
+      return {
+        ...board,
+        content: details[0]?.content || ''
+      };
+    }));
+
+    res.json({
+      boards: boardsWithContent,
+      totalPages,
+      currentPage: page
+    });
+  } catch (error) {
+    console.error('관련 게시글 조회 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
 module.exports = router; 

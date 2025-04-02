@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import BoardList from './BoardList';
 
 const BoardDetail = () => {
   const { id } = useParams();
@@ -9,29 +10,36 @@ const BoardDetail = () => {
   const { isLoggedIn, userId, userRole } = useAuth();
   const [board, setBoard] = useState(null);
   const [comments, setComments] = useState([]);
+  const [relatedBoards, setRelatedBoards] = useState([]);
   const [editingComment, setEditingComment] = useState(null);
   const [editContent, setEditContent] = useState('');
   const [replyContent, setReplyContent] = useState('');
   const [replyingTo, setReplyingTo] = useState(null);
   const [newComment, setNewComment] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [boardResponse, commentsResponse] = await Promise.all([
+        const [boardResponse, commentsResponse, relatedBoardsResponse] = await Promise.all([
           axios.get(`http://localhost:3001/api/boards/${id}`, { withCredentials: true }),
-          axios.get(`http://localhost:3001/api/boards/${id}/comments`, { withCredentials: true })
+          axios.get(`http://localhost:3001/api/boards/${id}/comments`, { withCredentials: true }),
+          axios.get(`http://localhost:3001/api/boards/related/${id}?page=${currentPage}`, { withCredentials: true })
         ]);
 
         setBoard(boardResponse.data);
         setComments(commentsResponse.data);
+        setRelatedBoards(relatedBoardsResponse.data.boards);
+        setTotalPages(relatedBoardsResponse.data.totalPages);
+        setCurrentPage(relatedBoardsResponse.data.currentPage);
       } catch (error) {
         console.error('데이터 로딩 실패:', error);
       }
     };
 
     fetchData();
-  }, [id]);
+  }, [id, currentPage]);
 
   const handleEditBoard = () => {
     navigate(`/community/edit/${id}`);
@@ -389,7 +397,7 @@ const BoardDetail = () => {
           </div>
 
           {/* 댓글 섹션 */}
-          <div className="mt-4">
+          <div className="mt-4 mb-8">
             <h3 className="text-xl font-bold text-gray-800 mb-4 font-['Pretendard']">
               댓글 ({comments.filter(c => !c.is_deleted).length})
             </h3>
@@ -417,6 +425,47 @@ const BoardDetail = () => {
             <div className="space-y-4">
               {buildCommentTree(comments).map(comment => renderCommentTree(comment))}
             </div>
+          </div>
+
+          {/* 관련 게시글 목록 */}
+          <div className="mt-8 border-t border-gray-100 pt-8">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-800 font-['Pretendard']">
+                카테고리 리스트
+              </h3>
+              {totalPages > 1 && (
+                <div className="flex space-x-2">
+                  {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else {
+                      if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                    }
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`px-3 py-1 text-sm font-medium rounded-lg transition-colors ${
+                          currentPage === pageNum
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <BoardList boards={relatedBoards} />
           </div>
         </div>
       )}
