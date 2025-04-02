@@ -45,16 +45,16 @@ router.post('/', authenticateToken, isAdmin, async (req, res) => {
 // Origin 수정
 router.put('/:id', authenticateToken, isAdmin, async (req, res) => {
   try {
-    console.log('Origin 수정 요청 시작 - ID:', req.params.id);
-    console.log('요청 본문:', req.body);
+    //console.log('Origin 수정 요청 시작 - ID:', req.params.id);
+    //console.log('요청 본문:', req.body);
 
     const origin = await HospitalOrigin.findById(req.params.id);
     if (!origin) {
-      console.log('Origin을 찾을 수 없음 - ID:', req.params.id);
+      //console.log('Origin을 찾을 수 없음 - ID:', req.params.id);
       return res.status(404).json({ message: 'Origin을 찾을 수 없습니다.' });
     }
 
-    console.log('기존 Origin 데이터:', origin);
+    //console.log('기존 Origin 데이터:', origin);
 
     const previousValue = JSON.stringify(origin);
     const originData = {
@@ -62,17 +62,17 @@ router.put('/:id', authenticateToken, isAdmin, async (req, res) => {
       updated_by: req.user.id
     };
 
-    console.log('업데이트할 데이터:', originData);
+    //console.log('업데이트할 데이터:', originData);
 
     const success = await HospitalOrigin.update(req.params.id, originData);
 
     if (!success) {
-      console.log('Origin 업데이트 실패');
+      //console.log('Origin 업데이트 실패');
       return res.status(500).json({ message: 'Origin 수정에 실패했습니다.' });
     }
 
     const updatedOrigin = await HospitalOrigin.findById(req.params.id);
-    console.log('업데이트된 Origin 데이터:', updatedOrigin);
+    //console.log('업데이트된 Origin 데이터:', updatedOrigin);
 
     // 변경 이력 기록
     await HospitalOriginHistory.create({

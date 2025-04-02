@@ -114,7 +114,6 @@ const BigChatModal = () => {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude
           };
-          console.log('위치 정보:', coordinates); // 디버깅용 로그
           resolve(coordinates);
         },
         (error) => {
@@ -228,7 +227,7 @@ const BigChatModal = () => {
           }
 
           const data = await response.json();
-          console.log('Client: Received response from server:', data);
+          //console.log('Client: Received response from server:', data);
           
           const botMessage = data.response || data.message || '응답을 받지 못했습니다.';
           setMessages(prev => [...prev, { type: 'bot', content: botMessage }]);
@@ -261,7 +260,7 @@ const BigChatModal = () => {
       }
 
       const data = await response.json();
-      console.log('Client: Received response from server:', data);
+      //console.log('Client: Received response from server:', data);
       
       const botMessage = data.response || data.message || '응답을 받지 못했습니다.';
       setMessages(prev => [...prev, { type: 'bot', content: botMessage }]);

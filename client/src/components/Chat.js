@@ -141,11 +141,11 @@ const Chat = () => {
     setMessages(prev => [...prev, { type: 'user', content: userMessage }]);
 
     try {
-      console.log('Client: Sending message to server:', userMessage);
+      //console.log('Client: Sending message to server:', userMessage);
       const response = await axios.post('/api/chat/send', { message: userMessage });
-      console.log('Client: Received response from server:', response.data);
+      //console.log('Client: Received response from server:', response.data);
       const botResponse = response.data.message;
-      console.log('Client: Bot response:', botResponse);
+      //console.log('Client: Bot response:', botResponse);
 
       // 병원 검색인 경우 위치 정보 확인
       if (botResponse.includes('내 주변 병원 검색 결과') && !coordinates && locationPermission !== 'granted') {
