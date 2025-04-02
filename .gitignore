@@ -10,8 +10,21 @@ yarn.lock
 venv/
 
 # 환경 변수 파일
+.env
+.env.local
+.env.development
+.env.test
+.env.production
 server/.env
+server/.env.local
+server/.env.development
+server/.env.test
+server/.env.production
 client/.env
+client/.env.local
+client/.env.development
+client/.env.test
+client/.env.production
 
 # crawl 폴더 전체 제외
 crawl/*

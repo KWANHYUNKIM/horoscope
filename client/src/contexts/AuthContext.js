@@ -14,7 +14,7 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   const updateAuthState = useCallback((userData) => {
-    console.log('Updating Auth State with:', userData);
+    // console.log('Updating Auth State with:', userData);
     if (userData) {
       setIsLoggedIn(true);
       setUserRole(userData.role);
@@ -22,7 +22,7 @@ export const AuthProvider = ({ children }) => {
       setUsername(userData.username);
       setUserProfileImage(userData.profile_image);
       setUser(userData);
-      console.log('Updated User State:', userData);
+      // console.log('Updated User State:', userData);
     } else {
       setIsLoggedIn(false);
       setUserRole(null);
@@ -37,9 +37,9 @@ export const AuthProvider = ({ children }) => {
     const checkAuth = async () => {
       try {
         const response = await api.get('/api/auth/check-auth');
-        console.log('Auth Response:', response.data);
+        // console.log('Auth Response:', response.data);
         if (response.data && response.data.user) {
-          console.log('User Data:', response.data.user);
+          // console.log('User Data:', response.data.user);
           updateAuthState(response.data.user);
         } else {
           updateAuthState(null);
