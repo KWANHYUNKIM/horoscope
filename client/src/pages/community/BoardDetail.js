@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import BoardList from './BoardList';
+import { getApiUrl } from '../../utils/api';
 
 const BoardDetail = () => {
   const { id } = useParams();
@@ -23,13 +24,13 @@ const BoardDetail = () => {
     const fetchData = async () => {
       try {
         // 조회수 증가 API 호출
-        await axios.post(`http://localhost:3001/api/boards/${id}/view`, {}, { withCredentials: true });
+        await axios.post(`${getApiUrl()}/api/boards/${id}/view`, {}, { withCredentials: true });
         
         // 게시글, 댓글, 관련 게시글 데이터 가져오기
         const [boardResponse, commentsResponse, relatedBoardsResponse] = await Promise.all([
-          axios.get(`http://localhost:3001/api/boards/${id}`, { withCredentials: true }),
-          axios.get(`http://localhost:3001/api/boards/${id}/comments`, { withCredentials: true }),
-          axios.get(`http://localhost:3001/api/boards/related/${id}?page=${currentPage}`, { withCredentials: true })
+          axios.get(`${getApiUrl()}/api/boards/${id}`, { withCredentials: true }),
+          axios.get(`${getApiUrl()}/api/boards/${id}/comments`, { withCredentials: true }),
+          axios.get(`${getApiUrl()}/api/boards/related/${id}?page=${currentPage}`, { withCredentials: true })
         ]);
 
         setBoard(boardResponse.data);
@@ -60,7 +61,7 @@ const BoardDetail = () => {
     }
 
     try {
-      await axios.delete(`http://localhost:3001/api/boards/${id}`, { withCredentials: true });
+      await axios.delete(`${getApiUrl()}/api/boards/${id}`, { withCredentials: true });
       navigate('/community');
     } catch (error) {
       console.error('게시글 삭제 실패:', error);
@@ -83,12 +84,12 @@ const BoardDetail = () => {
     }
 
     try {
-      await axios.put(`http://localhost:3001/api/boards/${id}/comments/${commentId}`, {
+      await axios.put(`${getApiUrl()}/api/boards/${id}/comments/${commentId}`, {
         comment: editContent
       }, { withCredentials: true });
 
       // 댓글 수정 후 목록 새로고침
-      const commentsResponse = await axios.get(`http://localhost:3001/api/boards/${id}/comments`, { withCredentials: true });
+      const commentsResponse = await axios.get(`${getApiUrl()}/api/boards/${id}/comments`, { withCredentials: true });
       setComments(commentsResponse.data);
       setEditingComment(null);
       setEditContent('');
@@ -283,13 +284,13 @@ const BoardDetail = () => {
     }
 
     try {
-      const response = await axios.post(`http://localhost:3001/api/boards/${id}/comments`, {
+      const response = await axios.post(`${getApiUrl()}/api/boards/${id}/comments`, {
         comment: replyContent,
         parent_id: parentId
       }, { withCredentials: true });
 
       // 댓글 작성 성공 후 댓글 목록 새로고침
-      const commentsResponse = await axios.get(`http://localhost:3001/api/boards/${id}/comments`, { withCredentials: true });
+      const commentsResponse = await axios.get(`${getApiUrl()}/api/boards/${id}/comments`, { withCredentials: true });
       setComments(commentsResponse.data);
       
       // 입력 폼 초기화
@@ -311,7 +312,7 @@ const BoardDetail = () => {
     }
 
     try {
-      await axios.delete(`http://localhost:3001/api/boards/${id}/comments/${commentId}`, { withCredentials: true });
+      await axios.delete(`${getApiUrl()}/api/boards/${id}/comments/${commentId}`, { withCredentials: true });
 
       // 댓글이 삭제되었을 때 화면 업데이트
       setComments(prevComments => {
@@ -343,12 +344,12 @@ const BoardDetail = () => {
     }
 
     try {
-      await axios.post(`http://localhost:3001/api/boards/${id}/comments`, {
+      await axios.post(`${getApiUrl()}/api/boards/${id}/comments`, {
         comment: newComment
       }, { withCredentials: true });
 
       // 댓글 작성 성공 후 댓글 목록 새로고침
-      const commentsResponse = await axios.get(`http://localhost:3001/api/boards/${id}/comments`, { withCredentials: true });
+      const commentsResponse = await axios.get(`${getApiUrl()}/api/boards/${id}/comments`, { withCredentials: true });
       setComments(commentsResponse.data);
       
       // 입력 폼 초기화

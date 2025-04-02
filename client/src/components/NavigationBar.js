@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { getApiUrl } from '../utils/api';
 
 const NavigationBar = () => {
   const { user, userProfileImage, logout } = useAuth();
@@ -56,7 +57,7 @@ const NavigationBar = () => {
                 >
                   {userProfileImage ? (
                     <img
-                      src={`http://localhost:3001${userProfileImage}`}
+                      src={`${getApiUrl()}${userProfileImage}`}
                       alt="프로필"
                       className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 hover:border-indigo-500 transition-colors duration-200"
                     />

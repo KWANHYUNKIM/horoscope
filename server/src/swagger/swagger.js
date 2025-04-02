@@ -14,7 +14,7 @@ const swaggerDefinition = {
   },
   servers: [
     {
-      url: 'http://localhost:3001', // API 서버 URL
+      url: process.env.REACT_APP_API_URL || 'http://localhost:3001', // 환경 변수에서 API URL 가져오기
     },
   ],
 };

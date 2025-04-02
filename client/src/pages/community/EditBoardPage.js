@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Editor } from '@tinymce/tinymce-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { getApiUrl } from '../../utils/api';
 
 const EditBoardPage = () => {
   const { id } = useParams();
@@ -13,51 +15,81 @@ const EditBoardPage = () => {
   const [editorApiKey, setEditorApiKey] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const { isLoggedIn } = useAuth();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [categoriesResponse, configResponse, boardResponse] = await Promise.all([
-          axios.get('http://localhost:3001/api/categories', { withCredentials: true }),
-          axios.get('http://localhost:3001/api/config', { withCredentials: true }),
-          axios.get(`http://localhost:3001/api/boards/${id}`, { withCredentials: true })
+        const [boardResponse, categoriesResponse, configResponse] = await Promise.all([
+          axios.get(`${getApiUrl()}/api/boards/${id}`, { withCredentials: true }),
+          axios.get(`${getApiUrl()}/api/boards/categories`, { withCredentials: true }),
+          axios.get(`${getApiUrl()}/api/boards/config`, { withCredentials: true })
         ]);
 
-        setCategories(categoriesResponse.data);
-        setEditorApiKey(configResponse.data.EDITOR_API);
         setTitle(boardResponse.data.title);
         setContent(boardResponse.data.content);
         setCategoryId(boardResponse.data.category_id);
+        setCategories(categoriesResponse.data);
+        setEditorApiKey(configResponse.data.EDITOR_API);
         setLoading(false);
       } catch (error) {
         console.error('데이터 로딩 실패:', error);
+        if (error.response?.status === 401) {
+          alert('로그인이 만료되었습니다. 다시 로그인해주세요.');
+          navigate('/login');
+        }
         setError('게시글 정보를 불러오는데 실패했습니다.');
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [id]);
+  }, [id, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!isLoggedIn) {
+      navigate('/login');
+      return;
+    }
+
     setError('');
 
     try {
-      await axios.put(
-        `http://localhost:3001/api/boards/${id}`,
-        {
-          title,
-          content,
-          category_id: categoryId
-        },
-        { withCredentials: true }
-      );
+      await axios.put(`${getApiUrl()}/api/boards/${id}`, {
+        title,
+        content,
+        category_id: categoryId
+      }, { withCredentials: true });
 
       navigate(`/community/boards/${id}`);
     } catch (error) {
       console.error('게시글 수정 실패:', error);
+      if (error.response?.status === 401) {
+        alert('로그인이 만료되었습니다. 다시 로그인해주세요.');
+        navigate('/login');
+      }
       setError('게시글 수정에 실패했습니다.');
+    }
+  };
+
+  const handleImageUpload = async (blobInfo) => {
+    try {
+      const formData = new FormData();
+      formData.append('image', blobInfo.blob(), blobInfo.filename());
+
+      const response = await axios.post(`${getApiUrl()}/api/boards/upload`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        withCredentials: true
+      });
+
+      return response.data.url;
+    } catch (error) {
+      console.error('이미지 업로드 실패:', error);
+      throw new Error('이미지 업로드에 실패했습니다.');
     }
   };
 
@@ -133,21 +165,8 @@ const EditBoardPage = () => {
                       'removeformat | help',
                     content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }',
                     language: 'ko_KR',
-                    images_upload_url: 'http://localhost:3001/api/upload',
-                    images_upload_handler: function (blobInfo, success, failure) {
-                      const formData = new FormData();
-                      formData.append('image', blobInfo.blob(), blobInfo.filename());
-                      axios.post('http://localhost:3001/api/upload', formData, {
-                        headers: { 'Content-Type': 'multipart/form-data' },
-                        withCredentials: true
-                      })
-                      .then(response => {
-                        success(response.data.url);
-                      })
-                      .catch(error => {
-                        failure('이미지 업로드에 실패했습니다.');
-                      });
-                    }
+                    images_upload_url: `${getApiUrl()}/api/upload`,
+                    images_upload_handler: handleImageUpload
                   }}
                 />
               )}

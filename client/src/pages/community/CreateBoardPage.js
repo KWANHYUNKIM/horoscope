@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Editor } from '@tinymce/tinymce-react';
+import { getApiUrl } from '../../utils/api';
 
 const CreateBoardPage = () => {
   const navigate = useNavigate();
@@ -19,8 +20,8 @@ const CreateBoardPage = () => {
     const fetchData = async () => {
       try {
         const [categoriesResponse, configResponse] = await Promise.all([
-          axios.get('http://localhost:3001/api/boards/categories', { withCredentials: true }),
-          axios.get('http://localhost:3001/api/boards/config', { withCredentials: true })
+          axios.get(`${getApiUrl()}/api/boards/categories`, { withCredentials: true }),
+          axios.get(`${getApiUrl()}/api/boards/config`, { withCredentials: true })
         ]);
         
         setCategories(categoriesResponse.data);
@@ -28,7 +29,7 @@ const CreateBoardPage = () => {
         
         if (id) {
           // 게시글 수정인 경우 기존 데이터 로드
-          const boardResponse = await axios.get(`http://localhost:3001/api/boards/${id}`, { withCredentials: true });
+          const boardResponse = await axios.get(`${getApiUrl()}/api/boards/${id}`, { withCredentials: true });
           setTitle(boardResponse.data.title);
           setContent(boardResponse.data.content);
           setSelectedCategory(boardResponse.data.category_id.toString());
@@ -56,32 +57,15 @@ const CreateBoardPage = () => {
     }
 
     try {
-      if (id) {
-        // 수정
-        await axios.put(
-          `http://localhost:3001/api/boards/${id}`,
-          {
-            title,
-            content,
-            category_id: selectedCategory
-          },
-          { withCredentials: true }
-        );
-      } else {
-        // 새 게시글 작성
-        await axios.post(
-          'http://localhost:3001/api/boards',
-          {
-            title,
-            content,
-            category_id: selectedCategory
-          },
-          { withCredentials: true }
-        );
-      }
+      await axios.post(`${getApiUrl()}/api/boards`, {
+        title,
+        content,
+        category_id: selectedCategory
+      }, { withCredentials: true });
+
       navigate('/community');
     } catch (error) {
-      console.error('게시글 저장 실패:', error);
+      console.error('게시글 작성 실패:', error);
       if (error.response?.status === 401) {
         alert('로그인이 만료되었습니다. 다시 로그인해주세요.');
         navigate('/login');
@@ -94,7 +78,7 @@ const CreateBoardPage = () => {
     formData.append('file', blobInfo.blob(), blobInfo.filename());
     
     try {
-      const response = await axios.post('http://localhost:3001/api/boards/upload', formData, {
+      const response = await axios.post(`${getApiUrl()}/api/boards/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

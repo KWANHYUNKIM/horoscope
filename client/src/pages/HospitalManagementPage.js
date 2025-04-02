@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { getApiUrl } from '../utils/api';
+import axios from 'axios';
 
 const HospitalManagementPage = () => {
   const [hospitals, setHospitals] = useState([]);
@@ -82,8 +84,8 @@ const HospitalManagementPage = () => {
       if (selectedRegion !== "전국") {
         queryParams.append("region", selectedRegion);
       }
-  
-      const res = await fetch(`http://localhost:3001/api/hospitals?${queryParams.toString()}`);
+
+      const res = await fetch(`${getApiUrl()}/api/hospitals?${queryParams.toString()}`);
       
       // 🔐 응답 타입과 상태 체크
       const contentType = res.headers.get("content-type");
@@ -173,9 +175,9 @@ const HospitalManagementPage = () => {
     try {
       let url = '';
       if (modalType === 'subject') {
-        url = `http://localhost:3001/api/hospitals/${currentYkiho}/subject`;
+        url = `${getApiUrl()}/api/hospitals/${currentYkiho}/subject`;
       } else if (modalType === 'time') {
-        url = `http://localhost:3001/api/hospitals/${currentYkiho}/time`;
+        url = `${getApiUrl()}/api/hospitals/${currentYkiho}/time`;
       }
       const res = await fetch(url, {
         method: 'POST',
@@ -231,7 +233,7 @@ const HospitalManagementPage = () => {
       // flattenedData의 각 항목에 대해 API 호출
       for (let data of flattenedData) {
         const { ykiho } = data;
-        await fetch(`http://localhost:3001/api/hospitals/${ykiho}/time`, {
+        await fetch(`${getApiUrl()}/api/hospitals/${ykiho}/time`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           // 여기서 data 객체 자체를 전송합니다.
@@ -469,7 +471,8 @@ const HospitalManagementPage = () => {
 
             <div className="mb-4">
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault();
                   try {
                     const parsedData = JSON.parse(rawJsonText);
                     setModalForm(parsedData);

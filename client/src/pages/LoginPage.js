@@ -65,7 +65,7 @@ const LoginPage = () => {
       });
 
       if (response.data.user) {
-        // console.log('로그인 성공, 사용자 역할:', response.data.user.role);
+        console.log('로그인 성공, 사용자 역할:', response.data.user.role);
         const loginSuccess = await login(response.data.user);
         
         if (loginSuccess) {

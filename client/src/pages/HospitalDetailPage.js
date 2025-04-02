@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import { fetchHospitalDetail } from '../service/api';
+import { getApiUrl } from '../utils/api';
 
 const HospitalDetailPage = () => {
   const { id } = useParams();
@@ -12,14 +13,9 @@ const HospitalDetailPage = () => {
   const [error, setError] = useState(null);
   const [imgError, setImgError] = useState(false);
 
-  // ✅ 환경 변수에서 백엔드 API URL 및 Elasticsearch 인증 정보 가져오기
-//const baseUrl = process.env.REACT_APP_BACKEND_URI || "http://localhost:3001";
-//const baseUrl = "https://my-server-284451238916.asia-northeast3.run.app";
-const baseUrl = "http://localhost:3001";
-  //const baseUrl = process.env.NODE_ENV === "development"
-  //? "http://localhost:3001"  // 개발 환경: 로컬 서버 사용
-  //: process.env.REACT_APP_BACKEND_URL
-    
+  // 환경 변수에서 API URL 가져오기
+  const baseUrl = getApiUrl();
+  
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const lat = params.get('lat');

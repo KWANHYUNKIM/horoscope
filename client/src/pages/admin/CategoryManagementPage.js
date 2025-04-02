@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { getApiUrl } from '../../utils/api';
 
 const CategoryManagementPage = () => {
   const [categories, setCategories] = useState([]);
@@ -18,7 +19,7 @@ const CategoryManagementPage = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await axios.get('http://localhost:3001/api/boards/categories', {
+      const response = await axios.get(`${getApiUrl()}/api/boards/categories`, {
         withCredentials: true
       });
       setCategories(response.data);
@@ -30,7 +31,7 @@ const CategoryManagementPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:3001/api/boards/categories', newCategory, {
+      await axios.post(`${getApiUrl()}/api/boards/categories`, newCategory, {
         withCredentials: true
       });
       setSuccess('카테고리가 성공적으로 생성되었습니다.');
@@ -50,7 +51,7 @@ const CategoryManagementPage = () => {
     if (!window.confirm('정말로 이 카테고리를 삭제하시겠습니까?')) return;
 
     try {
-      await axios.delete(`http://localhost:3001/api/boards/categories/${id}`, {
+      await axios.delete(`${getApiUrl()}/api/boards/categories/${id}`, {
         withCredentials: true
       });
       setSuccess('카테고리가 성공적으로 삭제되었습니다.');

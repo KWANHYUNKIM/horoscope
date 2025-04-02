@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { api } from '../utils/api';
+import { api, getApiUrl } from '../utils/api';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -166,7 +166,7 @@ const RegisterPage = () => {
   const handleSendVerification = async () => {
     try {
       // 이메일 중복 확인
-      const checkResponse = await axios.get(`http://localhost:3001/api/auth/check-email?email=${formData.email}`, {
+      const checkResponse = await axios.get(`${getApiUrl()}/api/auth/check-email?email=${formData.email}`, {
         withCredentials: true
       });
 
@@ -176,7 +176,7 @@ const RegisterPage = () => {
       }
 
       // 이메일 인증 코드 전송
-      const response = await axios.post('http://localhost:3001/api/email/send-verification', {
+      const response = await axios.post(`${getApiUrl()}/api/email/send-verification`, {
         email: formData.email
       });
 
@@ -217,7 +217,7 @@ const RegisterPage = () => {
 
   const handleVerifyCode = async () => {
     try {
-      const response = await axios.post('http://localhost:3001/api/email/verify-email', {
+      const response = await axios.post(`${getApiUrl()}/api/email/verify-email`, {
         email: formData.email,
         verificationCode: formData.verificationCode
       });

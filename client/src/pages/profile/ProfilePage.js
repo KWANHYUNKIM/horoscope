@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { getApiUrl } from '../../utils/api';
 
 const ProfilePage = () => {
   const { userId, username } = useAuth();
@@ -41,7 +42,7 @@ const ProfilePage = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await axios.get(`http://localhost:3001/api/auth/users/${userId}`, { withCredentials: true });
+        const response = await axios.get(`${getApiUrl()}/api/auth/users/${userId}`, { withCredentials: true });
         setProfile(prev => ({
           ...prev,
           username: response.data.username,
@@ -49,7 +50,7 @@ const ProfilePage = () => {
           nickname: response.data.nickname,
           interests: response.data.interests || ''
         }));
-        setPreviewUrl(response.data.profile_image ? `http://localhost:3001${response.data.profile_image}` : '');
+        setPreviewUrl(response.data.profile_image ? `${getApiUrl()}${response.data.profile_image}` : '');
       } catch (error) {
         console.error('프로필 로딩 실패:', error);
         setError('프로필 정보를 불러오는데 실패했습니다.');
@@ -114,7 +115,7 @@ const ProfilePage = () => {
       }
 
       const response = await axios.put(
-        `http://localhost:3001/api/auth/users/${userId}`,
+        `${getApiUrl()}/api/auth/users/${userId}`,
         formData,
         {
           headers: {
@@ -145,7 +146,7 @@ const ProfilePage = () => {
   const getProfileImageUrl = (imagePath) => {
     if (!imagePath) return null;
     if (imagePath.startsWith('http')) return imagePath;
-    return `http://localhost:3001/uploads/${imagePath}`;
+    return `${getApiUrl()}/uploads/${imagePath}`;
   };
 
   return (
