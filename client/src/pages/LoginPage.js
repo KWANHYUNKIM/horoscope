@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { setIsLoggedIn, setUserRole } = useAuth();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     username: '',
     password: ''
@@ -66,25 +66,16 @@ const LoginPage = () => {
 
       if (response.data.user) {
         console.log('로그인 성공, 사용자 역할:', response.data.user.role);
-        await Promise.all([
-          new Promise(resolve => {
-            setIsLoggedIn(true);
-            resolve();
-          }),
-          new Promise(resolve => {
-            setUserRole(response.data.user.role);
-            resolve();
-          })
-        ]);
+        const loginSuccess = await login(response.data.user);
         
-        setSuccessMessage('로그인 성공!');
-        
-        setTimeout(() => {
-          window.location.href = '/';
+        if (loginSuccess) {
+          setSuccessMessage('로그인 성공!');
           setTimeout(() => {
-            window.location.reload();
-          }, 100);
-        }, 1000);
+            navigate('/');
+          }, 1000);
+        } else {
+          setError('로그인 상태 업데이트 중 오류가 발생했습니다.');
+        }
       }
     } catch (error) {
       console.error('로그인 오류:', error);

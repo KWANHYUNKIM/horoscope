@@ -65,6 +65,16 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const handleLogin = async (userData) => {
+    try {
+      updateAuthState(userData);
+      return true;
+    } catch (error) {
+      console.error('로그인 상태 업데이트 오류:', error);
+      return false;
+    }
+  };
+
   const value = {
     isLoggedIn,
     userRole,
@@ -79,7 +89,8 @@ export const AuthProvider = ({ children }) => {
     setUsername,
     setUserProfileImage,
     setUser,
-    logout: handleLogout
+    logout: handleLogout,
+    login: handleLogin
   };
 
   if (isLoading) {
