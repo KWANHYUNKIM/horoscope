@@ -8,6 +8,15 @@ const router = express.Router();
 // 게시글 목록 조회
 router.get('/', async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = 10;
+    const offset = (page - 1) * limit;
+
+    // 전체 게시글 수 조회
+    const [countResult] = await pool.query('SELECT COUNT(*) as total FROM hospital_board');
+    const total = countResult[0].total;
+    const totalPages = Math.ceil(total / limit);
+
     const query = `
       SELECT 
         b.*,
@@ -19,9 +28,10 @@ router.get('/', async (req, res) => {
       JOIN hospital_board_categories c ON b.category_id = c.id
       JOIN hospital_users u ON b.user_id = u.id
       ORDER BY b.created_at DESC
+      LIMIT ? OFFSET ?
     `;
     
-    const [boards] = await pool.query(query);
+    const [boards] = await pool.query(query, [limit, offset]);
     
     // 각 게시글의 content와 additional_info 추가
     const boardsWithDetails = await Promise.all(boards.map(async (board) => {
@@ -36,7 +46,11 @@ router.get('/', async (req, res) => {
       };
     }));
 
-    res.json(boardsWithDetails);
+    res.json({
+      boards: boardsWithDetails,
+      totalPages,
+      currentPage: page
+    });
   } catch (error) {
     console.error('게시글 목록 조회 오류:', error);
     res.status(500).json({ message: '서버 오류가 발생했습니다.' });
@@ -400,6 +414,18 @@ router.put('/:boardId/comments/:commentId', authenticateToken, async (req, res) 
 router.get('/category/:categoryId', async (req, res) => {
   try {
     const { categoryId } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = 10;
+    const offset = (page - 1) * limit;
+
+    // 카테고리별 전체 게시글 수 조회
+    const [countResult] = await pool.query(
+      'SELECT COUNT(*) as total FROM hospital_board WHERE category_id = ?',
+      [categoryId]
+    );
+    const total = countResult[0].total;
+    const totalPages = Math.ceil(total / limit);
+
     const query = `
       SELECT 
         b.*,
@@ -414,9 +440,10 @@ router.get('/category/:categoryId', async (req, res) => {
       JOIN hospital_users u ON b.user_id = u.id
       WHERE b.category_id = ?
       ORDER BY b.created_at DESC
+      LIMIT ? OFFSET ?
     `;
     
-    const [boards] = await pool.query(query, [categoryId]);
+    const [boards] = await pool.query(query, [categoryId, limit, offset]);
     
     // 각 게시글의 content와 additional_info 추가
     const boardsWithDetails = await Promise.all(boards.map(async (board) => {
@@ -431,7 +458,11 @@ router.get('/category/:categoryId', async (req, res) => {
       };
     }));
 
-    res.json(boardsWithDetails);
+    res.json({
+      boards: boardsWithDetails,
+      totalPages,
+      currentPage: page
+    });
   } catch (error) {
     console.error('카테고리별 게시글 조회 오류:', error);
     res.status(500).json({ message: '서버 오류가 발생했습니다.' });

@@ -1,64 +1,85 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
+import { getBoards, getCategories } from '../redux/actions/communityActions';
 import { useAuth } from '../contexts/AuthContext';
 
 const CommunityPage = () => {
   const navigate = useNavigate();
-  const { isLoggedIn, isLoading } = useAuth();
-  const [boards, setBoards] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  const dispatch = useDispatch();
+  const communityState = useSelector(state => state.community || {});
+  const { isLoggedIn, isLoading: authLoading } = useAuth();
   const [categoryId, setCategoryId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
+  const [boards, setBoards] = useState([]);
+  const [categories, setCategories] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
+      setIsLoading(true);
       try {
-        const [boardsResponse, categoriesResponse] = await Promise.all([
-          axios.get('http://localhost:3001/api/boards', { withCredentials: true }),
-          axios.get('http://localhost:3001/api/boards/categories', { withCredentials: true })
-        ]);
-        setBoards(boardsResponse.data);
-        
-        // 기존 카테고리 데이터 필터링 및 소아과 카테고리 추가
-        const validCategories = categoriesResponse.data.filter(cat => cat && cat.name);
-        const defaultCategories = [
-          { id: 'pediatrics', name: '소아과', category_name: '소아과' },
-          ...validCategories
-        ];
-        setCategories(defaultCategories);
+        await dispatch(getBoards(categoryId, currentPage));        
+        await dispatch(getCategories());
       } catch (error) {
         console.error('데이터 로딩 실패:', error);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
     fetchData();
-  }, []);
+  }, [dispatch, categoryId, currentPage]);
 
-  const handleCreateBoardClick = () => {
-    if (!isLoggedIn) {
-      navigate('/login');
-      return;
+  // Redux 상태가 변경될 때마다 로컬 상태 업데이트
+  useEffect(() => {
+
+    if (communityState) {
+      // boards 처리
+      let newBoards = [];
+      if (communityState.boards) {
+        if (Array.isArray(communityState.boards)) {
+          newBoards = communityState.boards;
+        } else if (typeof communityState.boards === 'object' && communityState.boards !== null) {
+          newBoards = Object.values(communityState.boards);
+        }
+      }
+      
+      // categories 처리
+      let newCategories = [];
+      if (communityState.categories) {
+        if (Array.isArray(communityState.categories)) {
+          newCategories = communityState.categories;
+        } else if (typeof communityState.categories === 'object' && communityState.categories !== null) {
+          newCategories = Object.values(communityState.categories);
+        }
+      }
+          
+      setBoards(newBoards);
+      setCategories(newCategories);
+      
+      if (typeof communityState.totalPages === 'number') {
+        setTotalPages(communityState.totalPages);
+      }
+      if (typeof communityState.currentPage === 'number') {
+        setCurrentPage(communityState.currentPage);
+      }
     }
-    navigate('/community/create');
+  }, [communityState]);
+
+  const handleBoardClick = (id) => {
+    navigate(`/community/board/${id}`);
   };
 
-  const handleBoardClick = (boardId) => {
-    navigate(`/community/board/${boardId}`);
-  };
-
-  const handleCategoryClick = (categoryId) => {
-    setSelectedCategory(categoryId);
-    navigate(`/community/category/${categoryId}`);
-  };
-
-  if (loading || isLoading) {
-    return <div className="text-center p-4">로딩 중...</div>;
+  if (isLoading || authLoading) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-6">
+        <div className="bg-white rounded-lg shadow-md p-6 text-center">
+          <div className="text-gray-600">로딩 중...</div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -68,7 +89,7 @@ const CommunityPage = () => {
         <div className="border-b border-gray-100 pb-4 mb-6">
           <div className="flex justify-between items-center mb-4">
             <h1 className="text-2xl font-bold text-gray-800 font-['Pretendard']">
-              {categoryId ? categories.find(c => c.id === categoryId)?.name : '전체 게시글'}
+              {categoryId ? categories.find(c => c.id === categoryId)?.category_name : '전체 게시글'}
             </h1>
             {isLoggedIn && (
               <button
@@ -92,27 +113,25 @@ const CommunityPage = () => {
             >
               전체
             </button>
-            {categories
-              .filter(cat => cat && cat.name) // null 값과 name이 없는 카테고리 필터링
-              .map(cat => (
-                <button
-                  key={cat.id}
-                  onClick={() => setCategoryId(cat.id)}
-                  className={`px-3 py-1.5 text-sm rounded-lg font-medium transition-colors ${
-                    categoryId === cat.id
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {cat.name}
-                </button>
-              ))}
+            {Array.isArray(categories) && categories.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => setCategoryId(cat.id)}
+                className={`px-3 py-1.5 text-sm rounded-lg font-medium transition-colors ${
+                  categoryId === cat.id
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {cat.category_name}
+              </button>
+            ))}
           </div>
         </div>
 
         {/* 게시글 목록 */}
         <div className="space-y-4">
-          {boards.map(board => (
+          {Array.isArray(boards) && boards.map(board => (
             <div
               key={board.id}
               onClick={() => handleBoardClick(board.id)}

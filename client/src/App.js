@@ -1,5 +1,7 @@
 import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { Provider } from 'react-redux';
+import store from './redux/store';
 import MainPage from "./pages/MainPage";
 import HospitalListPage from "./pages/HospitalListPage";
 import HospitalDetailPage from "./pages/HospitalDetailPage";
@@ -38,40 +40,42 @@ const App = () => {
   }, []);
 
   return (
-    <Router>
-      <div className="min-h-screen bg-gray-100">
-        <NavigationBar isLoggedIn={isLoggedIn} onLogout={handleLogout} />
-        <div className="container mx-auto px-4 py-8">
-          <Routes>
-            <Route path="/" element={<MainPage isLoggedIn={isLoggedIn} userRole={userRole} />} />
-            <Route path="/hospitals" element={<HospitalListPage />} />
-            <Route path="/hospitals/:id" element={<HospitalDetailPage />} />
-            <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-            <Route path="/admin/dashboard" element={<AdminRoute><DashboardPage /></AdminRoute>} />
-            <Route path="/admin/hospitals" element={<AdminRoute><HospitalManagementPage /></AdminRoute>} />
-            <Route path="/admin/categories" element={<AdminRoute><CategoryManagementPage /></AdminRoute>} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/logout" element={<LogoutPage />} />
-            <Route path="/guides/emergency" element={<EmergencyGuidePage />} />
-            <Route path="/guides/night-care" element={<NightCareGuidePage />} />
-            <Route path="/guides/weekend-care" element={<WeekendCareGuidePage />} />
-            <Route path="/guides/emergency-care" element={<EmergencyCarePage />} />
-            <Route path="/terms" element={<TermsAgreement />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/community" element={<CommunityPage />} />
-            <Route path="/community/category/:categoryId" element={<CommunityPage />} />
-            <Route path="/community/board/:id" element={<BoardDetail />} />
-            <Route path="/community/create" element={<CreateBoardPage />} />
-            <Route path="/community/edit/:id" element={<CreateBoardPage />} />
-            <Route path="/auth/naver/callback" element={<NaverCallback />} />
-            <Route path="/auth/google/callback" element={<GoogleCallback />} />
-            <Route path="/auth/kakao/callback" element={<KakaoCallback />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+    <Provider store={store}>
+      <Router>
+        <div className="min-h-screen bg-gray-100">
+          <NavigationBar isLoggedIn={isLoggedIn} onLogout={handleLogout} />
+          <div className="container mx-auto px-4 py-8">
+            <Routes>
+              <Route path="/" element={<MainPage isLoggedIn={isLoggedIn} userRole={userRole} />} />
+              <Route path="/hospitals" element={<HospitalListPage />} />
+              <Route path="/hospitals/:id" element={<HospitalDetailPage />} />
+              <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+              <Route path="/admin/dashboard" element={<AdminRoute><DashboardPage /></AdminRoute>} />
+              <Route path="/admin/hospitals" element={<AdminRoute><HospitalManagementPage /></AdminRoute>} />
+              <Route path="/admin/categories" element={<AdminRoute><CategoryManagementPage /></AdminRoute>} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/logout" element={<LogoutPage />} />
+              <Route path="/guides/emergency" element={<EmergencyGuidePage />} />
+              <Route path="/guides/night-care" element={<NightCareGuidePage />} />
+              <Route path="/guides/weekend-care" element={<WeekendCareGuidePage />} />
+              <Route path="/guides/emergency-care" element={<EmergencyCarePage />} />
+              <Route path="/terms" element={<TermsAgreement />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/community" element={<CommunityPage />} />
+              <Route path="/community/category/:categoryId" element={<CommunityPage />} />
+              <Route path="/community/board/:id" element={<BoardDetail />} />
+              <Route path="/community/create" element={<CreateBoardPage />} />
+              <Route path="/community/edit/:id" element={<CreateBoardPage />} />
+              <Route path="/auth/naver/callback" element={<NaverCallback />} />
+              <Route path="/auth/google/callback" element={<GoogleCallback />} />
+              <Route path="/auth/kakao/callback" element={<KakaoCallback />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </div>
+          <Footer />
         </div>
-        <Footer />
-      </div>
-    </Router>
+      </Router>
+    </Provider>
   );
 }
 
