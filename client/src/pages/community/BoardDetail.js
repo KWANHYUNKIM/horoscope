@@ -22,6 +22,10 @@ const BoardDetail = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // 조회수 증가 API 호출
+        await axios.post(`http://localhost:3001/api/boards/${id}/view`, {}, { withCredentials: true });
+        
+        // 게시글, 댓글, 관련 게시글 데이터 가져오기
         const [boardResponse, commentsResponse, relatedBoardsResponse] = await Promise.all([
           axios.get(`http://localhost:3001/api/boards/${id}`, { withCredentials: true }),
           axios.get(`http://localhost:3001/api/boards/${id}/comments`, { withCredentials: true }),
@@ -39,7 +43,7 @@ const BoardDetail = () => {
     };
 
     fetchData();
-  }, [id, currentPage]);
+  }, [id]);
 
   const handleEditBoard = () => {
     navigate(`/community/edit/${id}`);
@@ -369,7 +373,8 @@ const BoardDetail = () => {
                 <h1 className="text-2xl font-bold text-gray-800 font-['Pretendard'] mb-2">{board.title}</h1>
                 <div className="flex items-center text-gray-600 text-xs">
                   <span className="mr-4">작성자: {board.username}</span>
-                  <span>작성일: {new Date(board.created_at).toLocaleString()}</span>
+                  <span className="mr-4">작성일: {new Date(board.created_at).toLocaleString()}</span>
+                  <span>조회: {board.view_count}</span>
                 </div>
               </div>
               {isLoggedIn && (board.user_id === userId || userRole === 'admin') && (
@@ -392,8 +397,8 @@ const BoardDetail = () => {
           </div>
 
           {/* 본문 내용 */}
-          <div className="prose max-w-none mb-8 border-b border-gray-100 pb-8">
-            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{board.content}</p>
+          <div className="mt-4">
+            <p className="text-sm text-gray-700 leading-relaxed" dangerouslySetInnerHTML={{ __html: board.content }}></p>
           </div>
 
           {/* 댓글 섹션 */}

@@ -143,14 +143,14 @@ const CommunityPage = () => {
                   <div className="flex items-center text-xs text-gray-600">
                     <span className="mr-3">작성자: {board.username}</span>
                     <span className="mr-3">작성일: {new Date(board.created_at).toLocaleString()}</span>
-                    <span>댓글: {board.comment_count}</span>
+                    <span className="mr-3">댓글: {board.comment_count}</span>
+                    <span>조회: {board.view_count}</span>
                   </div>
                 </div>
                 <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-medium">
                   {board.category_name}
                 </span>
               </div>
-              <p className="text-sm text-gray-600 line-clamp-2">{board.content}</p>
             </div>
           ))}
         </div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { Editor } from '@tinymce/tinymce-react';
 
 const CreateBoardPage = () => {
   const navigate = useNavigate();
@@ -12,12 +13,18 @@ const CreateBoardPage = () => {
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [loading, setLoading] = useState(true);
+  const [editorApiKey, setEditorApiKey] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const categoriesResponse = await axios.get('http://localhost:3001/api/boards/categories', { withCredentials: true });
+        const [categoriesResponse, configResponse] = await Promise.all([
+          axios.get('http://localhost:3001/api/boards/categories', { withCredentials: true }),
+          axios.get('http://localhost:3001/api/boards/config', { withCredentials: true })
+        ]);
+        
         setCategories(categoriesResponse.data);
+        setEditorApiKey(configResponse.data.EDITOR_API);
         
         if (id) {
           // 게시글 수정인 경우 기존 데이터 로드
@@ -82,14 +89,33 @@ const CreateBoardPage = () => {
     }
   };
 
+  const handleImageUpload = async (blobInfo) => {
+    const formData = new FormData();
+    formData.append('file', blobInfo.blob(), blobInfo.filename());
+    
+    try {
+      const response = await axios.post('http://localhost:3001/api/boards/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        withCredentials: true
+      });
+      return response.data.url;
+    } catch (error) {
+      console.error('이미지 업로드 실패:', error);
+      alert('이미지 업로드에 실패했습니다.');
+      return null;
+    }
+  };
+
   if (loading) {
     return <div className="text-center p-4">로딩 중...</div>;
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="max-w-4xl mx-auto px-4 py-6">
       <div className="bg-white rounded-lg shadow-md p-6">
-        <h1 className="text-2xl font-bold mb-6">{id ? '게시글 수정' : '새 게시글 작성'}</h1>
+        <h1 className="text-2xl font-bold text-gray-800 mb-6">게시글 작성</h1>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2">
@@ -128,14 +154,31 @@ const CreateBoardPage = () => {
             <label className="block text-gray-700 text-sm font-bold mb-2">
               내용
             </label>
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="w-full p-2 border rounded-lg"
-              rows="10"
-              placeholder="내용을 입력하세요"
-              required
-            />
+            {editorApiKey && (
+              <Editor
+                apiKey={editorApiKey}
+                value={content}
+                onEditorChange={(content) => setContent(content)}
+                init={{
+                  height: 500,
+                  menubar: false,
+                  plugins: [
+                    'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+                    'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+                    'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount'
+                  ],
+                  toolbar: 'undo redo | blocks | ' +
+                    'bold italic backcolor | alignleft aligncenter ' +
+                    'alignright alignjustify | bullist numlist outdent indent | ' +
+                    'removeformat | help',
+                  content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif; font-size: 14px; }',
+                  images_upload_handler: handleImageUpload,
+                  language: 'ko_KR',
+                  skin: 'oxide',
+                  content_css: 'default'
+                }}
+              />
+            )}
           </div>
 
           <div className="flex gap-2">

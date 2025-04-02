@@ -7,13 +7,10 @@ const initialState = {
 };
 
 const communityReducer = (state = initialState, action) => {
-  console.log('Reducer received action:', action.type, action.payload);
 
   switch (action.type) {
     case 'SET_BOARDS':
-      console.log('Setting boards with payload:', action.payload);
       const newBoards = Array.isArray(action.payload.boards) ? action.payload.boards : [];
-      console.log('Processed boards:', newBoards);
       
       return {
         ...state,
@@ -23,9 +20,7 @@ const communityReducer = (state = initialState, action) => {
         error: null
       };
     case 'SET_CATEGORIES':
-      console.log('Setting categories with payload:', action.payload);
       const newCategories = Array.isArray(action.payload) ? action.payload : [];
-      console.log('Processed categories:', newCategories);
       
       return {
         ...state,

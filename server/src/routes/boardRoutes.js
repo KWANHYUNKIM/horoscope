@@ -2,8 +2,75 @@ const express = require('express');
 const pool = require('../config/mysql');
 const { authenticateToken, isAdmin } = require('./authRoutes');      
 const adminAuth = require('../middleware/adminAuth');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
 const router = express.Router();
+
+// 이미지 업로드 설정
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = 'uploads';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir);
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB 제한
+  },
+  fileFilter: function (req, file, cb) {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('지원하지 않는 파일 형식입니다.'));
+    }
+  }
+});
+
+// 이미지 업로드 엔드포인트
+router.post('/upload', authenticateToken, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: '파일이 업로드되지 않았습니다.' });
+    }
+
+    const fileUrl = `/uploads/${req.file.filename}`;
+    res.json({ url: fileUrl });
+  } catch (error) {
+    console.error('이미지 업로드 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 설정 가져오기
+router.get('/config', async (req, res) => {
+  try {
+    const [configs] = await pool.query(
+      'SELECT key_name, value FROM hospital_server_configs WHERE is_active = 1'
+    );
+    
+    const config = {};
+    configs.forEach(item => {
+      config[item.key_name] = item.value;
+    });
+    
+    res.json(config);
+  } catch (error) {
+    console.error('설정 조회 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
 
 // 게시글 목록 조회
 router.get('/', async (req, res) => {
@@ -95,10 +162,28 @@ router.delete('/categories/:id', authenticateToken, isAdmin, async (req, res) =>
   }
 });
 
+// 게시글 조회수 증가
+router.post('/:id/view', async (req, res) => {
+  try {
+    await pool.query(
+      'UPDATE hospital_board SET view_count = view_count + 1 WHERE id = ?',
+      [req.params.id]
+    );
+    res.json({ message: '조회수가 증가되었습니다.' });
+  } catch (error) {
+    console.error('조회수 증가 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
 // 게시글 상세 조회
 router.get('/:id', async (req, res) => {
+  let connection;
   try {
-    const [board] = await pool.query(
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    const [board] = await connection.query(
       `SELECT 
         b.*,
         c.category_name,
@@ -112,20 +197,25 @@ router.get('/:id', async (req, res) => {
     );
 
     if (board.length === 0) {
+      await connection.rollback();
       return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
     }
 
-    const [details] = await pool.query(
+    const [details] = await connection.query(
       'SELECT content, additional_info FROM hospital_board_details WHERE board_id = ?',
       [req.params.id]
     );
 
+    await connection.commit();
     res.json({
       ...board[0],
       content: details[0]?.content || '',
       additional_info: details[0]?.additional_info || ''
     });
   } catch (error) {
+    if (connection) {
+      await connection.rollback();
+    }
     console.error('게시글 상세 조회 오류:', error);
     res.status(500).json({ message: '서버 오류가 발생했습니다.' });
   }

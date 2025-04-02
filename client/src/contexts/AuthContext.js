@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+
 import { api } from '../utils/api';
 
 const AuthContext = createContext(null);
@@ -7,17 +8,28 @@ export const AuthProvider = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState(null);
   const [userId, setUserId] = useState(null);
+  const [username, setUsername] = useState(null);
+  const [user, setUser] = useState(null);
+  const [userProfileImage, setUserProfileImage] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const updateAuthState = useCallback((user) => {
-    if (user) {
+  const updateAuthState = useCallback((userData) => {
+    console.log('Updating Auth State with:', userData);
+    if (userData) {
       setIsLoggedIn(true);
-      setUserRole(user.role);
-      setUserId(user.id);
+      setUserRole(userData.role);
+      setUserId(userData.id);
+      setUsername(userData.username);
+      setUserProfileImage(userData.profile_image);
+      setUser(userData);
+      console.log('Updated User State:', userData);
     } else {
       setIsLoggedIn(false);
       setUserRole(null);
       setUserId(null);
+      setUserProfileImage(null);
+      setUsername(null);
+      setUser(null);
     }
   }, []);
 
@@ -25,7 +37,9 @@ export const AuthProvider = ({ children }) => {
     const checkAuth = async () => {
       try {
         const response = await api.get('/api/auth/check-auth');
+        console.log('Auth Response:', response.data);
         if (response.data && response.data.user) {
+          console.log('User Data:', response.data.user);
           updateAuthState(response.data.user);
         } else {
           updateAuthState(null);
@@ -55,11 +69,17 @@ export const AuthProvider = ({ children }) => {
     isLoggedIn,
     userRole,
     userId,
+    username,
+    userProfileImage,
+    user,
     isLoading,
     setIsLoggedIn,
     setUserRole,
     setUserId,
-    handleLogout
+    setUsername,
+    setUserProfileImage,
+    setUser,
+    logout: handleLogout
   };
 
   if (isLoading) {

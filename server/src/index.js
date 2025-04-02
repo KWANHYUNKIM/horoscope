@@ -18,8 +18,16 @@ const { router: authRouter, authenticateToken, isAdmin } = require('./routes/aut
 const emailRouter = require('./routes/emailRoutes');
 const HospitalOrigin = require('./models/HospitalOrigin');
 const hospitalOriginRoutes = require('./routes/hospitalOriginRoutes');
+const path = require('path');
+const fs = require('fs');
 
 const app = express();
+
+// uploads 디렉토리 생성
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 // 기본 origin 추가 함수
 const addDefaultOrigins = async () => {
@@ -72,6 +80,9 @@ app.use(corsMiddleware);
 app.use(express.json());
 app.use(cookieParser()); // cookie-parser 미들웨어 추가
 
+// uploads 디렉토리를 정적 파일로 서빙
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 connectDB();
 
 // 기본 origin 추가
@@ -100,6 +111,13 @@ app.use('/api/hospitals/subjects', hospitalSubjectRoutes);
 app.use('/aip/chat', chatRouter);
 app.use('/api/boards', boardRoutes);
 app.use('/api/origins', hospitalOriginRoutes);
+
+// 등록된 라우트 목록 출력
+app._router.stack.forEach(function(r){
+    if (r.route && r.route.path){
+        console.log(`Registered Route: ${r.route.stack[0].method.toUpperCase()} ${r.route.path}`);
+    }
+});
 
 //app.use('/api/chat', chatRoutes);
 

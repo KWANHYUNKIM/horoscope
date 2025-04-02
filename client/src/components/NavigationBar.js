@@ -1,9 +1,26 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
-const NavigationBar = ({ onLogout }) => {
-  const { isLoggedIn, userRole } = useAuth();
+const NavigationBar = () => {
+  const { user, userProfileImage, logout } = useAuth();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  // 랜덤 색상 생성 함수
+  const getRandomColor = (username) => {
+    const colors = [
+      'bg-red-500', 'bg-pink-500', 'bg-purple-500', 'bg-indigo-500', 
+      'bg-blue-500', 'bg-cyan-500', 'bg-teal-500', 'bg-green-500',
+      'bg-yellow-500', 'bg-orange-500'
+    ];
+    const index = username.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
+    return colors[index];
+  };
+
+  // 사용자 이니셜 가져오기
+  const getInitials = (username) => {
+    return username ? username.charAt(0).toUpperCase() : '?';
+  };
 
   return (
     <nav className="bg-white shadow-lg">
@@ -28,29 +45,50 @@ const NavigationBar = ({ onLogout }) => {
               >
                 커뮤니티
               </Link>
-              {isLoggedIn && userRole === 'admin' && (
-                <Link
-                  to="/admin/dashboard"
-                  className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-                >
-                  관리자 페이지
-                </Link>
-              )}
             </div>
           </div>
           <div className="hidden sm:ml-6 sm:flex sm:items-center space-x-4">
-            {isLoggedIn ? (
-              <>
-                <span className="text-gray-700">
-                  {userRole === 'admin' ? '관리자' : '일반 사용자'}
-                </span>
+            {user ? (
+              <div className="relative">
                 <button
-                  onClick={onLogout}
-                  className="bg-red-500 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-red-600"
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="flex items-center space-x-3 focus:outline-none"
                 >
-                  로그아웃
+                  {userProfileImage ? (
+                    <img
+                      src={`http://localhost:3001${userProfileImage}`}
+                      alt="프로필"
+                      className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 hover:border-indigo-500 transition-colors duration-200"
+                    />
+                  ) : (
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold ${getRandomColor(user.username)}`}>
+                      {getInitials(user.username)}
+                    </div>
+                  )}
                 </button>
-              </>
+                
+                {isDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1">
+                    <Link
+                      to="/profile"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setIsDropdownOpen(false)}
+                    >
+                      프로필
+                    </Link>
+                    <button
+                      onClick={() => {
+                        logout();
+                        setIsDropdownOpen(false);
+                        window.location.reload();
+                      }}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      로그아웃
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               <Link
                 to="/login"

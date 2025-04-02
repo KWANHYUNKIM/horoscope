@@ -80,11 +80,10 @@ const LoginPage = () => {
         setSuccessMessage('로그인 성공!');
         
         setTimeout(() => {
-          if (response.data.user.role === 'admin') {
-            navigate('/admin/dashboard');
-          } else {
-            navigate('/');
-          }
+          window.location.href = '/';
+          setTimeout(() => {
+            window.location.reload();
+          }, 100);
         }, 1000);
       }
     } catch (error) {

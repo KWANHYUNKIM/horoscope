@@ -31,6 +31,8 @@ import NaverCallback from './components/NaverCallback';
 import KakaoCallback from "./components/KakaoCallback";
 import GoogleCallback from './components/GoogleCallback';
 import { AuthProvider } from './contexts/AuthContext';
+import ProfilePage from './pages/profile/ProfilePage';
+import EditBoardPage from './pages/community/EditBoardPage';
 
 const App = () => {
   const { isLoggedIn, userRole, handleLogout } = useAuth();
@@ -66,6 +68,9 @@ const App = () => {
               <Route path="/community/board/:id" element={<BoardDetail />} />
               <Route path="/community/create" element={<CreateBoardPage />} />
               <Route path="/community/edit/:id" element={<CreateBoardPage />} />
+              <Route path="/community/boards/:id" element={<BoardDetail />} />
+              <Route path="/community/boards/:id/edit" element={<EditBoardPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
               <Route path="/auth/naver/callback" element={<NaverCallback />} />
               <Route path="/auth/google/callback" element={<GoogleCallback />} />
               <Route path="/auth/kakao/callback" element={<KakaoCallback />} />

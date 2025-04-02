@@ -7,6 +7,40 @@ const User = require('../models/User');
 const axios = require('axios');
 const SocialConfig = require('../models/SocialConfig');
 const crypto = require('crypto');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+// uploads 폴더 생성 (서버 쪽)
+const uploadDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// multer 설정
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadDir)
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB 제한
+  },
+  fileFilter: function (req, file, cb) {
+    // 이미지 파일만 허용
+    if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {
+      return cb(new Error('이미지 파일만 업로드 가능합니다.'), false);
+    }
+    cb(null, true);
+  }
+});
 
 // JWT 시크릿 키 설정
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -118,15 +152,37 @@ router.get('/check-admin', authenticateToken, (req, res) => {
 });
 
 // 인증 상태 확인
-router.get('/check-auth', authenticateToken, (req, res) => {
-  console.log('Check auth user:', req.user); // 디버깅용 로그
-  res.json({ 
-    user: {
-      id: req.user.id,
-      username: req.user.username,
-      role: req.user.role
+router.get('/check-auth', authenticateToken, async (req, res) => {
+  try {
+    console.log('Check auth user:', req.user); // 디버깅용 로그
+    
+    // 사용자 정보 조회 (roles 테이블과 JOIN)
+    const [users] = await pool.query(
+      `SELECT u.id, u.username, u.profile_image, r.role_name as role 
+       FROM hospital_users u 
+       LEFT JOIN hospital_user_roles ur ON u.id = ur.user_id 
+       LEFT JOIN hospital_roles r ON ur.role_id = r.id 
+       WHERE u.id = ?`,
+      [req.user.id]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
     }
-  });
+
+    const user = users[0];
+    res.json({ 
+      user: {
+        id: user.id,
+        username: user.username,
+        role: user.role || 'user', // role이 없는 경우 기본값 'user' 설정
+        profile_image: user.profile_image
+      }
+    });
+  } catch (error) {
+    console.error('인증 상태 확인 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
 });
 
 // 회원가입
@@ -670,6 +726,116 @@ router.get('/social-config/naver', async (req, res) => {
     });
   } catch (error) {
     console.error('네이버 설정 조회 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 사용자 프로필 조회
+router.get('/users/:id', authenticateToken, async (req, res) => {
+  try {
+    const [users] = await pool.query(
+      'SELECT id, username, email, nickname, interests, profile_image FROM hospital_users WHERE id = ?',
+      [req.params.id]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
+    }
+
+    res.json(users[0]);
+  } catch (error) {
+    console.error('프로필 조회 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 프로필 업데이트
+router.put('/users/:id', authenticateToken, upload.single('profile_image'), async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id);
+    const { nickname, interests, current_password, new_password } = req.body;
+
+    // 현재 사용자 확인
+    if (req.user.id !== userId) {
+      return res.status(403).json({ message: '자신의 프로필만 수정할 수 있습니다.' });
+    }
+
+    // 비밀번호 변경이 있는 경우
+    if (new_password) {
+      // 현재 비밀번호 확인
+      const [users] = await pool.query(
+        'SELECT password FROM hospital_users WHERE id = ?',
+        [userId]
+      );
+
+      if (users.length === 0) {
+        return res.status(404).json({ message: '사용자를 찾을 수 없습니다.' });
+      }
+
+      const isValid = await bcrypt.compare(current_password, users[0].password);
+      if (!isValid) {
+        return res.status(400).json({ message: '현재 비밀번호가 일치하지 않습니다.' });
+      }
+
+      // 새 비밀번호 해시화
+      const hashedPassword = await bcrypt.hash(new_password, 10);
+      await pool.query(
+        'UPDATE hospital_users SET password = ? WHERE id = ?',
+        [hashedPassword, userId]
+      );
+    }
+
+    // 프로필 이미지 업데이트
+    let profileImagePath = null;
+    if (req.file) {
+      // 기존 프로필 이미지 조회
+      const [users] = await pool.query(
+        'SELECT profile_image FROM hospital_users WHERE id = ?',
+        [userId]
+      );
+
+      if (users.length > 0 && users[0].profile_image) {
+        // 기존 이미지 파일 삭제
+        const oldImagePath = path.join(__dirname, '../../client/public', users[0].profile_image);
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
+        }
+      }
+
+      // 새 이미지 저장
+      profileImagePath = `/uploads/${req.file.filename}`;
+    }
+
+    // 프로필 정보 업데이트
+    const updateFields = [];
+    const updateValues = [];
+
+    if (nickname) {
+      updateFields.push('nickname = ?');
+      updateValues.push(nickname);
+    }
+
+    if (interests) {
+      updateFields.push('interests = ?');
+      updateValues.push(interests);
+    }
+
+    if (profileImagePath) {
+      updateFields.push('profile_image = ?');
+      updateValues.push(profileImagePath);
+    }
+
+    if (updateFields.length > 0) {
+      updateValues.push(userId);
+      await pool.query(
+        `UPDATE hospital_users SET ${updateFields.join(', ')} WHERE id = ?`,
+        updateValues
+      );
+    }
+
+    res.json({ message: '프로필이 성공적으로 업데이트되었습니다.' });
+  } catch (error) {
+    console.error('프로필 업데이트 오류:', error);
     res.status(500).json({ message: '서버 오류가 발생했습니다.' });
   }
 });

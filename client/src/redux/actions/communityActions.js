@@ -6,12 +6,9 @@ export const getBoards = (categoryId = null, page = 1) => async (dispatch) => {
       ? `http://localhost:3001/api/boards/category/${categoryId}?page=${page}`
       : `http://localhost:3001/api/boards?page=${page}`;
     
-    console.log('Fetching boards from:', url);
     const response = await axios.get(url, { withCredentials: true });
-    console.log('Server response:', response.data);
     
     if (!response.data || !Array.isArray(response.data.boards)) {
-      console.error('Invalid response format:', response.data);
       throw new Error('Invalid response format');
     }
 
@@ -20,8 +17,7 @@ export const getBoards = (categoryId = null, page = 1) => async (dispatch) => {
       totalPages: response.data.totalPages || 1,
       currentPage: response.data.currentPage || 1
     };
-    console.log('Dispatching payload:', payload);
-
+    
     dispatch({
       type: 'SET_BOARDS',
       payload
@@ -45,12 +41,9 @@ export const getBoards = (categoryId = null, page = 1) => async (dispatch) => {
 
 export const getCategories = () => async (dispatch) => {
   try {
-    console.log('Fetching categories');
     const response = await axios.get('http://localhost:3001/api/boards/categories', { withCredentials: true });
-    console.log('Categories response:', response.data);
     
     if (!response.data || !Array.isArray(response.data)) {
-      console.error('Invalid categories format:', response.data);
       throw new Error('Invalid response format');
     }
 

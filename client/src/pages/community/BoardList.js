@@ -16,7 +16,7 @@ const BoardList = ({ boards }) => {
             <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">제목</th>
             <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">작성자</th>
             <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">작성일</th>
-            <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">좋아요</th>
+            <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">조회수</th>
             <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">댓글</th>
           </tr>
         </thead>
@@ -43,7 +43,7 @@ const BoardList = ({ boards }) => {
                 </div>
               </td>
               <td className="px-4 py-3 text-center">
-                <div className="text-sm text-gray-500">{board.likes || 0}</div>
+                <div className="text-sm text-gray-500">{board.view_count || 0}</div>
               </td>
               <td className="px-4 py-3 text-center">
                 <div className="text-sm text-gray-500">{board.comment_count || 0}</div>
