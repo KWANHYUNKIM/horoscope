@@ -23,6 +23,11 @@ const ProfilePage = () => {
   const [passwordMatch, setPasswordMatch] = useState(true);
   const [currentPasswordError, setCurrentPasswordError] = useState('');
 
+  const interests = [
+    '암', '심장병', '당뇨병', '고혈압', '관절염', '호흡기질환',
+    '소화기질환', '피부질환', '정신건강', '영양', '운동', '건강검진'
+  ];
+
   // 랜덤 색상 생성 함수
   const getRandomColor = (username) => {
     const colors = [
@@ -89,6 +94,21 @@ const ProfilePage = () => {
     }
   };
 
+  const handleInterestChange = (interest) => {
+    const currentInterests = Array.isArray(profile.interests) 
+      ? profile.interests 
+      : profile.interests ? JSON.parse(profile.interests) : [];
+
+    const newInterests = currentInterests.includes(interest)
+      ? currentInterests.filter(i => i !== interest)
+      : [...currentInterests, interest];
+
+    setProfile(prev => ({
+      ...prev,
+      interests: newInterests
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage('');
@@ -103,7 +123,12 @@ const ProfilePage = () => {
     try {
       const formData = new FormData();
       formData.append('nickname', profile.nickname);
-      formData.append('interests', profile.interests || '[]');
+      
+      // interests를 JSON 형식으로 변환
+      const interestsArray = Array.isArray(profile.interests) 
+        ? profile.interests 
+        : (profile.interests ? JSON.parse(profile.interests) : []);
+      formData.append('interests', JSON.stringify(interestsArray));
       
       if (profile.newPassword) {
         formData.append('current_password', profile.currentPassword);
@@ -233,14 +258,39 @@ const ProfilePage = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">관심사</label>
-              <textarea
-                name="interests"
-                value={profile.interests}
-                onChange={handleChange}
-                rows="3"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
+              <label className="block text-sm font-medium text-gray-700 mb-4">
+                관심사
+              </label>
+              <div className="mt-2 flex flex-wrap gap-3">
+                {interests.map((interest) => {
+                  const currentInterests = Array.isArray(profile.interests) 
+                    ? profile.interests 
+                    : profile.interests ? JSON.parse(profile.interests) : [];
+                  
+                  return (
+                    <button
+                      key={interest}
+                      type="button"
+                      onClick={() => handleInterestChange(interest)}
+                      className={`
+                        px-4 py-2 rounded-full text-sm font-medium
+                        transition-all duration-300 ease-in-out
+                        transform hover:-translate-y-1 hover:shadow-lg
+                        ${currentInterests.includes(interest)
+                          ? 'bg-indigo-500 text-white shadow-indigo-200'
+                          : 'bg-white text-gray-600 border-2 border-gray-200 hover:border-indigo-300'}
+                        cursor-pointer
+                        animate-float
+                      `}
+                      style={{
+                        animation: `float ${Math.random() * 2 + 2}s ease-in-out infinite`
+                      }}
+                    >
+                      {interest}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="border-t pt-6">
@@ -318,6 +368,23 @@ const ProfilePage = () => {
               />
             </div>
           )}
+
+          <style jsx>{`
+            @keyframes float {
+              0% {
+                transform: translateY(0px);
+              }
+              50% {
+                transform: translateY(-5px);
+              }
+              100% {
+                transform: translateY(0px);
+              }
+            }
+            .animate-float {
+              animation: float 3s ease-in-out infinite;
+            }
+          `}</style>
         </div>
       </div>
     </div>

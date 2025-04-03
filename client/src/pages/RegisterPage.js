@@ -458,23 +458,51 @@ const RegisterPage = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-700 mb-4">
                 관심사
               </label>
-              <div className="mt-2 grid grid-cols-2 gap-2">
+              <div className="mt-2 flex flex-wrap gap-3">
                 {interests.map((interest) => (
-                  <label key={interest} className="inline-flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={formData.interests.includes(interest)}
-                      onChange={() => handleInterestChange(interest)}
-                      className="form-checkbox h-4 w-4 text-indigo-600"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">{interest}</span>
-                  </label>
+                  <button
+                    key={interest}
+                    type="button"
+                    onClick={() => handleInterestChange(interest)}
+                    className={`
+                      px-4 py-2 rounded-full text-sm font-medium
+                      transition-all duration-300 ease-in-out
+                      transform hover:-translate-y-1 hover:shadow-lg
+                      ${formData.interests.includes(interest)
+                        ? 'bg-indigo-500 text-white shadow-indigo-200'
+                        : 'bg-white text-gray-600 border-2 border-gray-200 hover:border-indigo-300'}
+                      cursor-pointer
+                      animate-float
+                    `}
+                    style={{
+                      animation: `float ${Math.random() * 2 + 2}s ease-in-out infinite`
+                    }}
+                  >
+                    {interest}
+                  </button>
                 ))}
               </div>
             </div>
+
+            <style jsx>{`
+              @keyframes float {
+                0% {
+                  transform: translateY(0px);
+                }
+                50% {
+                  transform: translateY(-5px);
+                }
+                100% {
+                  transform: translateY(0px);
+                }
+              }
+              .animate-float {
+                animation: float 3s ease-in-out infinite;
+              }
+            `}</style>
 
             {error && (
               <div className="text-red-600 text-sm">

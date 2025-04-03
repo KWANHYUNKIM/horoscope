@@ -1,4 +1,4 @@
-//require('dotenv').config(); // 환경 변수 로드
+require('dotenv').config({ path: '.env.local' }); // .env.local 파일에서 환경 변수 로드
 const express = require('express');
 const connectDB = require('./config/mongoose'); // MongoDB 연결
 const hospitalRoutes = require('./routes/hospitalRoutes');
@@ -36,7 +36,7 @@ const addDefaultOrigins = async () => {
     if (origins.length === 0) {
       await HospitalOrigin.create({
         origin_url: 'http://localhost:3000',
-        environment: process.env.NODE_ENV || 'development',
+        environment: process.env.ENVIRONMENT,
         is_active: true,
         description: '기본 개발 환경 origin'
       });
@@ -52,7 +52,7 @@ const corsMiddleware = async (req, res, next) => {
   try {
     const origins = await HospitalOrigin.findAll({
       is_active: true,
-      environment: process.env.NODE_ENV || 'development'
+      environment: process.env.ENVIRONMENT
     });
     
     const allowedOrigins = origins.map(origin => origin.origin_url);
