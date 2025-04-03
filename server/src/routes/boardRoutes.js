@@ -78,9 +78,38 @@ router.get('/', async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = 10;
     const offset = (page - 1) * limit;
+    const categoryId = req.query.categoryId;
+
+    let whereClause = '';
+    let queryParams = [];
+
+    if (categoryId) {
+      // 선택된 카테고리의 모든 하위 카테고리 ID 조회
+      const [categories] = await pool.query(`
+        WITH RECURSIVE CategoryHierarchy AS (
+          SELECT id, parent_id
+          FROM hospital_board_categories
+          WHERE id = ?
+          UNION ALL
+          SELECT c.id, c.parent_id
+          FROM hospital_board_categories c
+          INNER JOIN CategoryHierarchy ch ON c.parent_id = ch.id
+        )
+        SELECT id FROM CategoryHierarchy
+      `, [categoryId]);
+
+      const categoryIds = categories.map(cat => cat.id);
+      categoryIds.push(categoryId); // 선택한 카테고리도 포함
+
+      whereClause = 'WHERE b.category_id IN (?)';
+      queryParams = [categoryIds];
+    }
 
     // 전체 게시글 수 조회
-    const [countResult] = await pool.query('SELECT COUNT(*) as total FROM hospital_board');
+    const [countResult] = await pool.query(
+      `SELECT COUNT(*) as total FROM hospital_board b ${whereClause}`,
+      queryParams
+    );
     const total = countResult[0].total;
     const totalPages = Math.ceil(total / limit);
 
@@ -88,17 +117,23 @@ router.get('/', async (req, res) => {
       SELECT 
         b.*,
         c.category_name,
+        c.category_type,
+        c.parent_id,
         u.username,
         u.nickname,
         (SELECT COUNT(*) FROM hospital_board_comments WHERE board_id = b.id) as comment_count
       FROM hospital_board b
       JOIN hospital_board_categories c ON b.category_id = c.id
       JOIN hospital_users u ON b.user_id = u.id
+      ${whereClause}
       ORDER BY b.created_at DESC
       LIMIT ? OFFSET ?
     `;
     
-    const [boards] = await pool.query(query, [limit, offset]);
+    const [boards] = await pool.query(
+      query, 
+      whereClause ? [...queryParams, limit, offset] : [limit, offset]
+    );
     
     // 각 게시글의 content와 additional_info 추가
     const boardsWithDetails = await Promise.all(boards.map(async (board) => {
@@ -116,7 +151,8 @@ router.get('/', async (req, res) => {
     res.json({
       boards: boardsWithDetails,
       totalPages,
-      currentPage: page
+      currentPage: page,
+      total
     });
   } catch (error) {
     console.error('게시글 목록 조회 오류:', error);
@@ -508,10 +544,27 @@ router.get('/category/:categoryId', async (req, res) => {
     const limit = 10;
     const offset = (page - 1) * limit;
 
+    // 선택된 카테고리의 모든 하위 카테고리 ID 조회
+    const [categories] = await pool.query(`
+      WITH RECURSIVE CategoryHierarchy AS (
+        SELECT id, parent_id
+        FROM hospital_board_categories
+        WHERE id = ?
+        UNION ALL
+        SELECT c.id, c.parent_id
+        FROM hospital_board_categories c
+        INNER JOIN CategoryHierarchy ch ON c.parent_id = ch.id
+      )
+      SELECT id FROM CategoryHierarchy
+    `, [categoryId]);
+
+    const categoryIds = categories.map(cat => cat.id);
+    categoryIds.push(categoryId); // 선택한 카테고리도 포함
+
     // 카테고리별 전체 게시글 수 조회
     const [countResult] = await pool.query(
-      'SELECT COUNT(*) as total FROM hospital_board WHERE category_id = ?',
-      [categoryId]
+      'SELECT COUNT(*) as total FROM hospital_board WHERE category_id IN (?)',
+      [categoryIds]
     );
     const total = countResult[0].total;
     const totalPages = Math.ceil(total / limit);
@@ -520,6 +573,8 @@ router.get('/category/:categoryId', async (req, res) => {
       SELECT 
         b.*,
         c.category_name,
+        c.category_type,
+        c.parent_id,
         c.allow_comments,
         c.is_secret_default,
         u.username,
@@ -528,12 +583,12 @@ router.get('/category/:categoryId', async (req, res) => {
       FROM hospital_board b
       JOIN hospital_board_categories c ON b.category_id = c.id
       JOIN hospital_users u ON b.user_id = u.id
-      WHERE b.category_id = ?
+      WHERE b.category_id IN (?)
       ORDER BY b.created_at DESC
       LIMIT ? OFFSET ?
     `;
     
-    const [boards] = await pool.query(query, [categoryId, limit, offset]);
+    const [boards] = await pool.query(query, [categoryIds, limit, offset]);
     
     // 각 게시글의 content와 additional_info 추가
     const boardsWithDetails = await Promise.all(boards.map(async (board) => {
@@ -551,7 +606,8 @@ router.get('/category/:categoryId', async (req, res) => {
     res.json({
       boards: boardsWithDetails,
       totalPages,
-      currentPage: page
+      currentPage: page,
+      total
     });
   } catch (error) {
     console.error('카테고리별 게시글 조회 오류:', error);
