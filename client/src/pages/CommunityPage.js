@@ -6,57 +6,35 @@ import CategoryTree from '../components/CategoryTree';
 const CommunityPage = () => {
   const navigate = useNavigate();
   const [posts, setPosts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [categoryId, setCategoryId] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
 
-  const selectedCategory = categories.find(cat => cat.id === categoryId);
-
+  // 게시글 로딩
   useEffect(() => {
-    fetchCategories();
-    fetchPosts();
-  }, [categoryId]);
-
-  const fetchCategories = async () => {
-    try {
-      const response = await api.get('/api/boards/categories');
-      setCategories(response.data);
-    } catch (error) {
-      console.error('카테고리 로딩 실패:', error);
-      setError('카테고리를 불러오는데 실패했습니다.');
-    }
-  };
-
-  const fetchPosts = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get('/api/boards', {
-        params: {
-          categoryId: categoryId
-        }
-      });
-      
-      // 서버 응답 구조에 맞게 데이터 설정
-      if (response.data && response.data.boards) {
-        setPosts(response.data.boards);
-        setTotalPages(response.data.totalPages || 1);
-        setCurrentPage(response.data.currentPage || 1);
-      } else {
-        setPosts([]);
-        setTotalPages(1);
-        setCurrentPage(1);
+    const loadPosts = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get('/api/boards', {
+          params: {
+            categoryId: selectedCategory,
+            page: currentPage
+          }
+        });
+        setPosts(response.data.posts);
+        setTotalPages(response.data.totalPages);
+        setLoading(false);
+      } catch (error) {
+        console.error('게시글 로딩 오류:', error);
+        setError('게시글을 불러오는데 실패했습니다.');
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('게시글 로딩 실패:', error);
-      setError('게시글을 불러오는데 실패했습니다.');
-      setPosts([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+    loadPosts();
+  }, [selectedCategory, currentPage]);
 
   const handleWriteClick = () => {
     navigate('/community/create');
@@ -64,8 +42,6 @@ const CommunityPage = () => {
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
-    // 페이지 변경 시 게시글 다시 불러오기
-    fetchPosts();
   };
 
   return (
@@ -74,9 +50,8 @@ const CommunityPage = () => {
         <div className="flex gap-6">
           {/* 카테고리 트리 */}
           <CategoryTree
-            categories={categories}
-            onSelectCategory={setCategoryId}
-            selectedCategoryId={categoryId}
+            onSelectCategory={setSelectedCategory}
+            selectedCategoryId={selectedCategory}
           />
 
           {/* 메인 컨텐츠 영역 */}
@@ -85,7 +60,7 @@ const CommunityPage = () => {
               <div className="border-b border-gray-100 pb-4 mb-6">
                 <div className="flex justify-between items-center mb-4">
                   <h1 className="text-2xl font-bold text-gray-800 font-['Pretendard']">
-                    {selectedCategory ? selectedCategory.category_name : '전체 게시글'}
+                    {selectedCategory ? '선택된 카테고리' : '전체 게시글'}
                   </h1>
                   <button 
                     onClick={handleWriteClick}

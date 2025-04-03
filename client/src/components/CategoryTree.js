@@ -1,137 +1,144 @@
-import React, { useState } from 'react';
-import { ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import React, { useState, useEffect } from 'react';
+import { api } from '../utils/api';
 
-const CategoryTree = ({ categories = [], onSelectCategory, selectedCategoryId }) => {
-  const [expandedCategories, setExpandedCategories] = useState({});
+const CategoryTree = ({ onSelectCategory, selectedCategoryId }) => {
+  const [categoryTypes, setCategoryTypes] = useState([]);
+  const [selectedCategories, setSelectedCategories] = useState([]);
+  const [currentCategories, setCurrentCategories] = useState([]);
+  const [loading, setLoading] = useState({
+    types: true,
+    categories: false
+  });
+  const [error, setError] = useState(null);
 
-  // 카테고리를 계층 구조로 변환
-  const buildCategoryTree = (categories) => {
-    const categoryMap = {};
-    const rootCategories = [];
-
-    // 먼저 모든 카테고리를 맵으로 변환
-    categories.forEach(category => {
-      categoryMap[category.id] = {
-        ...category,
-        children: []
-      };
-    });
-
-    // 부모-자식 관계 설정
-    categories.forEach(category => {
-      if (category.parent_id) {
-        const parent = categoryMap[category.parent_id];
-        if (parent) {
-          parent.children.push(categoryMap[category.id]);
-        }
-      } else {
-        rootCategories.push(categoryMap[category.id]);
+  // 카테고리 타입 로딩
+  useEffect(() => {
+    const loadCategoryTypes = async () => {
+      try {
+        setLoading(prev => ({ ...prev, types: true }));
+        const response = await api.get('/api/boards/category-types');
+        setCategoryTypes(response.data);
+        setLoading(prev => ({ ...prev, types: false }));
+      } catch (error) {
+        console.error('카테고리 타입 로딩 오류:', error);
+        setError('카테고리 타입을 불러오는데 실패했습니다.');
+        setLoading(prev => ({ ...prev, types: false }));
       }
-    });
+    };
 
-    return rootCategories;
+    loadCategoryTypes();
+  }, []);
+
+  // 현재 선택된 카테고리의 하위 카테고리 로딩
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        setLoading(prev => ({ ...prev, categories: true }));
+        const lastSelected = selectedCategories[selectedCategories.length - 1];
+        
+        // 현재 선택된 카테고리의 타입을 확인
+        let nextTypeId = null;
+        if (!lastSelected) {
+          // 첫 번째 단계: 지역 카테고리
+          nextTypeId = categoryTypes.find(type => type.type_code === 'REGION')?.id;
+        } else {
+          // 현재 카테고리의 타입에 따라 다음 타입 결정
+          const currentType = categoryTypes.find(type => type.id === lastSelected.category_type_id);
+          if (currentType?.type_code === 'REGION' && !lastSelected.parent_id) {
+            // 최상위 지역 선택 후: 같은 지역 타입의 하위 카테고리 (구/시/군)
+            nextTypeId = currentType.id;
+          } else if (currentType?.type_code === 'REGION' && lastSelected.parent_id) {
+            // 구/시/군 선택 후: 병원 종류
+            nextTypeId = categoryTypes.find(type => type.type_code === 'HOSPITAL_TYPE')?.id;
+          } else if (currentType?.type_code === 'HOSPITAL_TYPE') {
+            // 병원 종류 선택 후: 진료과
+            nextTypeId = categoryTypes.find(type => type.type_code === 'DEPARTMENT')?.id;
+          }
+        }
+
+        const response = await api.get('/api/boards/categories', {
+          params: { 
+            parent_id: lastSelected?.id || null,
+            type: nextTypeId
+          }
+        });
+        setCurrentCategories(response.data);
+        setLoading(prev => ({ ...prev, categories: false }));
+      } catch (error) {
+        console.error('카테고리 로딩 오류:', error);
+        setError('카테고리를 불러오는데 실패했습니다.');
+        setLoading(prev => ({ ...prev, categories: false }));
+      }
+    };
+
+    loadCategories();
+  }, [selectedCategories, categoryTypes]);
+
+  const handleCategorySelect = (category) => {
+    const newSelectedCategories = [...selectedCategories, category];
+    setSelectedCategories(newSelectedCategories);
+    onSelectCategory(category.id);
   };
 
-  // 일반 게시판 카테고리와 계층형 카테고리 분리
-  const boardCategories = categories.filter(cat => cat.category_type === 'board');
-  const hierarchicalCategories = buildCategoryTree(
-    categories.filter(cat => cat.category_type !== 'board')
-  );
-
-  const toggleExpand = (e, categoryId) => {
-    e.stopPropagation(); // 이벤트 버블링 방지
-    setExpandedCategories(prev => ({
-      ...prev,
-      [categoryId]: !prev[categoryId]
-    }));
+  const handleBack = () => {
+    const newSelectedCategories = selectedCategories.slice(0, -1);
+    setSelectedCategories(newSelectedCategories);
+    if (newSelectedCategories.length > 0) {
+      onSelectCategory(newSelectedCategories[newSelectedCategories.length - 1].id);
+    } else {
+      onSelectCategory(null);
+    }
   };
 
-  const renderCategoryNode = (category) => {
-    const isExpanded = expandedCategories[category.id];
-    const hasChildren = category.children && category.children.length > 0;
-
-    return (
-      <div key={category.id} className="ml-2">
-        <div 
-          className={`flex items-center py-2 cursor-pointer hover:bg-gray-50 rounded-md ${
-            selectedCategoryId === category.id ? 'bg-blue-50' : ''
-          }`}
-          onClick={() => onSelectCategory(category.id)}
-        >
-          {hasChildren ? (
-            <button
-              onClick={(e) => toggleExpand(e, category.id)}
-              className="p-1 hover:bg-gray-200 rounded-md mr-1"
-            >
-              {isExpanded ? (
-                <ChevronDownIcon className="h-4 w-4" />
-              ) : (
-                <ChevronRightIcon className="h-4 w-4" />
-              )}
-            </button>
-          ) : (
-            <div className="w-6" />
-          )}
-          <div
-            className={`flex-1 px-2 py-1 rounded-md ${
-              selectedCategoryId === category.id
-                ? 'text-blue-600 font-medium'
-                : 'text-gray-700'
-            }`}
-          >
-            {category.category_name}
-          </div>
-        </div>
-        {hasChildren && isExpanded && (
-          <div className="ml-4 border-l border-gray-200">
-            {category.children.map(child => renderCategoryNode(child))}
-          </div>
-        )}
-      </div>
-    );
-  };
+  if (loading.types) return <div className="p-4">카테고리 타입을 불러오는 중...</div>;
+  if (error) return <div className="p-4 text-red-600">{error}</div>;
 
   return (
-    <div className="w-64 bg-white rounded-lg shadow-md p-4 h-[calc(100vh-200px)] overflow-y-auto">
-      <h2 className="text-lg font-bold mb-4 text-gray-800">카테고리</h2>
-      
-      {/* 전체 게시글 버튼 */}
-      <div
-        onClick={() => onSelectCategory(null)}
-        className={`px-4 py-2 cursor-pointer rounded-md mb-4 ${
-          !selectedCategoryId
-            ? 'bg-blue-50 text-blue-600 font-medium'
-            : 'text-gray-700 hover:bg-gray-50'
-        }`}
-      >
-        전체 게시글
-      </div>
-
-      {/* 일반 게시판 카테고리 */}
-      <div className="mb-4">
-        <h3 className="text-sm font-medium text-gray-500 mb-2">게시판</h3>
-        {boardCategories.map(category => (
-          <div
-            key={category.id}
-            onClick={() => onSelectCategory(category.id)}
-            className={`px-4 py-2 cursor-pointer rounded-md ${
-              selectedCategoryId === category.id
-                ? 'bg-blue-50 text-blue-600 font-medium'
-                : 'text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            {category.category_name}
+    <div className="w-64 bg-white rounded-lg shadow-md p-4">
+      <h2 className="text-lg font-semibold mb-4">카테고리</h2>
+      <div className="space-y-4">
+        {/* 선택된 카테고리 경로 표시 */}
+        {selectedCategories.length > 0 && (
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium text-gray-700">
+                {selectedCategories.map((cat, index) => (
+                  <span key={cat.id}>
+                    {index > 0 && ' > '}
+                    {cat.category_name}
+                  </span>
+                ))}
+              </h3>
+              <button
+                onClick={handleBack}
+                className="text-xs text-blue-600 hover:text-blue-800"
+              >
+                뒤로
+              </button>
+            </div>
           </div>
-        ))}
-      </div>
+        )}
 
-      {/* 구분선 */}
-      <div className="border-t border-gray-200 my-4"></div>
-
-      {/* 계층형 카테고리 */}
-      <div>
-        <h3 className="text-sm font-medium text-gray-500 mb-2">지역/병원</h3>
-        {hierarchicalCategories.map(category => renderCategoryNode(category))}
+        {/* 현재 카테고리 목록 */}
+        <div className="space-y-1">
+          {loading.categories ? (
+            <div className="text-sm text-gray-500">로딩 중...</div>
+          ) : (
+            currentCategories.map(category => (
+              <button
+                key={category.id}
+                onClick={() => handleCategorySelect(category)}
+                className={`w-full text-left px-3 py-1.5 text-sm rounded-md transition-colors ${
+                  selectedCategoryId === category.id
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                {category.category_name}
+              </button>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );

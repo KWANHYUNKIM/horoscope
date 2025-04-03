@@ -33,6 +33,7 @@ import GoogleCallback from './components/GoogleCallback';
 import { AuthProvider } from './contexts/AuthContext';
 import ProfilePage from './pages/profile/ProfilePage';
 import EditBoardPage from './pages/community/EditBoardPage';
+import CategoryTypeManagementPage from './pages/admin/CategoryTypeManagementPage';
 
 const App = () => {
   const { isLoggedIn, userRole, handleLogout } = useAuth();
@@ -55,6 +56,7 @@ const App = () => {
               <Route path="/admin/dashboard" element={<AdminRoute><DashboardPage /></AdminRoute>} />
               <Route path="/admin/hospitals" element={<AdminRoute><HospitalManagementPage /></AdminRoute>} />
               <Route path="/admin/categories" element={<AdminRoute><CategoryManagementPage /></AdminRoute>} />
+              <Route path="/admin/category-types" element={<AdminRoute><CategoryTypeManagementPage /></AdminRoute>} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/logout" element={<LogoutPage />} />
               <Route path="/guides/emergency" element={<EmergencyGuidePage />} />

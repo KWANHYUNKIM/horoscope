@@ -57,6 +57,13 @@ const DashboardPage = () => {
       color: 'bg-green-500'
     },
     {
+      title: '타입 설정',
+      description: '카테고리 타입을 관리합니다.',
+      icon: '📝',
+      path: '/admin/category-types',
+      color: 'bg-yellow-500'
+    },
+    {
       title: 'CORS 관리',
       description: 'CORS 설정을 관리합니다.',
       icon: '🔒',

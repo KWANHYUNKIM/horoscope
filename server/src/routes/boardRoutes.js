@@ -72,52 +72,97 @@ router.get('/config', async (req, res) => {
   }
 });
 
+// 카테고리 타입 조회
+router.get('/category-types', async (req, res) => {
+  try {
+    const [types] = await pool.query(
+      'SELECT * FROM hospital_board_category_types WHERE is_active = 1 ORDER BY order_sequence'
+    );
+    res.json(types);
+  } catch (error) {
+    console.error('카테고리 타입 조회 오류:', error);
+    res.status(500).json({ error: '카테고리 타입을 불러오는데 실패했습니다.' });
+  }
+});
+
+// 카테고리 타입 생성
+router.post('/category-types', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const { type_name, type_code, description, order_sequence, is_active } = req.body;
+    
+    const [result] = await pool.query(
+      'INSERT INTO hospital_board_category_types (type_name, type_code, description, order_sequence, is_active) VALUES (?, ?, ?, ?, ?)',
+      [type_name, type_code, description, order_sequence, is_active]
+    );
+    
+    res.status(201).json({ 
+      id: result.insertId,
+      message: '카테고리 타입이 생성되었습니다.' 
+    });
+  } catch (error) {
+    console.error('카테고리 타입 생성 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 카테고리 타입 수정
+router.put('/category-types/:id', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { type_name, type_code, description, order_sequence, is_active } = req.body;
+    
+    await pool.query(
+      'UPDATE hospital_board_category_types SET type_name = ?, type_code = ?, description = ?, order_sequence = ?, is_active = ? WHERE id = ?',
+      [type_name, type_code, description, order_sequence, is_active, id]
+    );
+    
+    res.json({ message: '카테고리 타입이 수정되었습니다.' });
+  } catch (error) {
+    console.error('카테고리 타입 수정 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 카테고리 타입 삭제
+router.delete('/category-types/:id', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // 해당 타입을 사용하는 카테고리가 있는지 확인
+    const [categories] = await pool.query(
+      'SELECT COUNT(*) as count FROM hospital_board_categories WHERE category_type_id = ?',
+      [id]
+    );
+    
+    if (categories[0].count > 0) {
+      return res.status(400).json({ 
+        message: '해당 타입을 사용하는 카테고리가 존재합니다. 먼저 카테고리를 삭제하거나 다른 타입으로 변경해주세요.' 
+      });
+    }
+    
+    await pool.query(
+      'DELETE FROM hospital_board_category_types WHERE id = ?',
+      [id]
+    );
+    
+    res.json({ message: '카테고리 타입이 삭제되었습니다.' });
+  } catch (error) {
+    console.error('카테고리 타입 삭제 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
 // 게시글 목록 조회
 router.get('/', async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = 10;
+    const { page = 1, limit = 10, categoryId } = req.query;
     const offset = (page - 1) * limit;
-    const categoryId = req.query.categoryId;
 
-    let whereClause = '';
-    let queryParams = [];
-
-    if (categoryId) {
-      // 선택된 카테고리의 모든 하위 카테고리 ID 조회
-      const [categories] = await pool.query(`
-        WITH RECURSIVE CategoryHierarchy AS (
-          SELECT id, parent_id
-          FROM hospital_board_categories
-          WHERE id = ?
-          UNION ALL
-          SELECT c.id, c.parent_id
-          FROM hospital_board_categories c
-          INNER JOIN CategoryHierarchy ch ON c.parent_id = ch.id
-        )
-        SELECT id FROM CategoryHierarchy
-      `, [categoryId]);
-
-      const categoryIds = categories.map(cat => cat.id);
-      categoryIds.push(categoryId); // 선택한 카테고리도 포함
-
-      whereClause = 'WHERE b.category_id IN (?)';
-      queryParams = [categoryIds];
-    }
-
-    // 전체 게시글 수 조회
-    const [countResult] = await pool.query(
-      `SELECT COUNT(*) as total FROM hospital_board b ${whereClause}`,
-      queryParams
-    );
-    const total = countResult[0].total;
-    const totalPages = Math.ceil(total / limit);
-
-    const query = `
+    let query = `
       SELECT 
         b.*,
         c.category_name,
-        c.category_type,
+        c.category_type_id,
         c.parent_id,
         u.username,
         u.nickname,
@@ -125,61 +170,112 @@ router.get('/', async (req, res) => {
       FROM hospital_board b
       JOIN hospital_board_categories c ON b.category_id = c.id
       JOIN hospital_users u ON b.user_id = u.id
-      ${whereClause}
-      ORDER BY b.created_at DESC
-      LIMIT ? OFFSET ?
     `;
-    
-    const [boards] = await pool.query(
-      query, 
-      whereClause ? [...queryParams, limit, offset] : [limit, offset]
-    );
-    
-    // 각 게시글의 content와 additional_info 추가
-    const boardsWithDetails = await Promise.all(boards.map(async (board) => {
-      const [details] = await pool.query(
-        'SELECT content, additional_info FROM hospital_board_details WHERE board_id = ?',
-        [board.id]
-      );
-      return {
-        ...board,
-        content: details[0]?.content || '',
-        additional_info: details[0]?.additional_info || ''
-      };
-    }));
 
+    if (categoryId) {
+      query += ` WHERE b.category_id = ?`;
+    }
+
+    query += ` ORDER BY b.created_at DESC LIMIT ? OFFSET ?`;
+
+    const [posts] = await pool.query(query, categoryId ? [categoryId, parseInt(limit), parseInt(offset)] : [parseInt(limit), parseInt(offset)]);
+    const [total] = await pool.query('SELECT COUNT(*) as total FROM hospital_board' + (categoryId ? ' WHERE category_id = ?' : ''), categoryId ? [categoryId] : []);
+    
     res.json({
-      boards: boardsWithDetails,
-      totalPages,
-      currentPage: page,
-      total
+      posts,
+      totalPages: Math.ceil(total[0].total / limit),
+      currentPage: parseInt(page)
     });
   } catch (error) {
     console.error('게시글 목록 조회 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ message: '게시글 목록을 불러오는데 실패했습니다.' });
   }
 });
 
-// 카테고리 목록 조회
+// 카테고리 조회
 router.get('/categories', async (req, res) => {
   try {
-    const [categories] = await pool.query('SELECT * FROM hospital_board_categories ORDER BY category_name');
+    const { type, parent_id } = req.query;
+    let query = `
+      SELECT c.* FROM hospital_board_categories c
+      WHERE c.is_active = 1
+    `;
+    const params = [];
+
+    if (type) {
+      query += ' AND c.category_type_id = ?';
+      params.push(type);
+    }
+
+    if (parent_id) {
+      query += ' AND c.parent_id = ?';
+      params.push(parent_id);
+    } else {
+      query += ' AND c.parent_id IS NULL';
+    }
+
+    query += ' ORDER BY c.order_sequence';
+
+    const [categories] = await pool.query(query, params);
     res.json(categories);
   } catch (error) {
-    console.error('카테고리 목록 조회 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    console.error('카테고리 조회 오류:', error);
+    res.status(500).json({ error: '카테고리를 불러오는데 실패했습니다.' });
   }
 });
 
 // 카테고리 생성 (관리자 전용)
 router.post('/categories', authenticateToken, isAdmin, async (req, res) => {
   try {
-    const { category_name, description, allow_comments, is_secret_default } = req.body;
-    const [result] = await pool.query(
-      'INSERT INTO hospital_board_categories (category_name, description, allow_comments, is_secret_default) VALUES (?, ?, ?, ?)',
-      [category_name, description, allow_comments, is_secret_default]
-    );
-    res.status(201).json({ id: result.insertId, message: '카테고리가 생성되었습니다.' });
+    const { category_name, description, allow_comments, is_secret_default, parent_id, category_type_id } = req.body;
+    
+    // 트랜잭션 시작
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
+    
+    try {
+      let parentPath = '/';
+      if (parent_id) {
+        // 부모 카테고리의 path 조회
+        const [parentCategory] = await connection.query(
+          'SELECT path FROM hospital_board_categories WHERE id = ?',
+          [parent_id]
+        );
+        if (parentCategory.length === 0) {
+          throw new Error('부모 카테고리를 찾을 수 없습니다.');
+        }
+        parentPath = parentCategory[0].path;
+      }
+
+      // 같은 부모를 가진 카테고리 중 가장 큰 order_sequence 값 조회
+      const [maxOrderResult] = await connection.query(
+        'SELECT MAX(order_sequence) as max_order FROM hospital_board_categories WHERE parent_id = ?',
+        [parent_id]
+      );
+      
+      const newOrderSequence = (maxOrderResult[0].max_order || 0) + 1;
+      
+      // 카테고리 생성
+      const [result] = await connection.query(
+        'INSERT INTO hospital_board_categories (category_name, description, allow_comments, is_secret_default, parent_id, category_type_id, order_sequence) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [category_name, description, allow_comments, is_secret_default, parent_id, category_type_id, newOrderSequence]
+      );
+
+      // 생성된 카테고리의 path 설정
+      const newPath = `${parentPath}${result.insertId}/`;
+      await connection.query(
+        'UPDATE hospital_board_categories SET path = ? WHERE id = ?',
+        [newPath, result.insertId]
+      );
+      
+      await connection.commit();
+      res.status(201).json({ id: result.insertId, message: '카테고리가 생성되었습니다.' });
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
   } catch (error) {
     console.error('카테고리 생성 오류:', error);
     res.status(500).json({ message: '서버 오류가 발생했습니다.' });
@@ -573,7 +669,7 @@ router.get('/category/:categoryId', async (req, res) => {
       SELECT 
         b.*,
         c.category_name,
-        c.category_type,
+        c.category_type_id,
         c.parent_id,
         c.allow_comments,
         c.is_secret_default,
@@ -677,6 +773,173 @@ router.get('/related/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('관련 게시글 조회 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 카테고리 수정 (관리자 전용)
+router.put('/categories/:id', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { category_name, description, allow_comments, is_secret_default, parent_id } = req.body;
+    
+    // 자기 자신을 부모로 선택할 수 없도록 검증
+    if (parent_id === parseInt(id)) {
+      return res.status(400).json({ message: '자기 자신을 부모로 선택할 수 없습니다.' });
+    }
+    
+    // 부모 카테고리가 존재하는지 확인
+    if (parent_id) {
+      const [parentCategory] = await pool.query(
+        'SELECT id FROM hospital_board_categories WHERE id = ?',
+        [parent_id]
+      );
+      
+      if (parentCategory.length === 0) {
+        return res.status(404).json({ message: '부모 카테고리를 찾을 수 없습니다.' });
+      }
+      
+      // 순환 참조 방지: 부모의 부모가 현재 카테고리인지 확인
+      const [parentParent] = await pool.query(
+        'SELECT parent_id FROM hospital_board_categories WHERE id = ?',
+        [parent_id]
+      );
+      
+      if (parentParent.length > 0 && parentParent[0].parent_id === parseInt(id)) {
+        return res.status(400).json({ message: '순환 참조를 방지하기 위해 이 작업을 수행할 수 없습니다.' });
+      }
+    }
+    
+    await pool.query(
+      'UPDATE hospital_board_categories SET category_name = ?, description = ?, allow_comments = ?, is_secret_default = ?, parent_id = ? WHERE id = ?',
+      [category_name, description, allow_comments, is_secret_default, parent_id, id]
+    );
+    
+    res.json({ message: '카테고리가 수정되었습니다.' });
+  } catch (error) {
+    console.error('카테고리 수정 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 카테고리 위로 이동 (관리자 전용)
+router.put('/categories/:id/move-up', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // 현재 카테고리 정보 조회
+    const [currentCategory] = await pool.query(
+      'SELECT id, parent_id, path FROM hospital_board_categories WHERE id = ?',
+      [id]
+    );
+    
+    if (currentCategory.length === 0) {
+      return res.status(404).json({ message: '카테고리를 찾을 수 없습니다.' });
+    }
+    
+    // 같은 부모를 가진 카테고리 목록 조회 (현재 카테고리 포함)
+    const [siblings] = await pool.query(
+      'SELECT id, order_sequence FROM hospital_board_categories WHERE parent_id = ? ORDER BY order_sequence',
+      [currentCategory[0].parent_id]
+    );
+    
+    // 현재 카테고리의 인덱스 찾기
+    const currentIndex = siblings.findIndex(cat => cat.id === parseInt(id));
+    
+    // 현재 카테고리가 목록에 없거나 이미 최상위에 있으면 이동 불가
+    if (currentIndex === -1 || currentIndex === 0) {
+      return res.status(400).json({ message: '이미 최상위에 있습니다.' });
+    }
+    
+    // 이전 카테고리와 order_sequence 교환
+    const prevCategory = siblings[currentIndex - 1];
+    
+    // 트랜잭션 시작
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
+    
+    try {
+      await connection.query(
+        'UPDATE hospital_board_categories SET order_sequence = ? WHERE id = ?',
+        [prevCategory.order_sequence, id]
+      );
+      
+      await connection.query(
+        'UPDATE hospital_board_categories SET order_sequence = ? WHERE id = ?',
+        [siblings[currentIndex].order_sequence, prevCategory.id]
+      );
+      
+      await connection.commit();
+      res.json({ message: '카테고리가 위로 이동되었습니다.' });
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    console.error('카테고리 이동 오류:', error);
+    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 카테고리 아래로 이동 (관리자 전용)
+router.put('/categories/:id/move-down', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // 현재 카테고리 정보 조회
+    const [currentCategory] = await pool.query(
+      'SELECT id, parent_id, path FROM hospital_board_categories WHERE id = ?',
+      [id]
+    );
+    
+    if (currentCategory.length === 0) {
+      return res.status(404).json({ message: '카테고리를 찾을 수 없습니다.' });
+    }
+    
+    // 같은 부모를 가진 카테고리 목록 조회 (현재 카테고리 포함)
+    const [siblings] = await pool.query(
+      'SELECT id, order_sequence FROM hospital_board_categories WHERE parent_id = ? ORDER BY order_sequence',
+      [currentCategory[0].parent_id]
+    );
+    
+    // 현재 카테고리의 인덱스 찾기
+    const currentIndex = siblings.findIndex(cat => cat.id === parseInt(id));
+    
+    // 현재 카테고리가 목록에 없거나 이미 최하위에 있으면 이동 불가
+    if (currentIndex === -1 || currentIndex === siblings.length - 1) {
+      return res.status(400).json({ message: '이미 최하위에 있습니다.' });
+    }
+    
+    // 다음 카테고리와 order_sequence 교환
+    const nextCategory = siblings[currentIndex + 1];
+    
+    // 트랜잭션 시작
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
+    
+    try {
+      await connection.query(
+        'UPDATE hospital_board_categories SET order_sequence = ? WHERE id = ?',
+        [nextCategory.order_sequence, id]
+      );
+      
+      await connection.query(
+        'UPDATE hospital_board_categories SET order_sequence = ? WHERE id = ?',
+        [siblings[currentIndex].order_sequence, nextCategory.id]
+      );
+      
+      await connection.commit();
+      res.json({ message: '카테고리가 아래로 이동되었습니다.' });
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    console.error('카테고리 이동 오류:', error);
     res.status(500).json({ message: '서버 오류가 발생했습니다.' });
   }
 });
