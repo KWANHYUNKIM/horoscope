@@ -399,7 +399,7 @@ router.get('/', async (req, res) => {
         c.category_name,
         c.category_type_id,
         c.parent_id,
-        u.username,
+        u.username as author_name,
         u.nickname,
         (SELECT COUNT(*) FROM hospital_board_comments WHERE board_id = b.id) as comment_count
       FROM hospital_board b
