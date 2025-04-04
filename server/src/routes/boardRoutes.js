@@ -8,6 +8,69 @@ const fs = require('fs');
 
 const router = express.Router();
 
+// 카테고리 조회
+router.get('/categories', async (req, res) => {
+  try {
+    const { parent_id, type_id } = req.query;
+    let query = `
+      SELECT c.*, 
+             ct.type_name, 
+             ct.type_code,
+             (SELECT COUNT(*) FROM hospital_board_categories WHERE parent_id = c.id) as has_children
+      FROM hospital_board_categories c
+      JOIN hospital_board_category_types ct ON c.category_type_id = ct.id
+      WHERE c.is_active = 1
+    `;
+    
+    const params = [];
+    
+    if (parent_id) {
+      query += ' AND c.parent_id = ?';
+      params.push(parent_id);
+    } else {
+      query += ' AND c.parent_id IS NULL';
+    }
+    
+    if (type_id) {
+      query += ' AND c.category_type_id = ?';
+      params.push(type_id);
+    }
+    
+    query += ' ORDER BY c.order_sequence';
+    
+    const [categories] = await pool.query(query, params);
+    res.json(categories);
+  } catch (error) {
+    console.error('카테고리 조회 오류:', error);
+    res.status(500).json({ error: '카테고리를 불러오는데 실패했습니다.' });
+  }
+});
+
+// 카테고리 상세 조회
+router.get('/categories/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [categories] = await pool.query(`
+      SELECT c.*, 
+             ct.type_name, 
+             ct.type_code,
+             (SELECT COUNT(*) FROM hospital_board_categories WHERE parent_id = c.id) as has_children
+      FROM hospital_board_categories c
+      JOIN hospital_board_category_types ct ON c.category_type_id = ct.id
+      WHERE c.id = ? AND c.is_active = 1
+    `, [id]);
+
+    if (categories.length === 0) {
+      return res.status(404).json({ error: '카테고리를 찾을 수 없습니다.' });
+    }
+
+    res.json(categories[0]);
+  } catch (error) {
+    console.error('카테고리 상세 조회 오류:', error);
+    res.status(500).json({ error: '카테고리를 불러오는데 실패했습니다.' });
+  }
+});
+
 // 이미지 업로드 설정
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -53,22 +116,15 @@ router.post('/upload', authenticateToken, upload.single('file'), async (req, res
   }
 });
 
-// 설정 가져오기
+// 게시판 설정 조회
 router.get('/config', async (req, res) => {
   try {
-    const [configs] = await pool.query(
-      'SELECT key_name, value FROM hospital_server_configs WHERE is_active = 1'
-    );
-    
-    const config = {};
-    configs.forEach(item => {
-      config[item.key_name] = item.value;
+    res.json({
+      EDITOR_API: process.env.EDITOR_API_KEY
     });
-    
-    res.json(config);
   } catch (error) {
     console.error('설정 조회 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    res.status(500).json({ error: '설정을 불러오는데 실패했습니다.' });
   }
 });
 
@@ -82,6 +138,185 @@ router.get('/category-types', async (req, res) => {
   } catch (error) {
     console.error('카테고리 타입 조회 오류:', error);
     res.status(500).json({ error: '카테고리 타입을 불러오는데 실패했습니다.' });
+  }
+});
+
+// 메타 필드 조회
+router.get('/meta-fields/:categoryTypeId', async (req, res) => {
+  try {
+    const { categoryTypeId } = req.params;
+    const [fields] = await pool.query(
+      'SELECT * FROM hospital_board_meta_fields WHERE category_type_id = ? ORDER BY order_sequence',
+      [categoryTypeId]
+    );
+    res.json(fields);
+  } catch (error) {
+    console.error('메타 필드 조회 오류:', error);
+    res.status(500).json({ error: '메타 필드를 불러오는데 실패했습니다.' });
+  }
+});
+
+// 태그 조회
+router.get('/tags', async (req, res) => {
+  try {
+    const [tags] = await pool.query('SELECT * FROM hospital_board_tags');
+    res.json(tags);
+  } catch (error) {
+    console.error('태그 조회 오류:', error);
+    res.status(500).json({ error: '태그를 불러오는데 실패했습니다.' });
+  }
+});
+
+// 파일 업로드
+router.post('/upload', upload.array('files'), async (req, res) => {
+  try {
+    if (!req.files) {
+      return res.status(400).json({ error: '파일이 없습니다.' });
+    }
+
+    const fileUrls = await Promise.all(req.files.map(async (file) => {
+      const [result] = await pool.query(
+        'INSERT INTO hospital_board_attachments (file_name, file_path, file_size, mime_type) VALUES (?, ?, ?, ?)',
+        [file.originalname, file.path, file.size, file.mimetype]
+      );
+      return {
+        id: result.insertId,
+        url: file.path,
+        name: file.originalname
+      };
+    }));
+
+    res.json(fileUrls);
+  } catch (error) {
+    console.error('파일 업로드 오류:', error);
+    res.status(500).json({ error: '파일 업로드에 실패했습니다.' });
+  }
+});
+
+// 게시글 작성
+router.post('/', authenticateToken, async (req, res) => {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const { title, content, category_id, meta_data, tags, attachments } = req.body;
+    const userId = req.user.id;
+
+    // 게시글 기본 정보 저장
+    const [boardResult] = await conn.query(
+      'INSERT INTO hospital_board (user_id, category_id, title) VALUES (?, ?, ?)',
+      [userId, category_id, title]
+    );
+    const boardId = boardResult.insertId;
+
+    // 게시글 상세 정보 저장
+    let parsedMetaData;
+    try {
+      parsedMetaData = typeof meta_data === 'string' ? JSON.parse(meta_data) : meta_data;
+    } catch (error) {
+      console.error('메타 데이터 파싱 오류:', error);
+      parsedMetaData = {};
+    }
+
+    await conn.query(
+      'INSERT INTO hospital_board_details (board_id, content, meta_data) VALUES (?, ?, ?)',
+      [boardId, content, JSON.stringify(parsedMetaData)]
+    );
+
+    // 태그 연결
+    if (tags && tags.length > 0) {
+      const tagValues = tags.map(tagId => [boardId, tagId]);
+      await conn.query(
+        'INSERT INTO hospital_board_post_tags (board_id, tag_id) VALUES ?',
+        [tagValues]
+      );
+    }
+
+    // 첨부파일 연결
+    if (attachments && attachments.length > 0) {
+      const attachmentValues = attachments.map(attachment => [
+        boardId,
+        attachment.name,
+        attachment.url,
+        attachment.size || 0,
+        attachment.type || 'application/octet-stream'
+      ]);
+      await conn.query(
+        'INSERT INTO hospital_board_attachments (board_id, file_name, file_path, file_size, mime_type) VALUES ?',
+        [attachmentValues]
+      );
+    }
+
+    await conn.commit();
+    res.json({ id: boardId });
+  } catch (error) {
+    await conn.rollback();
+    console.error('게시글 작성 오류:', error);
+    res.status(500).json({ error: '게시글 작성에 실패했습니다.' });
+  } finally {
+    conn.release();
+  }
+});
+
+// 게시글 상세 조회
+router.get('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // 게시글 기본 정보 조회
+    const [boards] = await pool.query(`
+      SELECT 
+        b.*, 
+        u.username as author_name,
+        c.category_name
+      FROM hospital_board b
+      LEFT JOIN hospital_users u ON b.user_id = u.id
+      LEFT JOIN hospital_board_categories c ON b.category_id = c.id
+      WHERE b.id = ?
+    `, [id]);
+
+    if (boards.length === 0) {
+      return res.status(404).json({ error: '게시글을 찾을 수 없습니다.' });
+    }
+
+    const board = boards[0];
+
+    // 게시글 상세 정보 조회
+    const [details] = await pool.query(
+      'SELECT content, meta_data FROM hospital_board_details WHERE board_id = ?',
+      [id]
+    );
+
+    // 태그 조회
+    const [tags] = await pool.query(`
+      SELECT t.* 
+      FROM hospital_board_tags t
+      JOIN hospital_board_post_tags pt ON t.id = pt.tag_id
+      WHERE pt.board_id = ?
+    `, [id]);
+
+    // 첨부파일 조회
+    const [attachments] = await pool.query(
+      'SELECT * FROM hospital_board_attachments WHERE board_id = ?',
+      [id]
+    );
+
+    // 조회수 증가
+    await pool.query(
+      'UPDATE hospital_board SET view_count = view_count + 1 WHERE id = ?',
+      [id]
+    );
+
+    res.json({
+      ...board,
+      content: details[0]?.content || '',
+      meta_data: details[0]?.meta_data || {},
+      tags,
+      attachments
+    });
+  } catch (error) {
+    console.error('게시글 조회 오류:', error);
+    res.status(500).json({ error: '게시글을 불러오는데 실패했습니다.' });
   }
 });
 
@@ -172,14 +407,22 @@ router.get('/', async (req, res) => {
       JOIN hospital_users u ON b.user_id = u.id
     `;
 
+    let countQuery = 'SELECT COUNT(*) as total FROM hospital_board b';
+    let params = [];
+    let countParams = [];
+
     if (categoryId) {
       query += ` WHERE b.category_id = ?`;
+      countQuery += ` WHERE b.category_id = ?`;
+      params.push(categoryId);
+      countParams.push(categoryId);
     }
 
     query += ` ORDER BY b.created_at DESC LIMIT ? OFFSET ?`;
+    params.push(parseInt(limit), parseInt(offset));
 
-    const [posts] = await pool.query(query, categoryId ? [categoryId, parseInt(limit), parseInt(offset)] : [parseInt(limit), parseInt(offset)]);
-    const [total] = await pool.query('SELECT COUNT(*) as total FROM hospital_board' + (categoryId ? ' WHERE category_id = ?' : ''), categoryId ? [categoryId] : []);
+    const [posts] = await pool.query(query, params);
+    const [total] = await pool.query(countQuery, countParams);
     
     res.json({
       posts,
@@ -189,38 +432,6 @@ router.get('/', async (req, res) => {
   } catch (error) {
     console.error('게시글 목록 조회 오류:', error);
     res.status(500).json({ message: '게시글 목록을 불러오는데 실패했습니다.' });
-  }
-});
-
-// 카테고리 조회
-router.get('/categories', async (req, res) => {
-  try {
-    const { type, parent_id } = req.query;
-    let query = `
-      SELECT c.* FROM hospital_board_categories c
-      WHERE c.is_active = 1
-    `;
-    const params = [];
-
-    if (type) {
-      query += ' AND c.category_type_id = ?';
-      params.push(type);
-    }
-
-    if (parent_id) {
-      query += ' AND c.parent_id = ?';
-      params.push(parent_id);
-    } else {
-      query += ' AND c.parent_id IS NULL';
-    }
-
-    query += ' ORDER BY c.order_sequence';
-
-    const [categories] = await pool.query(query, params);
-    res.json(categories);
-  } catch (error) {
-    console.error('카테고리 조회 오류:', error);
-    res.status(500).json({ error: '카테고리를 불러오는데 실패했습니다.' });
   }
 });
 
@@ -305,103 +516,6 @@ router.post('/:id/view', async (req, res) => {
   } catch (error) {
     console.error('조회수 증가 오류:', error);
     res.status(500).json({ message: '서버 오류가 발생했습니다.' });
-  }
-});
-
-// 게시글 상세 조회
-router.get('/:id', async (req, res) => {
-  let connection;
-  try {
-    connection = await pool.getConnection();
-    await connection.beginTransaction();
-
-    const [board] = await connection.query(
-      `SELECT 
-        b.*,
-        c.category_name,
-        u.username,
-        u.nickname
-      FROM hospital_board b
-      JOIN hospital_board_categories c ON b.category_id = c.id
-      JOIN hospital_users u ON b.user_id = u.id
-      WHERE b.id = ?`,
-      [req.params.id]
-    );
-
-    if (board.length === 0) {
-      await connection.rollback();
-      return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
-    }
-
-    const [details] = await connection.query(
-      'SELECT content, additional_info FROM hospital_board_details WHERE board_id = ?',
-      [req.params.id]
-    );
-
-    await connection.commit();
-    res.json({
-      ...board[0],
-      content: details[0]?.content || '',
-      additional_info: details[0]?.additional_info || ''
-    });
-  } catch (error) {
-    if (connection) {
-      await connection.rollback();
-    }
-    console.error('게시글 상세 조회 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
-  }
-});
-
-// 게시글 작성
-router.post('/', authenticateToken, async (req, res) => {
-  const { category_id, title, summary, content, additional_info } = req.body;
-  const userId = req.user.id;
-  let connection;
-
-  try {
-    connection = await pool.getConnection();
-    await connection.beginTransaction();
-
-    // 카테고리 정보 조회
-    const [category] = await connection.query(
-      'SELECT allow_comments, is_secret_default FROM hospital_board_categories WHERE id = ?',
-      [category_id]
-    );
-
-    if (category.length === 0) {
-      await connection.rollback();
-      return res.status(404).json({ message: '카테고리를 찾을 수 없습니다.' });
-    }
-
-    // 게시글 기본 정보 저장
-    const [result] = await connection.query(
-      'INSERT INTO hospital_board (user_id, category_id, title, summary) VALUES (?, ?, ?, ?)',
-      [userId, category_id, title, summary]
-    );
-
-    // 게시글 상세 정보 저장
-    await connection.query(
-      'INSERT INTO hospital_board_details (board_id, content, additional_info) VALUES (?, ?, ?)',
-      [result.insertId, content, additional_info]
-    );
-
-    await connection.commit();
-    res.status(201).json({ 
-      message: '게시글이 작성되었습니다.',
-      allow_comments: category[0].allow_comments,
-      is_secret_default: category[0].is_secret_default
-    });
-  } catch (error) {
-    if (connection) {
-      await connection.rollback();
-    }
-    console.error('게시글 작성 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
-  } finally {
-    if (connection) {
-      connection.release();
-    }
   }
 });
 

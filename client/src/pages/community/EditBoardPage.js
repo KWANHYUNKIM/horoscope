@@ -1,36 +1,86 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Editor } from '@tinymce/tinymce-react';
 import { useAuth } from '../../contexts/AuthContext';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import { getApiUrl } from '../../utils/api';
+import CategoryTree from '../../components/CategoryTree';
 
 const EditBoardPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { isLoggedIn } = useAuth();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [categoryId, setCategoryId] = useState('');
-  const [categories, setCategories] = useState([]);
-  const [editorApiKey, setEditorApiKey] = useState('');
-  const [error, setError] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [loading, setLoading] = useState(true);
-  const { isLoggedIn } = useAuth();
+  const [tagInput, setTagInput] = useState('');
+  const [selectedTags, setSelectedTags] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [metaFields, setMetaFields] = useState([]);
+  const [metaValues, setMetaValues] = useState({});
+  const [sidebarSelectedCategory, setSidebarSelectedCategory] = useState('');
 
+  // Quill 에디터 설정
+  const modules = {
+    toolbar: [
+      [{ 'header': [1, 2, 3, false] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      [{ 'color': [] }, { 'background': [] }],
+      [{ 'align': [] }],
+      ['link', 'image'],
+      ['clean']
+    ],
+  };
+
+  const formats = [
+    'header',
+    'bold', 'italic', 'underline', 'strike',
+    'list', 'bullet',
+    'color', 'background',
+    'align',
+    'link', 'image'
+  ];
+
+  // 게시글 데이터 로드
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [boardResponse, categoriesResponse, configResponse] = await Promise.all([
+        const [boardResponse, categoriesResponse] = await Promise.all([
           axios.get(`${getApiUrl()}/api/boards/${id}`, { withCredentials: true }),
-          axios.get(`${getApiUrl()}/api/boards/categories`, { withCredentials: true }),
-          axios.get(`${getApiUrl()}/api/boards/config`, { withCredentials: true })
+          axios.get(`${getApiUrl()}/api/boards/categories`, { withCredentials: true })
         ]);
 
-        setTitle(boardResponse.data.title);
-        setContent(boardResponse.data.content);
-        setCategoryId(boardResponse.data.category_id);
+        const board = boardResponse.data;
+        setTitle(board.title);
+        setContent(board.content);
+        setSelectedCategory(board.category_id);
+        setSidebarSelectedCategory(board.category_id);
+        setSelectedTags(board.tags || []);
         setCategories(categoriesResponse.data);
-        setEditorApiKey(configResponse.data.EDITOR_API);
+
+        // 메타 필드 로드
+        if (board.category_id) {
+          const metaResponse = await axios.get(
+            `${getApiUrl()}/api/boards/meta-fields/${board.category_id}`,
+            { withCredentials: true }
+          );
+          setMetaFields(metaResponse.data);
+
+          // 메타 필드 값 로드
+          const metaValuesResponse = await axios.get(
+            `${getApiUrl()}/api/boards/${id}/meta-values`,
+            { withCredentials: true }
+          );
+          const metaValuesMap = {};
+          metaValuesResponse.data.forEach(item => {
+            metaValuesMap[item.meta_field_id] = item.value;
+          });
+          setMetaValues(metaValuesMap);
+        }
+
         setLoading(false);
       } catch (error) {
         console.error('데이터 로딩 실패:', error);
@@ -38,7 +88,6 @@ const EditBoardPage = () => {
           alert('로그인이 만료되었습니다. 다시 로그인해주세요.');
           navigate('/login');
         }
-        setError('게시글 정보를 불러오는데 실패했습니다.');
         setLoading(false);
       }
     };
@@ -46,148 +95,207 @@ const EditBoardPage = () => {
     fetchData();
   }, [id, navigate]);
 
+  const handleCategorySelect = (categoryId) => {
+    setSidebarSelectedCategory(categoryId);
+    setSelectedCategory(categoryId);
+  };
+
+  const handleFormCategoryChange = (e) => {
+    setSelectedCategory(e.target.value);
+    setSidebarSelectedCategory(e.target.value);
+  };
+
+  const handleTagInputChange = (e) => {
+    const value = e.target.value;
+    if (value.endsWith(' ') && value.trim().startsWith('#')) {
+      const newTag = value.trim();
+      if (!selectedTags.includes(newTag)) {
+        setSelectedTags([...selectedTags, newTag]);
+      }
+      setTagInput('');
+    } else {
+      setTagInput(value);
+    }
+  };
+
+  const handleTagKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const newTag = tagInput.trim();
+      if (newTag.startsWith('#') && !selectedTags.includes(newTag)) {
+        setSelectedTags([...selectedTags, newTag]);
+        setTagInput('');
+      }
+    }
+  };
+
+  const removeTag = (tagToRemove) => {
+    setSelectedTags(selectedTags.filter(tag => tag !== tagToRemove));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     if (!isLoggedIn) {
       navigate('/login');
       return;
     }
 
-    setError('');
+    if (!title.trim() || !content.trim() || !selectedCategory) {
+      alert('제목, 내용, 카테고리를 모두 입력해주세요.');
+      return;
+    }
 
     try {
       await axios.put(`${getApiUrl()}/api/boards/${id}`, {
         title,
         content,
-        category_id: categoryId
+        category_id: selectedCategory,
+        meta_values: JSON.stringify(metaValues),
+        tags: selectedTags.map(tag => tag.substring(1)) // # 제거하고 저장
       }, { withCredentials: true });
 
-      navigate(`/community/boards/${id}`);
+      navigate(`/community/post/${id}`);
     } catch (error) {
       console.error('게시글 수정 실패:', error);
       if (error.response?.status === 401) {
-        alert('로그인이 만료되었습니다. 다시 로그인해주세요.');
+        alert('로그인이 필요합니다.');
         navigate('/login');
+      } else {
+        alert('게시글 수정에 실패했습니다.');
       }
-      setError('게시글 수정에 실패했습니다.');
-    }
-  };
-
-  const handleImageUpload = async (blobInfo) => {
-    try {
-      const formData = new FormData();
-      formData.append('image', blobInfo.blob(), blobInfo.filename());
-
-      const response = await axios.post(`${getApiUrl()}/api/boards/upload`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        withCredentials: true
-      });
-
-      return response.data.url;
-    } catch (error) {
-      console.error('이미지 업로드 실패:', error);
-      throw new Error('이미지 업로드에 실패했습니다.');
     }
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 py-12">
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="text-center">로딩 중...</div>
-        </div>
-      </div>
-    );
+    return <div className="text-center p-4">로딩 중...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-4xl mx-auto px-4">
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">게시글 수정</h2>
-          
-          {error && (
-            <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-md">
-              {error}
-            </div>
-          )}
+    <div className="max-w-7xl mx-auto p-6">
+      <div className="flex gap-6">
+        {/* 왼쪽 사이드바 - 카테고리 트리 */}
+        <div className="w-1/4">
+          <CategoryTree
+            onSelectCategory={handleCategorySelect}
+            selectedCategoryId={sidebarSelectedCategory}
+          />
+        </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">제목</label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                required
-              />
-            </div>
+        {/* 오른쪽 메인 컨텐츠 */}
+        <div className="flex-1">
+          <h1 className="text-2xl font-bold mb-6">게시글 수정</h1>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700">카테고리</label>
+          <div className="bg-white rounded-lg shadow-md p-6">
+            {/* 카테고리 선택 */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">카테고리</label>
               <select
-                value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                value={selectedCategory}
+                onChange={handleFormCategoryChange}
+                className="w-full p-2 border border-gray-300 rounded-md"
                 required
               >
-                <option value="">카테고리 선택</option>
-                {categories.map((category) => (
+                <option value="">카테고리를 선택하세요</option>
+                {categories.map(category => (
                   <option key={category.id} value={category.id}>
-                    {category.name}
+                    {category.category_name}
                   </option>
                 ))}
               </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700">내용</label>
-              {editorApiKey && (
-                <Editor
-                  apiKey={editorApiKey}
-                  value={content}
-                  onEditorChange={(content) => setContent(content)}
-                  init={{
-                    height: 500,
-                    menubar: false,
-                    plugins: [
-                      'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
-                      'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-                      'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount'
-                    ],
-                    toolbar: 'undo redo | blocks | ' +
-                      'bold italic backcolor | alignleft aligncenter ' +
-                      'alignright alignjustify | bullist numlist outdent indent | ' +
-                      'removeformat | help',
-                    content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }',
-                    language: 'ko_KR',
-                    images_upload_url: `${getApiUrl()}/api/upload`,
-                    images_upload_handler: handleImageUpload
-                  }}
-                />
-              )}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">제목</label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md"
+                placeholder="제목을 입력하세요"
+                required
+              />
             </div>
 
-            <div className="flex justify-end space-x-3">
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">내용</label>
+              <ReactQuill
+                value={content}
+                onChange={setContent}
+                modules={modules}
+                formats={formats}
+                className="h-96 mb-12"
+              />
+            </div>
+
+            {/* 메타 필드 섹션 */}
+            {metaFields.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">추가 정보</h3>
+                <div className="space-y-4">
+                  {metaFields.map(field => (
+                    <div key={field.id}>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {field.field_name}
+                      </label>
+                      <input
+                        type="text"
+                        value={metaValues[field.id] || ''}
+                        onChange={(e) => setMetaValues({
+                          ...metaValues,
+                          [field.id]: e.target.value
+                        })}
+                        className="w-full p-2 border border-gray-300 rounded-md"
+                        placeholder={field.field_name}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">태그</label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {selectedTags.map((tag, index) => (
+                  <span
+                    key={index}
+                    className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm flex items-center"
+                  >
+                    {tag}
+                    <button
+                      onClick={() => removeTag(tag)}
+                      className="ml-1 text-blue-600 hover:text-blue-800"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <input
+                type="text"
+                value={tagInput}
+                onChange={handleTagInputChange}
+                onKeyDown={handleTagKeyDown}
+                className="w-full p-2 border border-gray-300 rounded-md"
+                placeholder="#태그 입력 후 스페이스바 또는 엔터"
+              />
+            </div>
+
+            <div className="flex justify-end space-x-4">
               <button
-                type="button"
                 onClick={() => navigate(-1)}
-                className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
               >
                 취소
               </button>
               <button
-                type="submit"
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                onClick={handleSubmit}
+                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
               >
-                수정
+                수정하기
               </button>
             </div>
-          </form>
+          </div>
         </div>
       </div>
     </div>

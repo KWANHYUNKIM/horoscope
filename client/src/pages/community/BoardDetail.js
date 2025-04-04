@@ -19,10 +19,12 @@ const BoardDetail = () => {
   const [newComment, setNewComment] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setLoading(true);
         // 조회수 증가 API 호출
         await axios.post(`${getApiUrl()}/api/boards/${id}/view`, {}, { withCredentials: true });
         
@@ -40,19 +42,31 @@ const BoardDetail = () => {
         setCurrentPage(relatedBoardsResponse.data.currentPage);
       } catch (error) {
         console.error('데이터 로딩 실패:', error);
+        if (error.response?.status === 401) {
+          alert('로그인이 필요합니다.');
+          navigate('/login');
+        }
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchData();
-  }, [id]);
+  }, [id, navigate]);
 
   const handleEditBoard = () => {
-    navigate(`/community/edit/${id}`);
+    navigate(`/community/boards/edit/${id}`);
   };
 
   const handleDeleteBoard = async () => {
     if (!isLoggedIn) {
+      alert('로그인이 필요합니다.');
       navigate('/login');
+      return;
+    }
+
+    if (!board || board.user_id !== userId) {
+      alert('삭제 권한이 없습니다.');
       return;
     }
 
@@ -66,7 +80,7 @@ const BoardDetail = () => {
     } catch (error) {
       console.error('게시글 삭제 실패:', error);
       if (error.response?.status === 401) {
-        alert('로그인이 만료되었습니다. 다시 로그인해주세요.');
+        alert('로그인이 필요합니다.');
         navigate('/login');
       }
     }
@@ -79,6 +93,7 @@ const BoardDetail = () => {
 
   const handleCommentEdit = async (commentId) => {
     if (!isLoggedIn) {
+      alert('로그인이 필요합니다.');
       navigate('/login');
       return;
     }
@@ -96,7 +111,7 @@ const BoardDetail = () => {
     } catch (error) {
       console.error('댓글 수정 실패:', error);
       if (error.response?.status === 401) {
-        alert('로그인이 만료되었습니다. 다시 로그인해주세요.');
+        alert('로그인이 필요합니다.');
         navigate('/login');
       }
     }
@@ -279,6 +294,7 @@ const BoardDetail = () => {
 
   const handleReplySubmit = async (parentId) => {
     if (!isLoggedIn) {
+      alert('로그인이 필요합니다.');
       navigate('/login');
       return;
     }
@@ -299,7 +315,7 @@ const BoardDetail = () => {
     } catch (error) {
       console.error('댓글 작성 실패:', error);
       if (error.response?.status === 401) {
-        alert('로그인이 만료되었습니다. 다시 로그인해주세요.');
+        alert('로그인이 필요합니다.');
         navigate('/login');
       }
     }
@@ -307,6 +323,7 @@ const BoardDetail = () => {
 
   const handleDeleteComment = async (commentId) => {
     if (!isLoggedIn) {
+      alert('로그인이 필요합니다.');
       navigate('/login');
       return;
     }
@@ -326,7 +343,7 @@ const BoardDetail = () => {
     } catch (error) {
       console.error('댓글 삭제 실패:', error);
       if (error.response?.status === 401) {
-        alert('로그인이 만료되었습니다. 다시 로그인해주세요.');
+        alert('로그인이 필요합니다.');
         navigate('/login');
       }
     }
@@ -334,6 +351,7 @@ const BoardDetail = () => {
 
   const handleNewCommentSubmit = async () => {
     if (!isLoggedIn) {
+      alert('로그인이 필요합니다.');
       navigate('/login');
       return;
     }
@@ -357,11 +375,19 @@ const BoardDetail = () => {
     } catch (error) {
       console.error('댓글 작성 실패:', error);
       if (error.response?.status === 401) {
-        alert('로그인이 만료되었습니다. 다시 로그인해주세요.');
+        alert('로그인이 필요합니다.');
         navigate('/login');
       }
     }
   };
+
+  if (loading) {
+    return <div className="text-center p-4">로딩 중...</div>;
+  }
+
+  if (!board) {
+    return <div className="text-center p-4">게시글을 찾을 수 없습니다.</div>;
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6">
@@ -373,7 +399,7 @@ const BoardDetail = () => {
               <div>
                 <h1 className="text-2xl font-bold text-gray-800 font-['Pretendard'] mb-2">{board.title}</h1>
                 <div className="flex items-center text-gray-600 text-xs">
-                  <span className="mr-4">작성자: {board.username}</span>
+                  <span className="mr-4">작성자: {board.author_name}</span>
                   <span className="mr-4">작성일: {new Date(board.created_at).toLocaleString()}</span>
                   <span>조회: {board.view_count}</span>
                 </div>

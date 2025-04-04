@@ -1,141 +1,164 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { api } from '../utils/api';
+import { useNavigate, useLocation } from 'react-router-dom';
+import axios from 'axios';
+import { getApiUrl } from '../utils/api';
+import { useAuth } from '../contexts/AuthContext';
 import CategoryTree from '../components/CategoryTree';
 
 const CommunityPage = () => {
   const navigate = useNavigate();
-  const [posts, setPosts] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  const location = useLocation();
+  const { isLoggedIn } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [totalPages, setTotalPages] = useState(1);
+  const [posts, setPosts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-  // 게시글 로딩
+  const fetchPosts = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${getApiUrl()}/api/boards`, {
+        params: {
+          page: currentPage,
+          limit: 10,
+          categoryId: selectedCategory
+        },
+        withCredentials: true
+      });
+      setPosts(response.data.posts);
+      setTotalPages(response.data.totalPages);
+    } catch (error) {
+      console.error('게시글 목록 로딩 실패:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadPosts = async () => {
+    const fetchCategories = async () => {
       try {
-        setLoading(true);
-        const response = await api.get('/api/boards', {
-          params: {
-            categoryId: selectedCategory,
-            page: currentPage
-          }
+        const response = await axios.get(`${getApiUrl()}/api/boards/categories`, {
+          withCredentials: true
         });
-        setPosts(response.data.posts);
-        setTotalPages(response.data.totalPages);
-        setLoading(false);
+        setCategories(response.data);
       } catch (error) {
-        console.error('게시글 로딩 오류:', error);
-        setError('게시글을 불러오는데 실패했습니다.');
-        setLoading(false);
+        console.error('카테고리 로딩 실패:', error);
       }
     };
 
-    loadPosts();
-  }, [selectedCategory, currentPage]);
+    fetchCategories();
+  }, []);
+
+  useEffect(() => {
+    fetchPosts();
+  }, [currentPage, selectedCategory]);
 
   const handleWriteClick = () => {
-    navigate('/community/create');
+    if (!isLoggedIn) {
+      alert('로그인이 필요합니다.');
+      navigate('/login');
+      return;
+    }
+
+    if (selectedCategory) {
+      navigate(`/community/create/${selectedCategory}`);
+    } else {
+      navigate('/community/create');
+    }
   };
 
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
+  const handlePostClick = (postId) => {
+    navigate(`/community/boards/${postId}`);
   };
+
+  const handleCategorySelect = (categoryId) => {
+    setSelectedCategory(categoryId);
+    setCurrentPage(1); // 카테고리 변경 시 첫 페이지로 이동
+  };
+
+  if (loading) {
+    return <div className="text-center p-4">로딩 중...</div>;
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="flex gap-6">
-          {/* 카테고리 트리 */}
+    <div className="max-w-7xl mx-auto p-6">
+      <div className="flex gap-6">
+        {/* 왼쪽 사이드바 - 카테고리 트리 */}
+        <div className="w-1/4">
           <CategoryTree
-            onSelectCategory={setSelectedCategory}
+            onSelectCategory={handleCategorySelect}
             selectedCategoryId={selectedCategory}
           />
+        </div>
 
-          {/* 메인 컨텐츠 영역 */}
-          <div className="flex-1">
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <div className="border-b border-gray-100 pb-4 mb-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h1 className="text-2xl font-bold text-gray-800 font-['Pretendard']">
-                    {selectedCategory ? '선택된 카테고리' : '전체 게시글'}
-                  </h1>
-                  <button 
-                    onClick={handleWriteClick}
-                    className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                  >
-                    글쓰기
-                  </button>
-                </div>
-              </div>
+        {/* 오른쪽 메인 컨텐츠 */}
+        <div className="flex-1">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-2xl font-bold">커뮤니티</h1>
+            <button
+              onClick={handleWriteClick}
+              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+            >
+              글쓰기
+            </button>
+          </div>
 
-              {/* 게시글 목록 */}
-              <div className="space-y-4">
-                {loading ? (
-                  <div className="text-center py-8">로딩 중...</div>
-                ) : error ? (
-                  <div className="text-center py-8 text-red-600">{error}</div>
-                ) : posts.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">게시글이 없습니다.</div>
-                ) : (
-                  posts.map(post => (
-                    <div
-                      key={post.id}
-                      className="p-4 border border-gray-200 rounded-lg hover:border-blue-300 transition-colors cursor-pointer"
-                      onClick={() => navigate(`/community/post/${post.id}`)}
-                    >
-                      <h2 className="text-lg font-medium text-gray-800">{post.title}</h2>
-                      <p className="text-gray-600 mt-2">{post.summary}</p>
-                      <div className="flex justify-between items-center mt-4">
-                        <div className="text-sm text-gray-500">
-                          작성자: {post.username} | 조회수: {post.view_count}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {new Date(post.created_at).toLocaleDateString()}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-              
-              {/* 페이지네이션 */}
-              {totalPages > 1 && (
-                <div className="flex justify-center mt-6">
-                  <div className="flex space-x-2">
-                    {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                      let pageNum;
-                      if (totalPages <= 5) {
-                        pageNum = i + 1;
-                      } else {
-                        if (currentPage <= 3) {
-                          pageNum = i + 1;
-                        } else if (currentPage >= totalPages - 2) {
-                          pageNum = totalPages - 4 + i;
-                        } else {
-                          pageNum = currentPage - 2 + i;
-                        }
-                      }
-                      return (
-                        <button
-                          key={pageNum}
-                          onClick={() => handlePageChange(pageNum)}
-                          className={`px-3 py-1 text-sm font-medium rounded-lg transition-colors ${
-                            currentPage === pageNum
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                          }`}
-                        >
-                          {pageNum}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+          <div className="bg-white rounded-lg shadow">
+            <div className="grid grid-cols-12 gap-4 p-4 border-b font-semibold text-gray-700">
+              <div className="col-span-6">제목</div>
+              <div className="col-span-2">작성자</div>
+              <div className="col-span-2">카테고리</div>
+              <div className="col-span-1">조회</div>
+              <div className="col-span-1">작성일</div>
             </div>
+
+            {posts.map(post => (
+              <div
+                key={post.id}
+                onClick={() => handlePostClick(post.id)}
+                className="grid grid-cols-12 gap-4 p-4 border-b hover:bg-gray-50 cursor-pointer"
+              >
+                <div className="col-span-6">
+                  <span className="text-gray-900">{post.title}</span>
+                  {post.comment_count > 0 && (
+                    <span className="ml-2 text-blue-500">[{post.comment_count}]</span>
+                  )}
+                </div>
+                <div className="col-span-2 text-gray-600">{post.author_name}</div>
+                <div className="col-span-2 text-gray-600">{post.category_name}</div>
+                <div className="col-span-1 text-gray-600">{post.view_count}</div>
+                <div className="col-span-1 text-gray-600">
+                  {new Date(post.created_at).toLocaleDateString()}
+                </div>
+              </div>
+            ))}
+
+            {posts.length === 0 && (
+              <div className="p-4 text-center text-gray-500">
+                게시글이 없습니다.
+              </div>
+            )}
+
+            {/* 페이지네이션 */}
+            {totalPages > 1 && (
+              <div className="flex justify-center p-4">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`mx-1 px-3 py-1 rounded ${
+                      currentPage === page
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

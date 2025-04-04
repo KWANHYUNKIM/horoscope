@@ -1,48 +1,115 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { Editor } from '@tinymce/tinymce-react';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import { getApiUrl } from '../../utils/api';
+import CategoryTree from '../../components/CategoryTree';
 
 const CreateBoardPage = () => {
   const navigate = useNavigate();
-  const { id } = useParams();
-  const { isLoggedIn, userId } = useAuth();
+  const location = useLocation();
+  const { isLoggedIn } = useAuth();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [loading, setLoading] = useState(true);
-  const [editorApiKey, setEditorApiKey] = useState('');
+  const [tagInput, setTagInput] = useState('');
+  const [selectedTags, setSelectedTags] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [sidebarSelectedCategory, setSidebarSelectedCategory] = useState('');
 
+  // URL에서 카테고리 ID 추출
   useEffect(() => {
-    const fetchData = async () => {
+    if (location.pathname.includes('/create/')) {
+      const match = location.pathname.match(/\/create\/(\d+)/);
+      if (match) {
+        setSelectedCategory(match[1]);
+        setSidebarSelectedCategory(match[1]);
+      }
+    }
+  }, [location.pathname]);
+
+  // 카테고리 목록 로드
+  useEffect(() => {
+    const fetchCategories = async () => {
       try {
-        const [categoriesResponse, configResponse] = await Promise.all([
-          axios.get(`${getApiUrl()}/api/boards/categories`, { withCredentials: true }),
-          axios.get(`${getApiUrl()}/api/boards/config`, { withCredentials: true })
-        ]);
-        
-        setCategories(categoriesResponse.data);
-        setEditorApiKey(configResponse.data.EDITOR_API);
-        
-        if (id) {
-          // 게시글 수정인 경우 기존 데이터 로드
-          const boardResponse = await axios.get(`${getApiUrl()}/api/boards/${id}`, { withCredentials: true });
-          setTitle(boardResponse.data.title);
-          setContent(boardResponse.data.content);
-          setSelectedCategory(boardResponse.data.category_id.toString());
-        }
+        const response = await axios.get(`${getApiUrl()}/api/boards/categories`);
+        setCategories(response.data);
       } catch (error) {
-        console.error('데이터 로딩 실패:', error);
-      } finally {
-        setLoading(false);
+        console.error('카테고리 로딩 실패:', error);
       }
     };
 
-    fetchData();
-  }, [id]);
+    fetchCategories();
+  }, []);
+
+  // Quill 에디터 설정
+  const modules = {
+    toolbar: [
+      [{ 'header': [1, 2, 3, false] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      [{ 'color': [] }, { 'background': [] }],
+      [{ 'align': [] }],
+      ['link', 'image'],
+      ['clean']
+    ],
+  };
+
+  const formats = [
+    'header',
+    'bold', 'italic', 'underline', 'strike',
+    'list', 'bullet',
+    'color', 'background',
+    'align',
+    'link', 'image'
+  ];
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      navigate('/login');
+      return;
+    }
+    setLoading(false);
+  }, [isLoggedIn, navigate]);
+
+  const handleCategorySelect = (categoryId) => {
+    setSidebarSelectedCategory(categoryId);
+  };
+
+  const handleFormCategoryChange = (e) => {
+    setSelectedCategory(e.target.value);
+  };
+
+  const handleTagInputChange = (e) => {
+    const value = e.target.value;
+    if (value.endsWith(' ') && value.trim().startsWith('#')) {
+      const newTag = value.trim();
+      if (!selectedTags.includes(newTag)) {
+        setSelectedTags([...selectedTags, newTag]);
+      }
+      setTagInput('');
+    } else {
+      setTagInput(value);
+    }
+  };
+
+  const handleTagKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const newTag = tagInput.trim();
+      if (newTag.startsWith('#') && !selectedTags.includes(newTag)) {
+        setSelectedTags([...selectedTags, newTag]);
+        setTagInput('');
+      }
+    }
+  };
+
+  const removeTag = (tagToRemove) => {
+    setSelectedTags(selectedTags.filter(tag => tag !== tagToRemove));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -52,43 +119,27 @@ const CreateBoardPage = () => {
     }
 
     if (!title.trim() || !content.trim() || !selectedCategory) {
-      alert('모든 필드를 입력해주세요.');
+      alert('제목, 내용, 카테고리를 모두 입력해주세요.');
       return;
     }
 
     try {
-      await axios.post(`${getApiUrl()}/api/boards`, {
+      const response = await axios.post(`${getApiUrl()}/api/boards`, {
         title,
         content,
-        category_id: selectedCategory
+        category_id: selectedCategory,
+        tags: selectedTags.map(tag => tag.substring(1)) // # 제거하고 저장
       }, { withCredentials: true });
 
-      navigate('/community');
+      navigate(`/community/post/${response.data.id}`);
     } catch (error) {
       console.error('게시글 작성 실패:', error);
       if (error.response?.status === 401) {
-        alert('로그인이 만료되었습니다. 다시 로그인해주세요.');
+        alert('로그인이 필요합니다.');
         navigate('/login');
+      } else {
+        alert('게시글 작성에 실패했습니다.');
       }
-    }
-  };
-
-  const handleImageUpload = async (blobInfo) => {
-    const formData = new FormData();
-    formData.append('file', blobInfo.blob(), blobInfo.filename());
-    
-    try {
-      const response = await axios.post(`${getApiUrl()}/api/boards/upload`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        withCredentials: true
-      });
-      return response.data.url;
-    } catch (error) {
-      console.error('이미지 업로드 실패:', error);
-      alert('이미지 업로드에 실패했습니다.');
-      return null;
     }
   };
 
@@ -97,90 +148,106 @@ const CreateBoardPage = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6">게시글 작성</h1>
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              카테고리
-            </label>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full p-2 border rounded-lg"
-              required
-            >
-              <option value="">카테고리 선택</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.category_name}
-                </option>
-              ))}
-            </select>
-          </div>
+    <div className="max-w-7xl mx-auto p-6">
+      <div className="flex gap-6">
+        {/* 왼쪽 사이드바 - 카테고리 트리 */}
+        <div className="w-1/4">
+          <CategoryTree
+            onSelectCategory={handleCategorySelect}
+            selectedCategoryId={sidebarSelectedCategory}
+          />
+        </div>
 
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              제목
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full p-2 border rounded-lg"
-              placeholder="제목을 입력하세요"
-              required
-            />
-          </div>
+        {/* 오른쪽 메인 컨텐츠 */}
+        <div className="flex-1">
+          <h1 className="text-2xl font-bold mb-6">게시글 작성</h1>
 
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              내용
-            </label>
-            {editorApiKey && (
-              <Editor
-                apiKey={editorApiKey}
-                value={content}
-                onEditorChange={(content) => setContent(content)}
-                init={{
-                  height: 500,
-                  menubar: false,
-                  plugins: [
-                    'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
-                    'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-                    'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount'
-                  ],
-                  toolbar: 'undo redo | blocks | ' +
-                    'bold italic backcolor | alignleft aligncenter ' +
-                    'alignright alignjustify | bullist numlist outdent indent | ' +
-                    'removeformat | help',
-                  content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif; font-size: 14px; }',
-                  images_upload_handler: handleImageUpload,
-                  language: 'ko_KR',
-                  skin: 'oxide',
-                  content_css: 'default'
-                }}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            {/* 카테고리 선택 */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">카테고리</label>
+              <select
+                value={selectedCategory}
+                onChange={handleFormCategoryChange}
+                className="w-full p-2 border border-gray-300 rounded-md"
+                required
+              >
+                <option value="">카테고리를 선택하세요</option>
+                {categories.map(category => (
+                  <option key={category.id} value={category.id}>
+                    {category.category_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">제목</label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md"
+                placeholder="제목을 입력하세요"
+                required
               />
-            )}
-          </div>
+            </div>
 
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-            >
-              {id ? '수정하기' : '작성하기'}
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate(-1)}
-              className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
-            >
-              취소
-            </button>
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">내용</label>
+              <ReactQuill
+                value={content}
+                onChange={setContent}
+                modules={modules}
+                formats={formats}
+                className="h-96 mb-12"
+              />
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">태그</label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {selectedTags.map((tag, index) => (
+                  <span
+                    key={index}
+                    className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm flex items-center"
+                  >
+                    {tag}
+                    <button
+                      onClick={() => removeTag(tag)}
+                      className="ml-1 text-blue-600 hover:text-blue-800"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <input
+                type="text"
+                value={tagInput}
+                onChange={handleTagInputChange}
+                onKeyDown={handleTagKeyDown}
+                className="w-full p-2 border border-gray-300 rounded-md"
+                placeholder="#태그 입력 후 스페이스바 또는 엔터"
+              />
+            </div>
+
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => navigate(-1)}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleSubmit}
+                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+              >
+                작성하기
+              </button>
+            </div>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

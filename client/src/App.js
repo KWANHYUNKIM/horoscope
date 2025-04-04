@@ -67,11 +67,11 @@ const App = () => {
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/community" element={<CommunityPage />} />
               <Route path="/community/category/:categoryId" element={<CommunityPage />} />
-              <Route path="/community/board/:id" element={<BoardDetail />} />
               <Route path="/community/create" element={<CreateBoardPage />} />
+              <Route path="/community/create/:categoryId" element={<CreateBoardPage />} />
               <Route path="/community/edit/:id" element={<CreateBoardPage />} />
               <Route path="/community/boards/:id" element={<BoardDetail />} />
-              <Route path="/community/boards/:id/edit" element={<EditBoardPage />} />
+              <Route path="/community/boards/edit/:id" element={<EditBoardPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/auth/naver/callback" element={<NaverCallback />} />
               <Route path="/auth/google/callback" element={<GoogleCallback />} />

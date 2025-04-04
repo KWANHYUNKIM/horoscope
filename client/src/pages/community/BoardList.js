@@ -5,7 +5,7 @@ const BoardList = ({ boards }) => {
   const navigate = useNavigate();
 
   const handleBoardClick = (id) => {
-    navigate(`/community/board/${id}`);
+    navigate(`/community/boards/${id}`);
   };
 
   return (
