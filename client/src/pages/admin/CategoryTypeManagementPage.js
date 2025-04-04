@@ -1,104 +1,77 @@
 import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  IconButton,
+  Typography,
+  DialogContentText,
+  FormControlLabel,
+  Checkbox
+} from '@mui/material';
+import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
 import axios from 'axios';
 import { getApiUrl } from '../../utils/api';
 
 const CategoryTypeManagementPage = () => {
   const [categoryTypes, setCategoryTypes] = useState([]);
-  const [newType, setNewType] = useState({
+  const [open, setOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [editingType, setEditingType] = useState(null);
+  const [formData, setFormData] = useState({
     type_name: '',
     type_code: '',
     description: '',
     order_sequence: 1,
     is_active: true
   });
-  const [editingType, setEditingType] = useState(null);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+
+  const fetchCategoryTypes = async () => {
+    try {
+      const response = await axios.get(`${getApiUrl()}/api/boards/category-types`, { withCredentials: true });
+      setCategoryTypes(response.data);
+    } catch (error) {
+      console.error('카테고리 타입 목록 조회 실패:', error);
+      alert('카테고리 타입 목록을 불러오는데 실패했습니다.');
+    }
+  };
 
   useEffect(() => {
     fetchCategoryTypes();
   }, []);
 
-  const fetchCategoryTypes = async () => {
-    try {
-      const response = await axios.get(`${getApiUrl()}/api/boards/category-types`, {
-        withCredentials: true
-      });
-      setCategoryTypes(response.data);
-    } catch (error) {
-      setError('카테고리 타입 목록을 불러오는데 실패했습니다.');
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.post(`${getApiUrl()}/api/boards/category-types`, newType, {
-        withCredentials: true
-      });
-      setSuccess('카테고리 타입이 성공적으로 생성되었습니다.');
-      setNewType({
-        type_name: '',
-        type_code: '',
-        description: '',
-        order_sequence: 1,
-        is_active: true
-      });
-      fetchCategoryTypes();
-    } catch (error) {
-      setError(error.response?.data?.message || '카테고리 타입 생성에 실패했습니다.');
-    }
-  };
-
-  const handleDelete = async (id) => {
-    if (!window.confirm('정말로 이 카테고리 타입을 삭제하시겠습니까?')) return;
-
-    try {
-      await axios.delete(`${getApiUrl()}/api/boards/category-types/${id}`, {
-        withCredentials: true
-      });
-      setSuccess('카테고리 타입이 성공적으로 삭제되었습니다.');
-      fetchCategoryTypes();
-    } catch (error) {
-      setError(error.response?.data?.message || '카테고리 타입 삭제에 실패했습니다.');
-    }
-  };
-
-  const handleEdit = (type) => {
-    setEditingType(type);
-    setNewType({
-      type_name: type.type_name,
-      type_code: type.type_code,
-      description: type.description,
-      order_sequence: type.order_sequence,
-      is_active: type.is_active
-    });
-  };
-
-  const handleUpdate = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.put(`${getApiUrl()}/api/boards/category-types/${editingType.id}`, newType, {
-        withCredentials: true
-      });
-      setSuccess('카테고리 타입이 성공적으로 수정되었습니다.');
+  const handleOpen = (type = null) => {
+    if (type) {
+      setEditingType(type);
+      setFormData(type);
+    } else {
       setEditingType(null);
-      setNewType({
+      setFormData({
         type_name: '',
         type_code: '',
         description: '',
         order_sequence: 1,
         is_active: true
       });
-      fetchCategoryTypes();
-    } catch (error) {
-      setError(error.response?.data?.message || '카테고리 타입 수정에 실패했습니다.');
     }
+    setOpen(true);
   };
 
-  const cancelEdit = () => {
+  const handleClose = () => {
+    setOpen(false);
     setEditingType(null);
-    setNewType({
+    setFormData({
       type_name: '',
       type_code: '',
       description: '',
@@ -107,157 +80,189 @@ const CategoryTypeManagementPage = () => {
     });
   };
 
+  const handleDelete = async (id) => {
+    setEditingType(categoryTypes.find(type => type.id === id));
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    try {
+      await axios.delete(`${getApiUrl()}/api/boards/category-types/${editingType.id}`, { withCredentials: true });
+      fetchCategoryTypes();
+      setDeleteDialogOpen(false);
+      alert('카테고리 타입이 삭제되었습니다.');
+    } catch (error) {
+      console.error('카테고리 타입 삭제 실패:', error);
+      alert('카테고리 타입 삭제에 실패했습니다.');
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingType) {
+        await axios.put(
+          `${getApiUrl()}/api/boards/category-types/${editingType.id}`,
+          formData,
+          { withCredentials: true }
+        );
+      } else {
+        await axios.post(
+          `${getApiUrl()}/api/boards/category-types`,
+          formData,
+          { withCredentials: true }
+        );
+      }
+      fetchCategoryTypes();
+      handleClose();
+      alert(editingType ? '카테고리 타입이 수정되었습니다.' : '새로운 카테고리 타입이 추가되었습니다.');
+    } catch (error) {
+      console.error('카테고리 타입 저장 실패:', error);
+      alert('카테고리 타입 저장에 실패했습니다.');
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">카테고리 타입 관리</h1>
+    <Box sx={{ p: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+        <Typography variant="h5">카테고리 타입 관리</Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<AddIcon />}
+          onClick={() => handleOpen()}
+        >
+          새로운 카테고리 타입 추가
+        </Button>
+      </Box>
 
-      {/* 카테고리 타입 생성/수정 폼 */}
-      <div className="bg-white rounded-lg shadow mb-6">
-        <h2 className="text-xl font-semibold p-6 border-b">
-          {editingType ? '카테고리 타입 수정' : '새 카테고리 타입 생성'}
-        </h2>
-        <form onSubmit={editingType ? handleUpdate : handleSubmit} className="p-6">
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              타입 이름
-            </label>
-            <input
-              type="text"
-              value={newType.type_name}
-              onChange={(e) => setNewType({ ...newType, type_name: e.target.value })}
-              className="w-full p-2 border rounded-md"
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>타입 이름</TableCell>
+              <TableCell>타입 코드</TableCell>
+              <TableCell>설명</TableCell>
+              <TableCell>순서</TableCell>
+              <TableCell>상태</TableCell>
+              <TableCell>관리</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {categoryTypes.map((type) => (
+              <TableRow key={type.id}>
+                <TableCell>{type.type_name}</TableCell>
+                <TableCell>{type.type_code}</TableCell>
+                <TableCell>{type.description}</TableCell>
+                <TableCell>{type.order_sequence}</TableCell>
+                <TableCell>{type.is_active ? '활성' : '비활성'}</TableCell>
+                <TableCell>
+                  <IconButton
+                    size="small"
+                    onClick={() => handleOpen(type)}
+                    color="primary"
+                  >
+                    <EditIcon />
+                  </IconButton>
+                  <IconButton
+                    size="small"
+                    onClick={() => handleDelete(type.id)}
+                    color="error"
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      <Dialog open={open} onClose={handleClose}>
+        <DialogTitle>
+          {editingType ? '카테고리 타입 수정' : '새로운 카테고리 타입 추가'}
+        </DialogTitle>
+        <DialogContent>
+          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+            <TextField
+              fullWidth
+              label="타입 이름"
+              name="type_name"
+              value={formData.type_name}
+              onChange={handleChange}
+              margin="normal"
               required
             />
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              타입 코드
-            </label>
-            <input
-              type="text"
-              value={newType.type_code}
-              onChange={(e) => setNewType({ ...newType, type_code: e.target.value })}
-              className="w-full p-2 border rounded-md"
+            <TextField
+              fullWidth
+              label="타입 코드"
+              name="type_code"
+              value={formData.type_code}
+              onChange={handleChange}
+              margin="normal"
               required
             />
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              설명
-            </label>
-            <input
-              type="text"
-              value={newType.description}
-              onChange={(e) => setNewType({ ...newType, description: e.target.value })}
-              className="w-full p-2 border rounded-md"
+            <TextField
+              fullWidth
+              label="설명"
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              margin="normal"
             />
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              순서
-            </label>
-            <input
+            <TextField
+              fullWidth
               type="number"
-              value={newType.order_sequence}
-              onChange={(e) => setNewType({ ...newType, order_sequence: parseInt(e.target.value) })}
-              className="w-full p-2 border rounded-md"
-              min="1"
+              label="순서"
+              name="order_sequence"
+              value={formData.order_sequence}
+              onChange={handleChange}
+              margin="normal"
               required
             />
-          </div>
-          <div className="mb-4">
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={newType.is_active}
-                onChange={(e) => setNewType({ ...newType, is_active: e.target.checked })}
-                className="mr-2"
-              />
-              <span className="text-sm font-medium text-gray-700">활성화</span>
-            </label>
-          </div>
-          <div className="flex space-x-2">
-            <button
-              type="submit"
-              className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
-            >
-              {editingType ? '수정하기' : '타입 생성'}
-            </button>
-            {editingType && (
-              <button
-                type="button"
-                onClick={cancelEdit}
-                className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
-              >
-                취소
-              </button>
-            )}
-          </div>
-        </form>
-      </div>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={formData.is_active}
+                  onChange={handleChange}
+                  name="is_active"
+                />
+              }
+              label="활성화"
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose}>취소</Button>
+          <Button onClick={handleSubmit} variant="contained" color="primary">
+            {editingType ? '수정' : '추가'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-      {/* 메시지 표시 */}
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
-        </div>
-      )}
-      {success && (
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-          {success}
-        </div>
-      )}
-
-      {/* 카테고리 타입 목록 */}
-      <div className="bg-white rounded-lg shadow">
-        <h2 className="text-xl font-semibold p-6 border-b">카테고리 타입 목록</h2>
-        <div className="p-6">
-          <div className="overflow-x-auto">
-            <table className="min-w-full">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="px-4 py-2 text-left">타입 이름</th>
-                  <th className="px-4 py-2 text-left">타입 코드</th>
-                  <th className="px-4 py-2 text-left">설명</th>
-                  <th className="px-4 py-2 text-center">순서</th>
-                  <th className="px-4 py-2 text-center">상태</th>
-                  <th className="px-4 py-2 text-center">작업</th>
-                </tr>
-              </thead>
-              <tbody>
-                {categoryTypes.map((type) => (
-                  <tr key={type.id} className="border-t">
-                    <td className="px-4 py-2">{type.type_name}</td>
-                    <td className="px-4 py-2">{type.type_code}</td>
-                    <td className="px-4 py-2">{type.description}</td>
-                    <td className="px-4 py-2 text-center">{type.order_sequence}</td>
-                    <td className="px-4 py-2 text-center">
-                      {type.is_active ? '활성' : '비활성'}
-                    </td>
-                    <td className="px-4 py-2 text-center">
-                      <div className="flex justify-center space-x-2">
-                        <button
-                          onClick={() => handleEdit(type)}
-                          className="text-blue-500 hover:text-blue-700"
-                        >
-                          수정
-                        </button>
-                        <button
-                          onClick={() => handleDelete(type.id)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          삭제
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>카테고리 타입 삭제</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            이 카테고리 타입을 삭제하시겠습니까? 삭제된 카테고리 타입은 복구할 수 없습니다.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>취소</Button>
+          <Button onClick={confirmDelete} color="error" autoFocus>
+            삭제
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 };
 
