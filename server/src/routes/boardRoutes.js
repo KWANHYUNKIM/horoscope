@@ -445,19 +445,6 @@ router.post('/categories', authenticateToken, isAdmin, async (req, res) => {
     await connection.beginTransaction();
     
     try {
-      let parentPath = '/';
-      if (parent_id) {
-        // 부모 카테고리의 path 조회
-        const [parentCategory] = await connection.query(
-          'SELECT path FROM hospital_board_categories WHERE id = ?',
-          [parent_id]
-        );
-        if (parentCategory.length === 0) {
-          throw new Error('부모 카테고리를 찾을 수 없습니다.');
-        }
-        parentPath = parentCategory[0].path;
-      }
-
       // 같은 부모를 가진 카테고리 중 가장 큰 order_sequence 값 조회
       const [maxOrderResult] = await connection.query(
         'SELECT MAX(order_sequence) as max_order FROM hospital_board_categories WHERE parent_id = ?',
@@ -468,12 +455,24 @@ router.post('/categories', authenticateToken, isAdmin, async (req, res) => {
       
       // 카테고리 생성
       const [result] = await connection.query(
-        'INSERT INTO hospital_board_categories (category_name, description, allow_comments, is_secret_default, parent_id, category_type_id, order_sequence) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [category_name, description, allow_comments, is_secret_default, parent_id, category_type_id, newOrderSequence]
+        'INSERT INTO hospital_board_categories (category_name, description, allow_comments, is_secret_default, parent_id, category_type_id, order_sequence, path) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [category_name, description, allow_comments, is_secret_default, parent_id, category_type_id, newOrderSequence, '/']
       );
 
       // 생성된 카테고리의 path 설정
-      const newPath = `${parentPath}${result.insertId}/`;
+      let newPath = '/';
+      if (parent_id) {
+        // 부모 카테고리의 path 조회
+        const [parentCategory] = await connection.query(
+          'SELECT path FROM hospital_board_categories WHERE id = ?',
+          [parent_id]
+        );
+        if (parentCategory.length > 0) {
+          newPath = parentCategory[0].path;
+        }
+      }
+      newPath += `${result.insertId}/`;
+
       await connection.query(
         'UPDATE hospital_board_categories SET path = ? WHERE id = ?',
         [newPath, result.insertId]

@@ -69,7 +69,6 @@ const App = () => {
               <Route path="/community/category/:categoryId" element={<CommunityPage />} />
               <Route path="/community/create" element={<CreateBoardPage />} />
               <Route path="/community/create/:categoryId" element={<CreateBoardPage />} />
-              <Route path="/community/edit/:id" element={<CreateBoardPage />} />
               <Route path="/community/boards/:id" element={<BoardDetail />} />
               <Route path="/community/boards/edit/:id" element={<EditBoardPage />} />
               <Route path="/profile" element={<ProfilePage />} />

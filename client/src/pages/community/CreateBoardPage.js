@@ -131,7 +131,7 @@ const CreateBoardPage = () => {
         tags: selectedTags.map(tag => tag.substring(1)) // # 제거하고 저장
       }, { withCredentials: true });
 
-      navigate(`/community/post/${response.data.id}`);
+      navigate(`/community/boards/${response.data.id}`);
     } catch (error) {
       console.error('게시글 작성 실패:', error);
       if (error.response?.status === 401) {

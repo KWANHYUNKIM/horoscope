@@ -154,7 +154,7 @@ const EditBoardPage = () => {
         tags: selectedTags.map(tag => tag.substring(1)) // # 제거하고 저장
       }, { withCredentials: true });
 
-      navigate(`/community/post/${id}`);
+      navigate(`/community/boards/${id}`);
     } catch (error) {
       console.error('게시글 수정 실패:', error);
       if (error.response?.status === 401) {

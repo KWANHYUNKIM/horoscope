@@ -25,6 +25,7 @@ import { getApiUrl } from '../../utils/api';
 
 const CategoryManagementPage = () => {
   const [categories, setCategories] = useState([]);
+  const [categoryTypes, setCategoryTypes] = useState([]);
   const [open, setOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
@@ -32,7 +33,9 @@ const CategoryManagementPage = () => {
     category_name: '',
     description: '',
     parent_id: null,
-    order_sequence: 0
+    category_type_id: '',
+    order_sequence: 0,
+    path: ''
   });
 
   const fetchCategories = async () => {
@@ -45,8 +48,19 @@ const CategoryManagementPage = () => {
     }
   };
 
+  const fetchCategoryTypes = async () => {
+    try {
+      const response = await axios.get(`${getApiUrl()}/api/boards/category-types`, { withCredentials: true });
+      setCategoryTypes(response.data);
+    } catch (error) {
+      console.error('카테고리 타입 목록 조회 실패:', error);
+      alert('카테고리 타입 목록을 불러오는데 실패했습니다.');
+    }
+  };
+
   useEffect(() => {
     fetchCategories();
+    fetchCategoryTypes();
   }, []);
 
   const handleOpen = (category = null) => {
@@ -59,7 +73,9 @@ const CategoryManagementPage = () => {
         category_name: '',
         description: '',
         parent_id: null,
-        order_sequence: 0
+        category_type_id: '',
+        order_sequence: 0,
+        path: ''
       });
     }
     setOpen(true);
@@ -72,7 +88,9 @@ const CategoryManagementPage = () => {
       category_name: '',
       description: '',
       parent_id: null,
-      order_sequence: 0
+      category_type_id: '',
+      order_sequence: 0,
+      path: ''
     });
   };
 
@@ -146,6 +164,7 @@ const CategoryManagementPage = () => {
             <TableRow>
               <TableCell>카테고리 이름</TableCell>
               <TableCell>설명</TableCell>
+              <TableCell>카테고리 타입</TableCell>
               <TableCell>상위 카테고리</TableCell>
               <TableCell>순서</TableCell>
               <TableCell>관리</TableCell>
@@ -156,6 +175,9 @@ const CategoryManagementPage = () => {
               <TableRow key={category.id}>
                 <TableCell>{category.category_name}</TableCell>
                 <TableCell>{category.description}</TableCell>
+                <TableCell>
+                  {categoryTypes.find(type => type.id === category.category_type_id)?.type_name || '없음'}
+                </TableCell>
                 <TableCell>
                   {category.parent_id ? 
                     categories.find(c => c.id === category.parent_id)?.category_name : 
@@ -210,6 +232,22 @@ const CategoryManagementPage = () => {
             <TextField
               fullWidth
               select
+              label="카테고리 타입"
+              name="category_type_id"
+              value={formData.category_type_id}
+              onChange={handleChange}
+              margin="normal"
+              required
+            >
+              {categoryTypes.map(type => (
+                <MenuItem key={type.id} value={type.id}>
+                  {type.type_name}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              fullWidth
+              select
               label="상위 카테고리"
               name="parent_id"
               value={formData.parent_id || ''}
@@ -234,6 +272,16 @@ const CategoryManagementPage = () => {
               onChange={handleChange}
               margin="normal"
               required
+            />
+            <TextField
+              fullWidth
+              label="경로"
+              name="path"
+              value={formData.path}
+              onChange={handleChange}
+              margin="normal"
+              required
+              helperText="카테고리의 URL 경로를 입력하세요 (예: /hospital/notice)"
             />
           </Box>
         </DialogContent>
