@@ -2,6 +2,15 @@ const mongoose = require('mongoose');
 
 // 스키마 정의
 const hospitalSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+    index: true
+  },
+  address: {
+    type: String,
+    required: true
+  },
   yadmNm: String,
   addr: String,
   telno: String,
@@ -33,6 +42,8 @@ const hospitalSchema = new mongoose.Schema({
   YPos: Number,
   ykiho: String,
   updatedAt: { type: Date, default: Date.now }
+}, {
+  timestamps: true
 });
 
 // 모델이 이미 존재하는지 확인

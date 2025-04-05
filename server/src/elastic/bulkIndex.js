@@ -90,6 +90,7 @@ async function bulkIndex() {
 
         body.push({ index: { _index: "hospitals", _id: h.ykiho || h._id.toString() } });
         body.push({
+          ykiho: h.ykiho || h._id.toString(),
           yadmNm: h.yadmNm || "-",
           addr: h.addr || "-",
           region: h.sidoCdNm || "-",

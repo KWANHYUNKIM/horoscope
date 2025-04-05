@@ -24,7 +24,50 @@ const BoardDetail = () => {
   const [loading, setLoading] = useState(true);
   const [taggedHospitals, setTaggedHospitals] = useState([]);
 
+  // 댓글 목록 조회 시 병원 정보도 함께 가져오기
+  const fetchComments = React.useCallback(async () => {
+    try {
+      const commentsResponse = await axios.get(`${getApiUrl()}/api/boards/${id}/comments`, { withCredentials: true });
+      console.log('댓글 목록 응답:', commentsResponse.data);
+
+      // 댓글 데이터가 배열인지 확인
+      const commentsData = Array.isArray(commentsResponse.data) ? commentsResponse.data : commentsResponse.data.comments || [];
+      console.log('처리된 댓글 데이터:', commentsData);
+
+      // 각 댓글의 @ 태그된 병원 정보 가져오기
+      const commentsWithHospitals = await Promise.all(
+        commentsData.map(async (comment) => {
+          const matches = comment.comment.match(/@([^\s]+)/g);
+          if (matches) {
+            const hospitals = await Promise.all(
+              matches.map(async (match) => {
+                const hospitalName = match.substring(1);
+                try {
+                  const response = await axios.get(`${getApiUrl()}/api/hospitals/autocomplete?query=${encodeURIComponent(hospitalName)}`, { withCredentials: true });
+                  return response.data.hospital[0]; // 첫 번째 검색 결과 사용
+                } catch (error) {
+                  console.error('병원 정보 조회 실패:', error);
+                  return null;
+                }
+              })
+            );
+            return { ...comment, hospitals: hospitals.filter(Boolean) };
+          }
+          return comment;
+        })
+      );
+
+      setComments(commentsWithHospitals);
+    } catch (error) {
+      console.error('댓글 목록 조회 실패:', error);
+      setComments([]); // 오류 발생 시 빈 배열로 설정
+    }
+  }, [id]);
+
+  // 초기 데이터 로딩
   useEffect(() => {
+    let isMounted = true;
+
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -32,25 +75,19 @@ const BoardDetail = () => {
         await axios.post(`${getApiUrl()}/api/boards/${id}/view`, {}, { withCredentials: true });
         
         // 게시글, 댓글, 관련 게시글 데이터 가져오기
-        const [boardResponse, commentsResponse, relatedBoardsResponse] = await Promise.all([
+        const [boardResponse, relatedBoardsResponse] = await Promise.all([
           axios.get(`${getApiUrl()}/api/boards/${id}`, { withCredentials: true }),
-          axios.get(`${getApiUrl()}/api/boards/${id}/comments`, { withCredentials: true }),
           axios.get(`${getApiUrl()}/api/boards/related/${id}?page=${currentPage}`, { withCredentials: true })
         ]);
 
-        setBoard(boardResponse.data);
-        setComments(commentsResponse.data);
-        setRelatedBoards(relatedBoardsResponse.data.boards);
-        setTotalPages(relatedBoardsResponse.data.totalPages);
-        setCurrentPage(relatedBoardsResponse.data.currentPage);
-        
-        // 태그된 병원 정보 가져오기
-        if (boardResponse.data.tagged_hospitals && boardResponse.data.tagged_hospitals.length > 0) {
-          const hospitalPromises = boardResponse.data.tagged_hospitals.map(hospitalId => 
-            axios.get(`${getApiUrl()}/api/hospitals/${hospitalId}`, { withCredentials: true })
-          );
-          const hospitalResponses = await Promise.all(hospitalPromises);
-          setTaggedHospitals(hospitalResponses.map(res => res.data));
+        if (isMounted) {
+          setBoard(boardResponse.data);
+          setRelatedBoards(relatedBoardsResponse.data.boards);
+          setTotalPages(relatedBoardsResponse.data.totalPages);
+          setCurrentPage(relatedBoardsResponse.data.currentPage);
+          
+          // 댓글 목록 가져오기
+          await fetchComments();
         }
       } catch (error) {
         console.error('데이터 로딩 실패:', error);
@@ -59,12 +96,18 @@ const BoardDetail = () => {
           navigate('/login');
         }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchData();
-  }, [id, navigate]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id, navigate, currentPage, fetchComments]);
 
   const handleEditBoard = () => {
     navigate(`/community/boards/edit/${id}`);
@@ -116,8 +159,7 @@ const BoardDetail = () => {
       }, { withCredentials: true });
 
       // 댓글 수정 후 목록 새로고침
-      const commentsResponse = await axios.get(`${getApiUrl()}/api/boards/${id}/comments`, { withCredentials: true });
-      setComments(commentsResponse.data);
+      await fetchComments();
       setEditingComment(null);
       setEditContent('');
     } catch (error) {
@@ -192,6 +234,52 @@ const BoardDetail = () => {
     );
   };
 
+  // 댓글 내용에서 @ 태그를 파싱하는 함수
+  const renderCommentContent = (comment) => {
+    if (!comment.comment) return '';
+    console.log('댓글 데이터:', comment);
+
+    const parts = comment.comment.split(/(@[^\s]+)/g);
+    return parts.map((part, index) => {
+      if (part.startsWith('@')) {
+        const hospitalName = part.substring(1);
+        // hospitals 배열에서 병원 정보 찾기
+        const hospital = comment.hospitals?.find(h => h.name === hospitalName);
+        
+        if (hospital) {
+          return (
+            <span key={index} className="relative group inline-block">
+              <span 
+                className="text-blue-600 font-medium cursor-pointer hover:bg-blue-50"
+                onClick={() => navigate(`/hospitals?query=${encodeURIComponent(hospitalName)}`)}
+              >
+                {part}
+              </span>
+              <div className="absolute bottom-full left-0 mb-2 w-64 bg-white border border-gray-300 rounded-lg shadow-lg p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50">
+                <h3 className="font-bold text-sm mb-1">{hospital.name}</h3>
+                <p className="text-xs text-gray-600 mb-1">{hospital.address}</p>
+                <button 
+                  className="mt-2 text-xs text-blue-600 hover:text-blue-800"
+                  onClick={() => navigate(`/hospitals?query=${encodeURIComponent(hospitalName)}`)}
+                >
+                  상세 정보 보기
+                </button>
+              </div>
+            </span>
+          );
+        } else {
+          // 병원 정보가 없는 경우에도 @ 태그를 파란색으로 표시
+          return (
+            <span key={index} className="text-blue-600 font-medium">
+              {part}
+            </span>
+          );
+        }
+      }
+      return <span key={index}>{part}</span>;
+    });
+  };
+
   const renderComment = (comment) => {
     const isAuthor = isLoggedIn && (comment.user_id === userId || userRole === 'admin');
     const isEditing = editingComment === comment.id;
@@ -261,7 +349,7 @@ const BoardDetail = () => {
                 </div>
               ) : (
                 <p className="mt-2 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
-                  {isDeleted ? '삭제된 댓글입니다.' : comment.comment}
+                  {isDeleted ? '삭제된 댓글입니다.' : renderCommentContent(comment)}
                 </p>
               )}
               {!isDeleted && !isReplying && (
@@ -318,8 +406,7 @@ const BoardDetail = () => {
       }, { withCredentials: true });
 
       // 댓글 작성 성공 후 댓글 목록 새로고침
-      const commentsResponse = await axios.get(`${getApiUrl()}/api/boards/${id}/comments`, { withCredentials: true });
-      setComments(commentsResponse.data);
+      await fetchComments();
       
       // 입력 폼 초기화
       setReplyContent('');
@@ -361,29 +448,22 @@ const BoardDetail = () => {
     }
   };
 
-  const handleNewCommentSubmit = async () => {
+  // 댓글 작성 후 목록 새로고침
+  const handleNewCommentSubmit = async (commentData) => {
     if (!isLoggedIn) {
       alert('로그인이 필요합니다.');
       navigate('/login');
       return;
     }
 
-    if (!newComment.trim()) {
-      alert('댓글 내용을 입력해주세요.');
-      return;
-    }
-
     try {
-      await axios.post(`${getApiUrl()}/api/boards/${id}/comments`, {
-        comment: newComment
+      const response = await axios.post(`${getApiUrl()}/api/boards/${id}/comments`, {
+        comment: commentData.comment,
+        entityTags: commentData.entityTags
       }, { withCredentials: true });
 
-      // 댓글 작성 성공 후 댓글 목록 새로고침
-      const commentsResponse = await axios.get(`${getApiUrl()}/api/boards/${id}/comments`, { withCredentials: true });
-      setComments(commentsResponse.data);
-      
-      // 입력 폼 초기화
-      setNewComment('');
+      console.log('댓글 작성 응답:', response.data);
+      await fetchComments(); // 댓글 목록 새로고침
     } catch (error) {
       console.error('댓글 작성 실패:', error);
       if (error.response?.status === 401) {
@@ -465,7 +545,10 @@ const BoardDetail = () => {
             
             {/* 새 댓글 작성 폼 */}
             <div className="mb-6 bg-gray-50 rounded-lg p-4">
-              <Comment onSubmit={handleNewCommentSubmit} />
+              <Comment 
+                onSubmit={handleNewCommentSubmit} 
+                boardId={id} 
+              />
             </div>
 
             {/* 댓글 목록 */}

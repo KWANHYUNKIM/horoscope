@@ -221,4 +221,35 @@ router.post('/nearby', async (req, res) => {
   }
 });
 
+// 병원 검색 API
+router.get('/autocomplete', async (req, res) => {
+  try {
+    const { query } = req.query;
+    if (!query) {
+      return res.json({ hospital: [] });
+    }
+
+    // 몽고DB에서 병원 검색
+    const hospitals = await Hospital.find({
+      $or: [
+        { yadmNm: { $regex: query, $options: 'i' } },
+        { addr: { $regex: query, $options: 'i' } }
+      ]
+    })
+    .limit(10)
+    .lean();
+
+    res.json({
+      hospital: hospitals.map(hospital => ({
+        dbId: hospital._id.toString(),  // 몽고DB ObjectId를 문자열로 변환
+        name: hospital.yadmNm,
+        address: hospital.addr
+      }))
+    });
+  } catch (error) {
+    console.error('병원 검색 오류:', error);
+    res.status(500).json({ error: '병원 검색에 실패했습니다.' });
+  }
+});
+
 module.exports = router;

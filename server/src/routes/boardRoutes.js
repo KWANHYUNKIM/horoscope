@@ -5,8 +5,14 @@ const adminAuth = require('../middleware/adminAuth');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { Client } = require('@elastic/elasticsearch');
 
 const router = express.Router();
+
+// Elasticsearch 클라이언트 설정
+const elasticClient = new Client({
+  node: process.env.ELASTICSEARCH_URL || 'http://localhost:9200'
+});
 
 // 카테고리 조회
 router.get('/categories', async (req, res) => {
@@ -611,38 +617,116 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 });
 
 // 댓글 목록 조회
-router.get('/:id/comments', async (req, res) => {
+router.get('/:boardId/comments', async (req, res) => {
+  const { boardId } = req.params;
+  const { page = 1, limit = 10 } = req.query;
+  const offset = (page - 1) * limit;
+
   try {
-    const [comments] = await pool.query(
-      `SELECT 
-        c.*,
-        u.username
-      FROM hospital_board_comments c
-      JOIN hospital_users u ON c.user_id = u.id
-      WHERE c.board_id = ?
-      ORDER BY c.created_at ASC`,
-      [req.params.id]
-    );
-    res.json(comments);
+    const conn = await pool.getConnection();
+    try {
+      // 댓글과 작성자 정보 조회
+      const [comments] = await conn.query(`
+        SELECT 
+          c.*,
+          u.username,
+          u.nickname,
+          u.profile_image as author_profile_image,
+          GROUP_CONCAT(DISTINCT et.entity_id) as hospital_ids,
+          GROUP_CONCAT(DISTINCT et.id) as entity_tag_ids,
+          GROUP_CONCAT(DISTINCT tt.type_name) as entity_tag_types
+        FROM hospital_board_comments c
+        LEFT JOIN hospital_users u ON c.user_id = u.id
+        LEFT JOIN hospital_comment_entity_tags cet ON c.id = cet.comment_id
+        LEFT JOIN hospital_entity_tags et ON cet.entity_tag_id = et.id
+        LEFT JOIN hospital_tag_types tt ON et.tag_type_id = tt.id
+        WHERE c.board_id = ?
+        GROUP BY c.id
+        ORDER BY c.created_at DESC
+        LIMIT ? OFFSET ?
+      `, [boardId, parseInt(limit), parseInt(offset)]);
+
+      // 병원 정보 조회
+      const hospitalIds = comments
+        .map(comment => comment.hospital_ids)
+        .filter(Boolean)
+        .join(',')
+        .split(',')
+        .filter(Boolean);
+
+      let hospitals = [];
+      if (hospitalIds.length > 0) {
+        const { body } = await elasticClient.search({
+          index: 'hospitals',
+          body: {
+            query: {
+              terms: {
+                ykiho: hospitalIds
+              }
+            }
+          }
+        });
+
+        hospitals = body.hits.hits.map(hit => ({
+          id: hit._source.ykiho,
+          name: hit._source.yadmnm,
+          address: hit._source.addr
+        }));
+      }
+
+      // 댓글에 병원 정보와 엔티티 태그 정보 매핑
+      const commentsWithDetails = comments.map(comment => {
+        const commentHospitalIds = comment.hospital_ids ? comment.hospital_ids.split(',') : [];
+        const commentHospitals = hospitals.filter(hospital => 
+          commentHospitalIds.includes(hospital.id)
+        );
+
+        // 엔티티 태그 정보 구성
+        const entityTags = comment.entity_tag_ids ? 
+          comment.entity_tag_ids.split(',').map((id, index) => ({
+            id: parseInt(id),
+            type: comment.entity_tag_types.split(',')[index],
+            entityId: commentHospitalIds[index],
+            entityName: hospitals.find(h => h.id === commentHospitalIds[index])?.name
+          })) : [];
+
+        return {
+          ...comment,
+          hospitals: commentHospitals,
+          entityTags
+        };
+      });
+
+      res.json({
+        comments: commentsWithDetails,
+        totalCount: comments.length
+      });
+    } finally {
+      conn.release();
+    }
   } catch (error) {
-    console.error('댓글 목록 조회 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    console.error('Error fetching comments:', error);
+    res.status(500).json({ error: '댓글을 불러오는 중 오류가 발생했습니다.' });
   }
 });
 
 // 댓글 작성
 router.post('/:id/comments', authenticateToken, async (req, res) => {
-  const { comment, parent_id } = req.body;
-  const userId = req.user.id;
-
+  const conn = await pool.getConnection();
   try {
-    // 게시글의 카테고리 정보 조회
-    const [board] = await pool.query(
-      `SELECT c.allow_comments 
+    await conn.beginTransaction();
+
+    const { comment, entityTags } = req.body;
+    const userId = req.user.id;
+    const boardId = req.params.id;
+
+    // 게시글 존재 여부 확인
+    const [board] = await conn.query(
+      `SELECT b.*, c.allow_comments 
        FROM hospital_board b
        JOIN hospital_board_categories c ON b.category_id = c.id
        WHERE b.id = ?`,
-      [req.params.id]
+      [boardId]
     );
 
     if (board.length === 0) {
@@ -653,26 +737,115 @@ router.post('/:id/comments', authenticateToken, async (req, res) => {
       return res.status(403).json({ message: '이 카테고리에서는 댓글을 작성할 수 없습니다.' });
     }
 
-    // parent_id가 있는 경우 해당 댓글이 존재하는지 확인
-    if (parent_id) {
-      const [parentComment] = await pool.query(
-        'SELECT id FROM hospital_board_comments WHERE id = ? AND board_id = ?',
-        [parent_id, req.params.id]
-      );
+    // 댓글 작성
+    const [result] = await conn.query(
+      'INSERT INTO hospital_board_comments (board_id, user_id, comment) VALUES (?, ?, ?)',
+      [boardId, userId, comment]
+    );
+    const commentId = result.insertId;
 
-      if (parentComment.length === 0) {
-        return res.status(404).json({ message: '부모 댓글을 찾을 수 없습니다.' });
+    // 엔티티 태그 처리
+    if (entityTags && entityTags.length > 0) {
+      for (const tag of entityTags) {
+        // 엔티티 태그 생성 또는 조회
+        const [existingTag] = await conn.query(
+          'SELECT id FROM hospital_entity_tags WHERE tag_type_id = ? AND entity_id = ?',
+          [tag.typeId, tag.entityId]
+        );
+
+        let entityTagId;
+        if (existingTag.length > 0) {
+          entityTagId = existingTag[0].id;
+        } else {
+          const [newTag] = await conn.query(
+            'INSERT INTO hospital_entity_tags (tag_type_id, entity_id) VALUES (?, ?)',
+            [tag.typeId, tag.entityId]
+          );
+          entityTagId = newTag.insertId;
+        }
+
+        // 댓글-엔티티 태그 매핑
+        await conn.query(
+          'INSERT INTO hospital_comment_entity_tags (comment_id, entity_tag_id) VALUES (?, ?)',
+          [commentId, entityTagId]
+        );
       }
     }
 
-    await pool.query(
-      'INSERT INTO hospital_board_comments (board_id, user_id, comment, parent_id) VALUES (?, ?, ?, ?)',
-      [req.params.id, userId, comment, parent_id || null]
+    await conn.commit();
+
+    // 작성된 댓글 정보 조회
+    const [newComment] = await conn.query(`
+      SELECT 
+        c.*,
+        u.username,
+        u.nickname,
+        GROUP_CONCAT(DISTINCT et.entity_id) as hospital_ids,
+        GROUP_CONCAT(DISTINCT et.id) as entity_tag_ids,
+        GROUP_CONCAT(DISTINCT tt.type_name) as entity_tag_types
+      FROM hospital_board_comments c
+      JOIN hospital_users u ON c.user_id = u.id
+      LEFT JOIN hospital_comment_entity_tags cet ON c.id = cet.comment_id
+      LEFT JOIN hospital_entity_tags et ON cet.entity_tag_id = et.id
+      LEFT JOIN hospital_tag_types tt ON et.tag_type_id = tt.id
+      WHERE c.id = ?
+      GROUP BY c.id`,
+      [commentId]
     );
-    res.status(201).json({ message: '댓글이 작성되었습니다.' });
+
+    // 병원 정보 조회
+    let hospitalTags = [];
+    if (newComment[0].hospital_ids) {
+      const hospitalIds = newComment[0].hospital_ids.split(',');
+      const response = await elasticClient.search({
+        index: 'hospitals',
+        body: {
+          query: {
+            terms: {
+              ykiho: hospitalIds
+            }
+          }
+        }
+      });
+
+      if (response.hits && response.hits.hits) {
+        hospitalTags = response.hits.hits.map(hit => ({
+          id: hit._source.ykiho,
+          name: hit._source.yadmnm,
+          address: hit._source.addr
+        }));
+      }
+    }
+
+    // 엔티티 태그 정보 구성
+    const entityTagInfo = newComment[0].entity_tag_ids ? 
+      newComment[0].entity_tag_ids.split(',').map((id, index) => {
+        const hospitalId = newComment[0].hospital_ids.split(',')[index];
+        const hospital = hospitalTags.find(h => h.id === hospitalId);
+        return {
+          id: parseInt(id),
+          type: newComment[0].entity_tag_types.split(',')[index],
+          entityId: hospitalId,
+          entityName: hospital?.name
+        };
+      }) : [];
+
+    const commentData = {
+      ...newComment[0],
+      hospitals: hospitalTags,
+      entityTags: entityTagInfo
+    };
+
+    res.status(201).json({
+      success: true,
+      comment: commentData
+    });
   } catch (error) {
+    await conn.rollback();
     console.error('댓글 작성 오류:', error);
     res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  } finally {
+    conn.release();
   }
 });
 
@@ -1054,6 +1227,37 @@ router.put('/categories/:id/move-down', authenticateToken, isAdmin, async (req, 
   } catch (error) {
     console.error('카테고리 이동 오류:', error);
     res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 병원 검색 API
+router.get('/autocomplete', async (req, res) => {
+  try {
+    const { query } = req.query;
+    if (!query) {
+      return res.json({ hospital: [] });
+    }
+
+    // 몽고DB에서 병원 검색
+    const hospitals = await Hospital.find({
+      $or: [
+        { name: { $regex: query, $options: 'i' } },
+        { address: { $regex: query, $options: 'i' } }
+      ]
+    })
+    .limit(10)
+    .lean();
+
+    res.json({
+      hospital: hospitals.map(hospital => ({
+        dbId: hospital._id.toString(),  // 몽고DB ObjectId를 문자열로 변환
+        name: hospital.name,
+        address: hospital.address
+      }))
+    });
+  } catch (error) {
+    console.error('병원 검색 오류:', error);
+    res.status(500).json({ error: '병원 검색에 실패했습니다.' });
   }
 });
 
