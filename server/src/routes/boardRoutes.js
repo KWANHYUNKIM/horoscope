@@ -656,22 +656,29 @@ router.get('/:boardId/comments', async (req, res) => {
 
       let hospitals = [];
       if (hospitalIds.length > 0) {
-        const { body } = await elasticClient.search({
-          index: 'hospitals',
-          body: {
-            query: {
-              terms: {
-                ykiho: hospitalIds
+        try {
+          const { body } = await elasticClient.search({
+            index: 'hospitals',
+            body: {
+              query: {
+                terms: {
+                  ykiho: hospitalIds
+                }
               }
             }
-          }
-        });
+          });
 
-        hospitals = body.hits.hits.map(hit => ({
-          id: hit._source.ykiho,
-          name: hit._source.yadmnm,
-          address: hit._source.addr
-        }));
+          if (body && body.hits && body.hits.hits) {
+            hospitals = body.hits.hits.map(hit => ({
+              id: hit._source.ykiho,
+              name: hit._source.yadmnm,
+              address: hit._source.addr
+            }));
+          }
+        } catch (elasticError) {
+          console.error('Elasticsearch 조회 오류:', elasticError);
+          // Elasticsearch 오류가 발생해도 계속 진행
+        }
       }
 
       // 댓글에 병원 정보와 엔티티 태그 정보 매핑
@@ -747,6 +754,10 @@ router.post('/:id/comments', authenticateToken, async (req, res) => {
     // 엔티티 태그 처리
     if (entityTags && entityTags.length > 0) {
       for (const tag of entityTags) {
+        if (!tag.typeId || !tag.entityId) {
+          continue;
+        }
+
         // 엔티티 태그 생성 또는 조회
         const [existingTag] = await conn.query(
           'SELECT id FROM hospital_entity_tags WHERE tag_type_id = ? AND entity_id = ?',
@@ -795,7 +806,7 @@ router.post('/:id/comments', authenticateToken, async (req, res) => {
 
     // 병원 정보 조회
     let hospitalTags = [];
-    if (newComment[0].hospital_ids) {
+    if (newComment[0]?.hospital_ids) {
       const hospitalIds = newComment[0].hospital_ids.split(',');
       const response = await elasticClient.search({
         index: 'hospitals',
@@ -818,9 +829,9 @@ router.post('/:id/comments', authenticateToken, async (req, res) => {
     }
 
     // 엔티티 태그 정보 구성
-    const entityTagInfo = newComment[0].entity_tag_ids ? 
+    const entityTagInfo = newComment[0]?.entity_tag_ids && newComment[0]?.entity_tag_types ? 
       newComment[0].entity_tag_ids.split(',').map((id, index) => {
-        const hospitalId = newComment[0].hospital_ids.split(',')[index];
+        const hospitalId = newComment[0].hospital_ids?.split(',')[index];
         const hospital = hospitalTags.find(h => h.id === hospitalId);
         return {
           id: parseInt(id),

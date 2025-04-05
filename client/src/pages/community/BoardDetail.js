@@ -23,6 +23,9 @@ const BoardDetail = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [taggedHospitals, setTaggedHospitals] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showEntityTagModal, setShowEntityTagModal] = useState(false);
+  const [entityTags, setEntityTags] = useState([]);
 
   // 댓글 목록 조회 시 병원 정보도 함께 가져오기
   const fetchComments = React.useCallback(async () => {
@@ -255,16 +258,16 @@ const BoardDetail = () => {
               >
                 {part}
               </span>
-              <div className="absolute bottom-full left-0 mb-2 w-64 bg-white border border-gray-300 rounded-lg shadow-lg p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50">
-                <h3 className="font-bold text-sm mb-1">{hospital.name}</h3>
-                <p className="text-xs text-gray-600 mb-1">{hospital.address}</p>
+              <span className="absolute bottom-full left-0 mb-2 w-64 bg-white border border-gray-300 rounded-lg shadow-lg p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50">
+                <span className="font-bold text-sm mb-1 block">{hospital.name}</span>
+                <span className="text-xs text-gray-600 mb-1 block">{hospital.address}</span>
                 <button 
                   className="mt-2 text-xs text-blue-600 hover:text-blue-800"
                   onClick={() => navigate(`/hospitals?query=${encodeURIComponent(hospitalName)}`)}
                 >
                   상세 정보 보기
                 </button>
-              </div>
+              </span>
             </span>
           );
         } else {
@@ -449,7 +452,7 @@ const BoardDetail = () => {
   };
 
   // 댓글 작성 후 목록 새로고침
-  const handleNewCommentSubmit = async (commentData) => {
+  const handleNewCommentSubmit = async (comment, entityTags = []) => {
     if (!isLoggedIn) {
       alert('로그인이 필요합니다.');
       navigate('/login');
@@ -457,19 +460,31 @@ const BoardDetail = () => {
     }
 
     try {
-      const response = await axios.post(`${getApiUrl()}/api/boards/${id}/comments`, {
-        comment: commentData.comment,
-        entityTags: commentData.entityTags
-      }, { withCredentials: true });
+      setIsSubmitting(true);
+      const response = await axios.post(
+        `${getApiUrl()}/api/boards/${id}/comments`,
+        { 
+          comment, 
+          entityTags: Array.isArray(entityTags) ? entityTags.map(tag => ({
+            typeId: 1, // 병원 태그 타입 ID
+            entityId: tag.id
+          })) : []
+        },
+        { withCredentials: true }
+      );
 
-      console.log('댓글 작성 응답:', response.data);
-      await fetchComments(); // 댓글 목록 새로고침
+      if (response.data.success) {
+        // 기존 댓글 목록에 새 댓글 추가
+        setComments(prevComments => [response.data.comment, ...prevComments]);
+        setNewComment('');
+        setEntityTags([]);
+        setShowEntityTagModal(false);
+      }
     } catch (error) {
       console.error('댓글 작성 실패:', error);
-      if (error.response?.status === 401) {
-        alert('로그인이 필요합니다.');
-        navigate('/login');
-      }
+      alert('댓글 작성에 실패했습니다.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
