@@ -148,88 +148,103 @@ const CreateBoardPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5]">
-      <div className="max-w-full mx-auto p-6">
-        <div className="flex gap-6">
-          {/* 왼쪽 사이드바 - 카테고리 트리 */}
-          <div className="w-1/4">
-            <CategoryTree onSelectCategory={setSelectedCategory} selectedCategoryId={selectedCategory} />
-          </div>
+    <div className="max-w-7xl mx-auto p-6">
+      <div className="flex gap-6">
+        {/* 왼쪽 사이드바 - 카테고리 트리 */}
+        <div className="w-1/4">
+          <CategoryTree
+            onSelectCategory={handleCategorySelect}
+            selectedCategoryId={sidebarSelectedCategory}
+          />
+        </div>
 
-          {/* 오른쪽 메인 컨텐츠 */}
-          <div className="flex-1">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <div className="space-y-6">
-                {/* 제목 입력 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">제목</label>
-                  <input
-                    type="text"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="제목을 입력하세요"
-                    required
-                  />
-                </div>
+        {/* 오른쪽 메인 컨텐츠 */}
+        <div className="flex-1">
+          <h1 className="text-2xl font-bold mb-6">게시글 작성</h1>
 
-                {/* 내용 입력 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">내용</label>
-                  <ReactQuill
-                    value={content}
-                    onChange={setContent}
-                    modules={modules}
-                    formats={formats}
-                    className="h-96 mb-12"
-                  />
-                </div>
+          <div className="bg-white rounded-lg shadow-md p-6">
+            {/* 카테고리 선택 */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">카테고리</label>
+              <select
+                value={selectedCategory}
+                onChange={handleFormCategoryChange}
+                className="w-full p-2 border border-gray-300 rounded-md"
+                required
+              >
+                <option value="">카테고리를 선택하세요</option>
+                {categories.map(category => (
+                  <option key={category.id} value={category.id}>
+                    {category.category_name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-                {/* 태그 입력 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">태그</label>
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {selectedTags.map((tag, index) => (
-                      <span
-                        key={index}
-                        className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center"
-                      >
-                        {tag}
-                        <button
-                          onClick={() => removeTag(tag)}
-                          className="ml-2 text-blue-600 hover:text-blue-800"
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                  <input
-                    type="text"
-                    value={tagInput}
-                    onChange={handleTagInputChange}
-                    onKeyDown={handleTagKeyDown}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="#태그 입력 후 스페이스바 또는 엔터"
-                  />
-                </div>
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">제목</label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md"
+                placeholder="제목을 입력하세요"
+                required
+              />
+            </div>
 
-                {/* 버튼 */}
-                <div className="flex justify-end space-x-4">
-                  <button
-                    onClick={() => navigate(-1)}
-                    className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200"
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">내용</label>
+              <ReactQuill
+                value={content}
+                onChange={setContent}
+                modules={modules}
+                formats={formats}
+                className="h-96 mb-12"
+              />
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">태그</label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {selectedTags.map((tag, index) => (
+                  <span
+                    key={index}
+                    className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm flex items-center"
                   >
-                    취소
-                  </button>
-                  <button
-                    onClick={handleSubmit}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
-                  >
-                    작성하기
-                  </button>
-                </div>
+                    {tag}
+                    <button
+                      onClick={() => removeTag(tag)}
+                      className="ml-1 text-blue-600 hover:text-blue-800"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
               </div>
+              <input
+                type="text"
+                value={tagInput}
+                onChange={handleTagInputChange}
+                onKeyDown={handleTagKeyDown}
+                className="w-full p-2 border border-gray-300 rounded-md"
+                placeholder="#태그 입력 후 스페이스바 또는 엔터"
+              />
+            </div>
+
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => navigate(-1)}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleSubmit}
+                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+              >
+                작성하기
+              </button>
             </div>
           </div>
         </div>

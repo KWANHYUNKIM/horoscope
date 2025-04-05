@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import BoardList from './BoardList';
 import { getApiUrl } from '../../utils/api';
 import CategoryTree from '../../components/CategoryTree';
+import Comment from '../../components/Comment';
 
 const BoardDetail = () => {
   const { id } = useParams();
@@ -21,6 +22,7 @@ const BoardDetail = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [taggedHospitals, setTaggedHospitals] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -41,6 +43,15 @@ const BoardDetail = () => {
         setRelatedBoards(relatedBoardsResponse.data.boards);
         setTotalPages(relatedBoardsResponse.data.totalPages);
         setCurrentPage(relatedBoardsResponse.data.currentPage);
+        
+        // 태그된 병원 정보 가져오기
+        if (boardResponse.data.tagged_hospitals && boardResponse.data.tagged_hospitals.length > 0) {
+          const hospitalPromises = boardResponse.data.tagged_hospitals.map(hospitalId => 
+            axios.get(`${getApiUrl()}/api/hospitals/${hospitalId}`, { withCredentials: true })
+          );
+          const hospitalResponses = await Promise.all(hospitalPromises);
+          setTaggedHospitals(hospitalResponses.map(res => res.data));
+        }
       } catch (error) {
         console.error('데이터 로딩 실패:', error);
         if (error.response?.status === 401) {
@@ -391,131 +402,120 @@ const BoardDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5]">
-      <div className="max-w-full mx-auto p-6">
-        <div className="flex gap-6">
-          {/* 왼쪽 사이드바 - 카테고리 트리 */}
-          <div className="w-1/4">
-            <CategoryTree onSelectCategory={() => {}} selectedCategoryId={null} />
-          </div>
-
-          {/* 오른쪽 메인 컨텐츠 */}
-          <div className="flex-1">
-            <div className="max-w-4xl mx-auto">
-              {board && (
-                <div className="bg-white rounded-lg shadow-md p-6">
-                  {/* 상단 헤더 영역 */}
-                  <div className="border-b border-gray-100 pb-4 mb-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h1 className="text-2xl font-bold text-gray-800 font-['Pretendard'] mb-2">{board.title}</h1>
-                        <div className="flex items-center text-gray-600 text-xs">
-                          <span className="mr-4">작성자: {board.author_name}</span>
-                          <span className="mr-4">작성일: {new Date(board.created_at).toLocaleString()}</span>
-                          <span>조회: {board.view_count}</span>
-                        </div>
-                      </div>
-                      {isLoggedIn && (board.user_id === userId || userRole === 'admin') && (
-                        <div className="flex space-x-3">
-                          <button
-                            onClick={handleEditBoard}
-                            className="px-3 py-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
-                          >
-                            수정
-                          </button>
-                          <button
-                            onClick={handleDeleteBoard}
-                            className="px-3 py-1.5 text-sm text-red-600 hover:text-red-800 font-medium transition-colors"
-                          >
-                            삭제
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* 본문 내용 */}
-                  <div className="mt-4">
-                    <p className="text-sm text-gray-700 leading-relaxed" dangerouslySetInnerHTML={{ __html: board.content }}></p>
-                  </div>
-
-                  {/* 댓글 섹션 */}
-                  <div className="mt-4 mb-8">
-                    <h3 className="text-xl font-bold text-gray-800 mb-4 font-['Pretendard']">
-                      댓글 ({comments.filter(c => !c.is_deleted).length})
-                    </h3>
-                    
-                    {/* 새 댓글 작성 폼 */}
-                    <div className="mb-6 bg-gray-50 rounded-lg p-4">
-                      <textarea
-                        value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
-                        className="w-full p-3 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
-                        rows="2"
-                        placeholder="댓글을 입력하세요..."
-                      />
-                      <div className="flex justify-end mt-3">
-                        <button
-                          onClick={handleNewCommentSubmit}
-                          className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                        >
-                          댓글 작성
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* 댓글 목록 */}
-                    <div className="space-y-4">
-                      {buildCommentTree(comments).map(comment => renderCommentTree(comment))}
-                    </div>
-                  </div>
-
-                  {/* 관련 게시글 목록 */}
-                  <div className="mt-8 border-t border-gray-100 pt-8">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-xl font-bold text-gray-800 font-['Pretendard']">
-                        카테고리 리스트
-                      </h3>
-                      {totalPages > 1 && (
-                        <div className="flex space-x-2">
-                          {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                            let pageNum;
-                            if (totalPages <= 5) {
-                              pageNum = i + 1;
-                            } else {
-                              if (currentPage <= 3) {
-                                pageNum = i + 1;
-                              } else if (currentPage >= totalPages - 2) {
-                                pageNum = totalPages - 4 + i;
-                              } else {
-                                pageNum = currentPage - 2 + i;
-                              }
-                            }
-                            return (
-                              <button
-                                key={pageNum}
-                                onClick={() => setCurrentPage(pageNum)}
-                                className={`px-3 py-1 text-sm font-medium rounded-lg transition-colors ${
-                                  currentPage === pageNum
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                }`}
-                              >
-                                {pageNum}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                    <BoardList boards={relatedBoards} />
-                  </div>
+    <div className="max-w-4xl mx-auto px-4 py-6">
+      {board && (
+        <div className="bg-white rounded-lg shadow-md p-6">
+          {/* 상단 헤더 영역 */}
+          <div className="border-b border-gray-100 pb-4 mb-6">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-800 font-['Pretendard'] mb-2">{board.title}</h1>
+                <div className="flex items-center text-gray-600 text-xs">
+                  <span className="mr-4">작성자: {board.author_name}</span>
+                  <span className="mr-4">작성일: {new Date(board.created_at).toLocaleString()}</span>
+                  <span>조회: {board.view_count}</span>
+                </div>
+              </div>
+              {isLoggedIn && (board.user_id === userId || userRole === 'admin') && (
+                <div className="flex space-x-3">
+                  <button
+                    onClick={handleEditBoard}
+                    className="px-3 py-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                  >
+                    수정
+                  </button>
+                  <button
+                    onClick={handleDeleteBoard}
+                    className="px-3 py-1.5 text-sm text-red-600 hover:text-red-800 font-medium transition-colors"
+                  >
+                    삭제
+                  </button>
                 </div>
               )}
             </div>
           </div>
+
+          {/* 본문 내용 */}
+          <div className="mt-4">
+            <p className="text-sm text-gray-700 leading-relaxed" dangerouslySetInnerHTML={{ __html: board.content }}></p>
+          </div>
+
+          {/* 태그된 병원 표시 */}
+          {taggedHospitals.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-sm font-medium text-gray-700 mb-2">태그된 병원</h3>
+              <div className="flex flex-wrap gap-2">
+                {taggedHospitals.map(hospital => (
+                  <span
+                    key={hospital.id}
+                    className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                  >
+                    {hospital.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 댓글 섹션 */}
+          <div className="mt-4 mb-8">
+            <h3 className="text-xl font-bold text-gray-800 mb-4 font-['Pretendard']">
+              댓글 ({comments.filter(c => !c.is_deleted).length})
+            </h3>
+            
+            {/* 새 댓글 작성 폼 */}
+            <div className="mb-6 bg-gray-50 rounded-lg p-4">
+              <Comment onSubmit={handleNewCommentSubmit} />
+            </div>
+
+            {/* 댓글 목록 */}
+            <div className="space-y-4">
+              {buildCommentTree(comments).map(comment => renderCommentTree(comment))}
+            </div>
+          </div>
+
+          {/* 관련 게시글 목록 */}
+          <div className="mt-8 border-t border-gray-100 pt-8">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-800 font-['Pretendard']">
+                카테고리 리스트
+              </h3>
+              {totalPages > 1 && (
+                <div className="flex space-x-2">
+                  {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else {
+                      if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                    }
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`px-3 py-1 text-sm font-medium rounded-lg transition-colors ${
+                          currentPage === pageNum
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <BoardList boards={relatedBoards} />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
