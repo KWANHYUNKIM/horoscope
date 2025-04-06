@@ -40,22 +40,29 @@ const OperatingStatus = ({ schedule }) => {
   // 문자열을 분 단위 숫자로 변환 (예: "0900" → 540)
   const timeToMinutes = (timeStr) => {
     if (!timeStr || timeStr === "-") return null;
-    const strTime = String(timeStr).padStart(4, "0");
-    const hour = parseInt(strTime.slice(0, 2), 10);
-    const minute = parseInt(strTime.slice(2, 4), 10);
+    // 숫자형이면 문자열로 변환
+    const strTime = String(timeStr);
+    // 3자리 시간을 4자리로 변환 (예: 930 -> 0930)
+    const paddedTime = strTime.padStart(4, "0");
+    const hour = parseInt(paddedTime.slice(0, 2), 10);
+    const minute = parseInt(paddedTime.slice(2, 4), 10);
     return hour * 60 + minute;
   };
 
   // 숫자형/문자열 시간을 "HH:MM" 형식으로 포맷팅
   const formatTime = (timeStr) => {
     if (!timeStr || timeStr === "-") return "-";
-    const strTime = String(timeStr).padStart(4, "0");
-    return `${strTime.slice(0, 2)}:${strTime.slice(2, 4)}`;
+    // 숫자형이면 문자열로 변환
+    const strTime = String(timeStr);
+    // 3자리 시간을 4자리로 변환 (예: 930 -> 0930)
+    const paddedTime = strTime.padStart(4, "0");
+    return `${paddedTime.slice(0, 2)}:${paddedTime.slice(2, 4)}`;
   };
 
   const nowInMinutes = currentHour * 60 + currentMinute;
-  const openTime = timeToMinutes(schedule[today]?.openTime);
-  const closeTime = timeToMinutes(schedule[today]?.closeTime);
+  const todaySchedule = schedule[today];
+  const openTime = todaySchedule ? timeToMinutes(todaySchedule.openTime) : null;
+  const closeTime = todaySchedule ? timeToMinutes(todaySchedule.closeTime) : null;
 
   // 브레이크타임 파싱
   let lunchStart = null,
@@ -92,11 +99,8 @@ const OperatingStatus = ({ schedule }) => {
       statusClass = "bg-red-100 text-red-600";
     }
   } else {
-    return (
-      <div className="px-3 py-1 rounded-md text-sm bg-gray-100 text-gray-500">
-        영업시간 정보 없음
-      </div>
-    );
+    status = "휴무";
+    statusClass = "bg-blue-100 text-blue-600";
   }
 
   return (
@@ -128,7 +132,7 @@ const OperatingStatus = ({ schedule }) => {
                     {formatTime(daySchedule.closeTime)}
                   </span>
                 ) : (
-                  <span>정보 없음</span>
+                  <span>휴무</span>
                 )}
               </div>
             );
