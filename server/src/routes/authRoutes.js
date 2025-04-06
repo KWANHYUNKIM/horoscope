@@ -154,7 +154,6 @@ router.get('/check-admin', authenticateToken, (req, res) => {
 // 인증 상태 확인
 router.get('/check-auth', authenticateToken, async (req, res) => {
   try {
-    console.log('Check auth user:', req.user); // 디버깅용 로그
     
     // 사용자 정보 조회 (roles 테이블과 JOIN)
     const [users] = await pool.query(

@@ -723,9 +723,14 @@ router.post('/:id/comments', authenticateToken, async (req, res) => {
   try {
     await conn.beginTransaction();
 
-    const { comment, entityTags } = req.body;
-    const userId = req.user.id;
     const boardId = req.params.id;
+    const userId = req.user.id;
+    let commentText = req.body.comment;
+
+    // 댓글이 객체로 전달된 경우 comment 필드 추출
+    if (typeof commentText === 'object' && commentText !== null) {
+      commentText = commentText.comment || '';
+    }
 
     // 게시글 존재 여부 확인
     const [board] = await conn.query(
@@ -747,109 +752,25 @@ router.post('/:id/comments', authenticateToken, async (req, res) => {
     // 댓글 작성
     const [result] = await conn.query(
       'INSERT INTO hospital_board_comments (board_id, user_id, comment) VALUES (?, ?, ?)',
-      [boardId, userId, comment]
+      [boardId, userId, commentText]
     );
-    const commentId = result.insertId;
-
-    // 엔티티 태그 처리
-    if (entityTags && entityTags.length > 0) {
-      for (const tag of entityTags) {
-        if (!tag.typeId || !tag.entityId) {
-          continue;
-        }
-
-        // 엔티티 태그 생성 또는 조회
-        const [existingTag] = await conn.query(
-          'SELECT id FROM hospital_entity_tags WHERE tag_type_id = ? AND entity_id = ?',
-          [tag.typeId, tag.entityId]
-        );
-
-        let entityTagId;
-        if (existingTag.length > 0) {
-          entityTagId = existingTag[0].id;
-        } else {
-          const [newTag] = await conn.query(
-            'INSERT INTO hospital_entity_tags (tag_type_id, entity_id) VALUES (?, ?)',
-            [tag.typeId, tag.entityId]
-          );
-          entityTagId = newTag.insertId;
-        }
-
-        // 댓글-엔티티 태그 매핑
-        await conn.query(
-          'INSERT INTO hospital_comment_entity_tags (comment_id, entity_tag_id) VALUES (?, ?)',
-          [commentId, entityTagId]
-        );
-      }
-    }
-
-    await conn.commit();
 
     // 작성된 댓글 정보 조회
     const [newComment] = await conn.query(`
       SELECT 
         c.*,
         u.username,
-        u.nickname,
-        GROUP_CONCAT(DISTINCT et.entity_id) as hospital_ids,
-        GROUP_CONCAT(DISTINCT et.id) as entity_tag_ids,
-        GROUP_CONCAT(DISTINCT tt.type_name) as entity_tag_types
+        u.nickname
       FROM hospital_board_comments c
       JOIN hospital_users u ON c.user_id = u.id
-      LEFT JOIN hospital_comment_entity_tags cet ON c.id = cet.comment_id
-      LEFT JOIN hospital_entity_tags et ON cet.entity_tag_id = et.id
-      LEFT JOIN hospital_tag_types tt ON et.tag_type_id = tt.id
-      WHERE c.id = ?
-      GROUP BY c.id`,
-      [commentId]
+      WHERE c.id = ?`,
+      [result.insertId]
     );
 
-    // 병원 정보 조회
-    let hospitalTags = [];
-    if (newComment[0]?.hospital_ids) {
-      const hospitalIds = newComment[0].hospital_ids.split(',');
-      const response = await elasticClient.search({
-        index: 'hospitals',
-        body: {
-          query: {
-            terms: {
-              ykiho: hospitalIds
-            }
-          }
-        }
-      });
-
-      if (response.hits && response.hits.hits) {
-        hospitalTags = response.hits.hits.map(hit => ({
-          id: hit._source.ykiho,
-          name: hit._source.yadmnm,
-          address: hit._source.addr
-        }));
-      }
-    }
-
-    // 엔티티 태그 정보 구성
-    const entityTagInfo = newComment[0]?.entity_tag_ids && newComment[0]?.entity_tag_types ? 
-      newComment[0].entity_tag_ids.split(',').map((id, index) => {
-        const hospitalId = newComment[0].hospital_ids?.split(',')[index];
-        const hospital = hospitalTags.find(h => h.id === hospitalId);
-        return {
-          id: parseInt(id),
-          type: newComment[0].entity_tag_types.split(',')[index],
-          entityId: hospitalId,
-          entityName: hospital?.name
-        };
-      }) : [];
-
-    const commentData = {
-      ...newComment[0],
-      hospitals: hospitalTags,
-      entityTags: entityTagInfo
-    };
-
+    await conn.commit();
     res.status(201).json({
       success: true,
-      comment: commentData
+      comment: newComment[0]
     });
   } catch (error) {
     await conn.rollback();
@@ -958,10 +879,10 @@ router.get('/category/:categoryId', async (req, res) => {
         (SELECT COUNT(*) FROM hospital_board_likes WHERE board_id = b.id) as like_count,
         (SELECT COUNT(*) FROM hospital_board_comments WHERE board_id = b.id) as comment_count,
         (SELECT COUNT(*) FROM hospital_board_views WHERE board_id = b.id) as view_count
-      FROM hospital_boards b
+      FROM hospital_board b
       JOIN hospital_board_categories c ON b.category_id = c.id
       JOIN hospital_board_category_types ct ON c.category_type_id = ct.id
-      JOIN users u ON b.user_id = u.id
+      JOIN hospital_users u ON b.user_id = u.id
       WHERE b.category_id = ?
       ORDER BY b.created_at DESC
       LIMIT ? OFFSET ?
@@ -971,7 +892,7 @@ router.get('/category/:categoryId', async (req, res) => {
 
     // 전체 게시글 수 조회
     const [totalCount] = await pool.query(
-      'SELECT COUNT(*) as count FROM hospital_boards WHERE category_id = ?',
+      'SELECT COUNT(*) as count FROM hospital_board WHERE category_id = ?',
       [categoryId]
     );
 

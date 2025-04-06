@@ -54,11 +54,9 @@ const BoardDetail = () => {
   const fetchComments = React.useCallback(async () => {
     try {
       const commentsResponse = await axios.get(`${getApiUrl()}/api/boards/${id}/comments`, { withCredentials: true });
-      console.log('댓글 목록 응답:', commentsResponse.data);
 
       // 댓글 데이터가 배열인지 확인
       const commentsData = Array.isArray(commentsResponse.data) ? commentsResponse.data : commentsResponse.data.comments || [];
-      console.log('처리된 댓글 데이터:', commentsData);
 
       // 각 댓글의 @ 태그된 병원 정보 가져오기
       const commentsWithHospitals = await Promise.all(
@@ -263,7 +261,6 @@ const BoardDetail = () => {
   // 댓글 내용에서 @ 태그를 파싱하는 함수
   const renderCommentContent = (comment) => {
     if (!comment.comment) return '';
-    console.log('댓글 데이터:', comment);
 
     const parts = comment.comment.split(/(@[^\s]+)/g);
     return parts.map((part, index) => {
