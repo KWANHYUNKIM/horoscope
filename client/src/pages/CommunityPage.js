@@ -62,21 +62,21 @@ const CommunityPage = () => {
 
   return (
     <div className="min-h-screen bg-[#f5f5f5]">
-      <div className="max-w-full mx-auto p-6">
+      <div className="max-w-full mx-auto p-4 sm:p-6">
         {/* 상단 네비게이션 */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center space-x-6">
-            <h1 className="text-2xl font-semibold text-gray-900">커뮤니티</h1>
-            <div className="flex items-center space-x-4">
-              <button className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Overview</button>
-              <button className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">List</button>
-              <button className="px-4 py-2 text-sm text-gray-900 bg-gray-100 rounded-md">Board</button>
-              <button className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Calendar</button>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-8 gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-6">
+            <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">커뮤니티</h1>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+              <button className="px-3 sm:px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Overview</button>
+              <button className="px-3 sm:px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">List</button>
+              <button className="px-3 sm:px-4 py-2 text-sm text-gray-900 bg-gray-100 rounded-md">Board</button>
+              <button className="px-3 sm:px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md">Calendar</button>
             </div>
           </div>
           <button
             onClick={handleWriteClick}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+            className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
           >
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
@@ -85,16 +85,16 @@ const CommunityPage = () => {
           </button>
         </div>
 
-        <div className="flex gap-6">
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
           {/* 왼쪽 사이드바 - 카테고리 트리 */}
-          <div className="w-1/4">
+          <div className="w-full lg:w-1/4">
             <CategoryTree />
           </div>
 
           {/* 오른쪽 메인 컨텐츠 */}
           <div className="flex-1">
             {/* 칸반 보드 레이아웃 */}
-            <div className="grid grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {/* 최신 글 */}
               <div className="bg-[#f8f9fa] rounded-lg p-4">
                 <div className="flex items-center justify-between mb-4">
@@ -258,7 +258,7 @@ const CommunityPage = () => {
             {/* 페이지네이션 */}
             {totalPages > 1 && (
               <div className="flex justify-center mt-8">
-                <div className="flex space-x-1">
+                <div className="flex flex-wrap justify-center gap-1">
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                     <button
                       key={page}
