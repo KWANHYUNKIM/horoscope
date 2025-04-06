@@ -94,7 +94,7 @@ const CommunityPage = () => {
           {/* 오른쪽 메인 컨텐츠 */}
           <div className="flex-1">
             {/* 칸반 보드 레이아웃 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               {/* 최신 글 */}
               <div className="bg-[#f8f9fa] rounded-lg p-4">
                 <div className="flex items-center justify-between mb-4">
@@ -103,11 +103,15 @@ const CommunityPage = () => {
                     최신 글
                   </h2>
                   <span className="text-xs font-medium text-gray-500 bg-white px-2 py-1 rounded-full">
-                    {posts.filter(p => p.created_at > new Date(Date.now() - 24*60*60*1000)).length}
+                    {posts.filter(p => new Date(p.created_at) > new Date(Date.now() - 24*60*60*1000)).length}
                   </span>
                 </div>
                 <div className="space-y-3">
-                  {posts.filter(p => p.created_at > new Date(Date.now() - 24*60*60*1000)).map(post => (
+                  {posts
+                    .filter(p => new Date(p.created_at) > new Date(Date.now() - 24*60*60*1000))
+                    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                    .slice(0, 5)
+                    .map(post => (
                     <div
                       key={post.id}
                       onClick={() => handlePostClick(post.id)}
@@ -156,11 +160,15 @@ const CommunityPage = () => {
                     인기 글
                   </h2>
                   <span className="text-xs font-medium text-gray-500 bg-white px-2 py-1 rounded-full">
-                    {posts.filter(p => p.view_count > 100).length}
+                    {posts.filter(p => p.view_count >= 100).length}
                   </span>
                 </div>
                 <div className="space-y-3">
-                  {posts.filter(p => p.view_count > 100).map(post => (
+                  {posts
+                    .filter(p => p.view_count >= 100)
+                    .sort((a, b) => b.view_count - a.view_count)
+                    .slice(0, 5)
+                    .map(post => (
                     <div
                       key={post.id}
                       onClick={() => handlePostClick(post.id)}
@@ -200,58 +208,55 @@ const CommunityPage = () => {
                   ))}
                 </div>
               </div>
+            </div>
 
-              {/* 전체 글 */}
-              <div className="bg-[#f8f9fa] rounded-lg p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-sm font-semibold text-gray-900 flex items-center">
-                    <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
-                    전체 글
-                  </h2>
-                  <span className="text-xs font-medium text-gray-500 bg-white px-2 py-1 rounded-full">
-                    {posts.length}
-                  </span>
+            {/* 전체 게시글 목록 */}
+            <div className="mt-8 bg-white rounded-lg p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">전체 게시글</h2>
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-500">총 {posts.length}개</span>
                 </div>
-                <div className="space-y-3">
-                  {posts.map(post => (
-                    <div
-                      key={post.id}
-                      onClick={() => handlePostClick(post.id)}
-                      className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <h3 className="text-sm font-medium text-gray-900 line-clamp-2">{post.title}</h3>
-                        <span className="flex-shrink-0 text-xs text-gray-500 ml-2">
-                          {new Date(post.created_at).toLocaleDateString()}
+              </div>
+              <div className="space-y-4">
+                {posts.map(post => (
+                  <div
+                    key={post.id}
+                    onClick={() => handlePostClick(post.id)}
+                    className="border-b pb-4 last:border-b-0 hover:bg-gray-50 p-2 rounded-lg cursor-pointer"
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="text-base font-medium text-gray-900">{post.title}</h3>
+                      <span className="flex-shrink-0 text-xs text-gray-500 ml-2">
+                        {new Date(post.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
+                          {post.category_name}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between mt-2">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
-                            {post.category_name}
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-3 text-gray-500">
-                          <span className="text-xs flex items-center">
+                      <div className="flex items-center space-x-4 text-gray-500">
+                        <span className="text-xs flex items-center">
+                          <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          {post.view_count}
+                        </span>
+                        {post.comment_count > 0 && (
+                          <span className="text-xs flex items-center text-blue-600">
                             <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                             </svg>
-                            {post.view_count}
+                            {post.comment_count}
                           </span>
-                          {post.comment_count > 0 && (
-                            <span className="text-xs flex items-center text-blue-600">
-                              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                              </svg>
-                              {post.comment_count}
-                            </span>
-                          )}
-                        </div>
+                        )}
                       </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
             </div>
 
