@@ -128,6 +128,17 @@ const CommunityPage = () => {
                           <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
                             {post.category_name}
                           </span>
+                          {post.hospital_info && (
+                            <div className="relative group">
+                              <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full cursor-pointer hover:bg-green-200">
+                                @{post.hospital_info.name}
+                              </span>
+                              <div className="absolute -top-12 right-0 bg-white shadow-lg rounded-lg p-1.5 min-w-[120px] max-w-[160px] z-10 opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-200">
+                                <div className="text-xs font-medium text-gray-900 truncate">{post.hospital_info.name}</div>
+                                <div className="text-xs text-gray-500 mt-0.5 truncate">{post.hospital_info.address}</div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                         <div className="flex items-center space-x-3 text-gray-500">
                           <span className="text-xs flex items-center">
@@ -185,6 +196,17 @@ const CommunityPage = () => {
                           <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
                             {post.category_name}
                           </span>
+                          {post.hospital_info && (
+                            <div className="relative group">
+                              <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full cursor-pointer hover:bg-green-200">
+                                @{post.hospital_info.name}
+                              </span>
+                              <div className="absolute -top-12 right-0 bg-white shadow-lg rounded-lg p-1.5 min-w-[120px] max-w-[160px] z-10 opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-200">
+                                <div className="text-xs font-medium text-gray-900 truncate">{post.hospital_info.name}</div>
+                                <div className="text-xs text-gray-500 mt-0.5 truncate">{post.hospital_info.address}</div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                         <div className="flex items-center space-x-3 text-gray-500">
                           <span className="text-xs flex items-center">
@@ -222,11 +244,10 @@ const CommunityPage = () => {
                 {posts.map(post => (
                   <div
                     key={post.id}
-                    onClick={() => handlePostClick(post.id)}
-                    className="border-b pb-4 last:border-b-0 hover:bg-gray-50 p-2 rounded-lg cursor-pointer"
+                    className="border-b pb-4 last:border-b-0 hover:bg-gray-50 p-2 rounded-lg"
                   >
-                    <div className="flex items-start justify-between mb-2">
-                      <h3 className="text-base font-medium text-gray-900">{post.title}</h3>
+                    <div className="flex items-start justify-between mb-2" onClick={() => handlePostClick(post.id)}>
+                      <h3 className="text-base font-medium text-gray-900 cursor-pointer">{post.title}</h3>
                       <span className="flex-shrink-0 text-xs text-gray-500 ml-2">
                         {new Date(post.created_at).toLocaleDateString()}
                       </span>
@@ -236,9 +257,20 @@ const CommunityPage = () => {
                         <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
                           {post.category_name}
                         </span>
+                        {post.hospital_info && (
+                          <div className="relative">
+                            <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full cursor-pointer hover:bg-green-200 hospital-tag">
+                              @{post.hospital_info.name}
+                            </span>
+                            <div className="absolute -top-12 right-0 bg-white shadow-lg rounded-lg p-1.5 min-w-[120px] max-w-[160px] z-10 opacity-0 pointer-events-none hospital-tag-tooltip">
+                              <div className="text-xs font-medium text-gray-900 truncate">{post.hospital_info.name}</div>
+                              <div className="text-xs text-gray-500 mt-0.5 truncate">{post.hospital_info.address}</div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center space-x-4 text-gray-500">
-                        <span className="text-xs flex items-center">
+                        <span className="text-xs flex items-center cursor-pointer" onClick={() => handlePostClick(post.id)}>
                           <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
@@ -246,7 +278,7 @@ const CommunityPage = () => {
                           {post.view_count}
                         </span>
                         {post.comment_count > 0 && (
-                          <span className="text-xs flex items-center text-blue-600">
+                          <span className="text-xs flex items-center text-blue-600 cursor-pointer" onClick={() => handlePostClick(post.id)}>
                             <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                             </svg>
@@ -283,6 +315,11 @@ const CommunityPage = () => {
           </div>
         </div>
       </div>
+      <style jsx>{`
+        .hospital-tag:hover + .hospital-tag-tooltip {
+          opacity: 1;
+        }
+      `}</style>
     </div>
   );
 };

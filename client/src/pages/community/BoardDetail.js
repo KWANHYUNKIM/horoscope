@@ -284,12 +284,6 @@ const BoardDetail = () => {
               <span className="absolute bottom-full left-0 mb-2 w-64 bg-white border border-gray-300 rounded-lg shadow-lg p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50">
                 <span className="font-bold text-sm mb-1 block">{hospital.name}</span>
                 <span className="text-xs text-gray-600 mb-1 block">{hospital.address}</span>
-                <button 
-                  className="mt-2 text-xs text-blue-600 hover:text-blue-800"
-                  onClick={() => navigate(`/hospitals?query=${encodeURIComponent(hospitalName)}`)}
-                >
-                  상세 정보 보기
-                </button>
               </span>
             </span>
           );
