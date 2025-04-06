@@ -95,9 +95,6 @@ const BoardDetail = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // 조회수 증가 API 호출
-        await axios.post(`${getApiUrl()}/api/boards/${id}/view`, {}, { withCredentials: true });
-        
         // 게시글, 댓글, 관련 게시글 데이터 가져오기
         const [boardResponse, relatedBoardsResponse] = await Promise.all([
           axios.get(`${getApiUrl()}/api/boards/${id}`, { withCredentials: true }),
@@ -131,7 +128,7 @@ const BoardDetail = () => {
     return () => {
       isMounted = false;
     };
-  }, [id, navigate, currentPage, fetchComments]);
+  }, [id, navigate, currentPage]);
 
   const handleEditBoard = () => {
     navigate(`/community/boards/edit/${id}`);
@@ -468,35 +465,26 @@ const BoardDetail = () => {
   // 댓글 작성 후 목록 새로고침
   const handleNewCommentSubmit = async (comment, entityTags = []) => {
     if (!isLoggedIn) {
-      alert('로그인이 필요합니다.');
+      alert('댓글을 작성하려면 로그인이 필요합니다.');
       navigate('/login');
       return;
     }
 
     try {
       setIsSubmitting(true);
-      const response = await axios.post(
-        `${getApiUrl()}/api/boards/${id}/comments`,
-        { 
-          comment, 
-          entityTags: Array.isArray(entityTags) ? entityTags.map(tag => ({
-            typeId: 1, // 병원 태그 타입 ID
-            entityId: tag.id
-          })) : []
-        },
-        { withCredentials: true }
-      );
-
-      if (response.data.success) {
-        // 기존 댓글 목록에 새 댓글 추가
-        setComments(prevComments => [response.data.comment, ...prevComments]);
-        setNewComment('');
-        setEntityTags([]);
-        setShowEntityTagModal(false);
-      }
+      // 댓글 목록 새로고침만 수행
+      await fetchComments();
+      setNewComment('');
+      setEntityTags([]);
+      setShowEntityTagModal(false);
     } catch (error) {
-      console.error('댓글 작성 실패:', error);
-      alert('댓글 작성에 실패했습니다.');
+      console.error('댓글 목록 새로고침 실패:', error);
+      if (error.response?.status === 401) {
+        alert('로그인이 필요합니다.');
+        navigate('/login');
+      } else {
+        alert('댓글 목록 새로고침에 실패했습니다.');
+      }
     } finally {
       setIsSubmitting(false);
     }

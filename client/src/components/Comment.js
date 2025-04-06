@@ -207,7 +207,8 @@ const Comment = ({ onSubmit, boardId }) => {
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
-              handleSubmit(e);
+              // 폼 제출 이벤트를 직접 발생시킴
+              e.target.form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
             }
           }}
           placeholder="댓글을 입력하세요..."
