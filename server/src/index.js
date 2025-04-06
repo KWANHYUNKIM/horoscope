@@ -10,7 +10,7 @@ const chatRouter = require('./routes/chat'); // 채팅 라우터 추가
 const adminRoutes = require('./routes/adminRoutes'); // adminRoutes로 이름 변경
 const boardRoutes = require('./routes/boardRoutes');
 //const chatRoutes = require('./routes/chatRoutes');
-const { reindex } = require('./elastic/elastics'); // reindex 불러오기
+//const { reindex } = require('./elastic/elastics'); // reindex 불러오기
 const User = require('./models/User');
 const cors = require('cors');
 const cookieParser = require('cookie-parser'); // cookie-parser 추가
@@ -89,15 +89,15 @@ connectDB();
 addDefaultOrigins();
 
 // Elasticsearch Reindexing
-console.log("🔄 Starting Elasticsearch reindexing process...");
-reindex()
-  .then(() => {
-    console.log("✅ Elasticsearch Reindexing Complete!");
-  })
-  .catch(err => {
-    console.error("❌ Error in reindexing:", err);
-    console.error("Stack trace:", err.stack);
-  });
+//console.log("🔄 Starting Elasticsearch reindexing process...");
+//reindex()
+//  .then(() => {
+//    console.log("✅ Elasticsearch Reindexing Complete!");
+//  })
+//  .catch(err => {
+//    console.error("❌ Error in reindexing:", err);
+//    console.error("Stack trace:", err.stack);
+//  });
 
 // API 라우트 설정
 app.use('/api/auth', authRouter);

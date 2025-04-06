@@ -929,82 +929,63 @@ router.put('/:boardId/comments/:commentId', authenticateToken, async (req, res) 
   }
 });
 
-// 카테고리별 게시글 목록 조회
+// 카테고리별 게시글 조회
 router.get('/category/:categoryId', async (req, res) => {
+  const { categoryId } = req.params;
+  const page = parseInt(req.query.page) || 1;
+  const limit = 10;
+  const offset = (page - 1) * limit;
+
   try {
-    const { categoryId } = req.params;
-    const page = parseInt(req.query.page) || 1;
-    const limit = 10;
-    const offset = (page - 1) * limit;
-
-    // 선택된 카테고리의 모든 하위 카테고리 ID 조회
-    const [categories] = await pool.query(`
-      WITH RECURSIVE CategoryHierarchy AS (
-        SELECT id, parent_id
-        FROM hospital_board_categories
-        WHERE id = ?
-        UNION ALL
-        SELECT c.id, c.parent_id
-        FROM hospital_board_categories c
-        INNER JOIN CategoryHierarchy ch ON c.parent_id = ch.id
-      )
-      SELECT id FROM CategoryHierarchy
-    `, [categoryId]);
-
-    const categoryIds = categories.map(cat => cat.id);
-    categoryIds.push(categoryId); // 선택한 카테고리도 포함
-
-    // 카테고리별 전체 게시글 수 조회
-    const [countResult] = await pool.query(
-      'SELECT COUNT(*) as total FROM hospital_board WHERE category_id IN (?)',
-      [categoryIds]
+    // 카테고리 정보 조회
+    const [category] = await pool.query(
+      'SELECT * FROM hospital_board_categories WHERE id = ?',
+      [categoryId]
     );
-    const total = countResult[0].total;
-    const totalPages = Math.ceil(total / limit);
 
+    if (!category || category.length === 0) {
+      return res.status(404).json({ error: '카테고리를 찾을 수 없습니다.' });
+    }
+
+    // 게시글 조회 쿼리
     const query = `
       SELECT 
         b.*,
         c.category_name,
-        c.category_type_id,
-        c.parent_id,
-        c.allow_comments,
-        c.is_secret_default,
-        u.username,
-        u.nickname,
-        (SELECT COUNT(*) FROM hospital_board_comments WHERE board_id = b.id) as comment_count
-      FROM hospital_board b
+        ct.type_name as category_type_name,
+        u.nickname as author_nickname,
+        u.profile_image as author_profile_image,
+        (SELECT COUNT(*) FROM hospital_board_likes WHERE board_id = b.id) as like_count,
+        (SELECT COUNT(*) FROM hospital_board_comments WHERE board_id = b.id) as comment_count,
+        (SELECT COUNT(*) FROM hospital_board_views WHERE board_id = b.id) as view_count
+      FROM hospital_boards b
       JOIN hospital_board_categories c ON b.category_id = c.id
-      JOIN hospital_users u ON b.user_id = u.id
-      WHERE b.category_id IN (?)
+      JOIN hospital_board_category_types ct ON c.category_type_id = ct.id
+      JOIN users u ON b.user_id = u.id
+      WHERE b.category_id = ?
       ORDER BY b.created_at DESC
       LIMIT ? OFFSET ?
     `;
-    
-    const [boards] = await pool.query(query, [categoryIds, limit, offset]);
-    
-    // 각 게시글의 content와 additional_info 추가
-    const boardsWithDetails = await Promise.all(boards.map(async (board) => {
-      const [details] = await pool.query(
-        'SELECT content, additional_info FROM hospital_board_details WHERE board_id = ?',
-        [board.id]
-      );
-      return {
-        ...board,
-        content: details[0]?.content || '',
-        additional_info: details[0]?.additional_info || ''
-      };
-    }));
+
+    const [boards] = await pool.query(query, [categoryId, limit, offset]);
+
+    // 전체 게시글 수 조회
+    const [totalCount] = await pool.query(
+      'SELECT COUNT(*) as count FROM hospital_boards WHERE category_id = ?',
+      [categoryId]
+    );
+
+    const totalPages = Math.ceil(totalCount[0].count / limit);
 
     res.json({
-      boards: boardsWithDetails,
-      totalPages,
+      boards,
       currentPage: page,
-      total
+      totalPages,
+      categoryName: category[0].category_name
     });
   } catch (error) {
-    console.error('카테고리별 게시글 조회 오류:', error);
-    res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    console.error('카테고리별 게시글 조회 실패:', error);
+    res.status(500).json({ error: '카테고리별 게시글 조회에 실패했습니다.' });
   }
 });
 

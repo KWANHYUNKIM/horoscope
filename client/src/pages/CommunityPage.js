@@ -14,13 +14,24 @@ const CommunityPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
+  // URL에서 카테고리 ID 추출
+  const getCategoryIdFromUrl = () => {
+    if (location.pathname.includes('/community/category/')) {
+      const match = location.pathname.match(/\/community\/category\/(\d+)/);
+      return match ? match[1] : null;
+    }
+    return null;
+  };
+
   const fetchPosts = async () => {
     try {
       setLoading(true);
+      const categoryId = getCategoryIdFromUrl();
       const response = await axios.get(`${getApiUrl()}/api/boards`, {
         params: {
           page: currentPage,
-          limit: 10
+          limit: 10,
+          categoryId: categoryId
         }
       });
       setPosts(response.data.posts);
@@ -34,7 +45,7 @@ const CommunityPage = () => {
 
   useEffect(() => {
     fetchPosts();
-  }, [currentPage]);
+  }, [currentPage, location.pathname]);
 
   const handleWriteClick = () => {
     if (!isLoggedIn) {

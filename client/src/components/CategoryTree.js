@@ -60,6 +60,7 @@ const CategoryTree = ({ onSelectCategory = () => {}, selectedCategoryId = null }
   }, []);
 
   const handleCategorySelect = (category) => {
+    console.log('선택된 카테고리:', category);
     if (typeof onSelectCategory === 'function') {
       onSelectCategory(category.id);
     }
@@ -83,8 +84,8 @@ const CategoryTree = ({ onSelectCategory = () => {}, selectedCategoryId = null }
   if (error) return <div className="p-4 text-red-600">{error}</div>;
 
   return (
-    <div className={`fixed left-0 top-16 h-[calc(100vh-64px)] bg-white shadow-lg transition-all duration-300 z-40 
-      ${isCollapsed ? 'w-16' : 'w-64'} font-['Pretendard']`}>
+    <div className={`bg-white shadow-lg rounded-lg transition-all duration-300 
+      ${isCollapsed ? 'w-16' : 'w-full'} font-['Pretendard']`}>
       {/* 사이드바 헤더 */}
       <div className="h-14 border-b flex items-center justify-between px-4">
         {!isCollapsed && <h2 className="text-base font-semibold text-gray-900">카테고리</h2>}
@@ -105,7 +106,7 @@ const CategoryTree = ({ onSelectCategory = () => {}, selectedCategoryId = null }
       </div>
 
       {/* 카테고리 목록 */}
-      <div className="overflow-y-auto h-[calc(100%-56px)]">
+      <div className="overflow-y-auto max-h-[calc(100vh-12rem)]">
         {categoryTypes.map(type => (
           <div key={type.id} className="border-b last:border-b-0">
             <div className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-50">
