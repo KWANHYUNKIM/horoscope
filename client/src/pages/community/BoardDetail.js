@@ -500,17 +500,17 @@ const BoardDetail = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
-      <div className="flex gap-6">
+      <div className="flex flex-col lg:flex-row gap-6">
         {/* 왼쪽 사이드바 - 카테고리 트리 */}
-        <div className="w-1/4 sticky top-20">
+        <div className="w-full lg:w-1/4">
           <CategoryTree onSelectCategory={handleCategorySelect} selectedCategoryId={selectedCategory} />
         </div>
 
         {/* 메인 컨텐츠 */}
-        <div className="w-3/4">
+        <div className="w-full lg:w-3/4">
           {selectedCategory ? (
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6">카테고리 게시글</h2>
+            <div className="bg-white rounded-lg shadow-md p-4 lg:p-6">
+              <h2 className="text-xl lg:text-2xl font-bold text-gray-800 mb-4 lg:mb-6">카테고리 게시글</h2>
               {loading ? (
                 <div className="text-center p-4">로딩 중...</div>
               ) : (
@@ -519,15 +519,15 @@ const BoardDetail = () => {
             </div>
           ) : (
             board && (
-              <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="bg-white rounded-lg shadow-md p-4 lg:p-6">
                 {/* 상단 헤더 영역 */}
-                <div className="border-b border-gray-100 pb-4 mb-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h1 className="text-2xl font-bold text-gray-800 font-['Pretendard'] mb-2">{board.title}</h1>
-                      <div className="flex items-center text-gray-600 text-xs">
-                        <span className="mr-4">작성자: {board.author_name}</span>
-                        <span className="mr-4">작성일: {new Date(board.created_at).toLocaleString()}</span>
+                <div className="border-b border-gray-100 pb-4 mb-4 lg:mb-6">
+                  <div className="flex flex-col lg:flex-row justify-between items-start gap-4 mb-4">
+                    <div className="w-full">
+                      <h1 className="text-xl lg:text-2xl font-bold text-gray-800 font-['Pretendard'] mb-2">{board.title}</h1>
+                      <div className="flex flex-wrap items-center text-gray-600 text-xs gap-2">
+                        <span>작성자: {board.author_name}</span>
+                        <span>작성일: {new Date(board.created_at).toLocaleString()}</span>
                         <span>조회: {board.view_count}</span>
                       </div>
                     </div>
@@ -557,13 +557,13 @@ const BoardDetail = () => {
 
                 {/* 태그된 병원 표시 */}
                 {taggedHospitals.length > 0 && (
-                  <div className="mt-6">
+                  <div className="mt-4 lg:mt-6">
                     <h3 className="text-sm font-medium text-gray-700 mb-2">태그된 병원</h3>
                     <div className="flex flex-wrap gap-2">
                       {taggedHospitals.map(hospital => (
                         <span
                           key={hospital.id}
-                          className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                          className="px-2 lg:px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs lg:text-sm"
                         >
                           {hospital.name}
                         </span>
@@ -574,7 +574,7 @@ const BoardDetail = () => {
 
                 {/* 댓글 섹션 */}
                 <div className="mt-4 mb-8">
-                  <h3 className="text-xl font-bold text-gray-800 mb-4 font-['Pretendard']">
+                  <h3 className="text-lg lg:text-xl font-bold text-gray-800 mb-4 font-['Pretendard']">
                     댓글 ({comments.filter(c => !c.is_deleted).length})
                   </h3>
                   
@@ -594,12 +594,12 @@ const BoardDetail = () => {
 
                 {/* 관련 게시글 목록 */}
                 <div className="mt-8 border-t border-gray-100 pt-8">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-xl font-bold text-gray-800 font-['Pretendard']">
+                  <div className="flex flex-col lg:flex-row justify-between items-start gap-4 mb-4">
+                    <h3 className="text-lg lg:text-xl font-bold text-gray-800 font-['Pretendard']">
                       카테고리 리스트
                     </h3>
                     {totalPages > 1 && (
-                      <div className="flex space-x-2">
+                      <div className="flex flex-wrap gap-2">
                         {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
                           let pageNum;
                           if (totalPages <= 5) {
@@ -617,7 +617,7 @@ const BoardDetail = () => {
                             <button
                               key={pageNum}
                               onClick={() => setCurrentPage(pageNum)}
-                              className={`px-3 py-1 text-sm font-medium rounded-lg transition-colors ${
+                              className={`px-2 lg:px-3 py-1 text-xs lg:text-sm font-medium rounded-lg transition-colors ${
                                 currentPage === pageNum
                                   ? 'bg-blue-600 text-white'
                                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
