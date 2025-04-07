@@ -183,18 +183,38 @@ const NursingHospitalDetailPage = () => {
                   </a>
                 </div>
               </div>
-            </div>
 
-            {/* 진료과 정보 */}
-            <div className="bg-white rounded-2xl shadow-md p-6">
-              <h2 className="text-2xl font-bold mb-4">진료과</h2>
-              <div className="flex flex-wrap gap-2">
-                {hospital.major?.map((major, index) => (
-                  <span key={index} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-                    {major}
-                  </span>
-                ))}
-              </div>
+              {/* 진료과 정보 */}
+              {hospital.major && hospital.major.length > 0 && (
+                <div className="mt-6">
+                  <h3 className="text-lg font-semibold mb-3">진료과</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {hospital.major.map((major, index) => (
+                      <span
+                        key={index}
+                        className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                      >
+                        {major}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 병원 홈페이지 */}
+              {hospital.hospUrl && hospital.hospUrl !== '-' && (
+                <div className="mt-6">
+                  <h3 className="text-lg font-semibold mb-3">홈페이지</h3>
+                  <a
+                    href={hospital.hospUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 hover:underline"
+                  >
+                    {hospital.hospUrl}
+                  </a>
+                </div>
+              )}
             </div>
 
             {/* 치료 정보 */}
