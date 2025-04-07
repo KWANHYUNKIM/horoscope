@@ -751,8 +751,8 @@ router.post('/:id/comments', authenticateToken, async (req, res) => {
 
     // 댓글 작성
     const [result] = await conn.query(
-      'INSERT INTO hospital_board_comments (board_id, user_id, comment) VALUES (?, ?, ?)',
-      [boardId, userId, commentText]
+      'INSERT INTO hospital_board_comments (board_id, user_id, comment, parent_id) VALUES (?, ?, ?, ?)',
+      [boardId, userId, commentText, req.body.parent_id || null]
     );
 
     // 작성된 댓글 정보 조회

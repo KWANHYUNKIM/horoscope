@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -28,6 +28,12 @@ const BoardDetail = () => {
   const [entityTags, setEntityTags] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [categoryBoards, setCategoryBoards] = useState([]);
+  const [replyTaggedHospitals, setReplyTaggedHospitals] = useState([]);
+  const [replyShowMention, setReplyShowMention] = useState(false);
+  const [replyMentionPosition, setReplyMentionPosition] = useState({ top: 0, left: 0 });
+  const [replySuggestions, setReplySuggestions] = useState([]);
+  const [replySearchTerm, setReplySearchTerm] = useState('');
+  const replyTextareaRef = useRef(null);
 
   // 카테고리별 게시글 조회
   const fetchCategoryBoards = async (categoryId) => {
@@ -294,6 +300,210 @@ const BoardDetail = () => {
     });
   };
 
+  // 검색어 변경 시 자동 검색
+  useEffect(() => {
+    if (!replySearchTerm) {
+      setReplySuggestions([]);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      axios.get(`${getApiUrl()}/api/autocomplete?query=${encodeURIComponent(replySearchTerm)}`)
+        .then((response) => {
+          setReplySuggestions(response.data.hospital || []);
+        })
+        .catch(() => {
+          setReplySuggestions([]);
+        });
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [replySearchTerm]);
+
+  const handleReplyInput = (e) => {
+    const value = e.target.value;
+    setReplyContent(value);
+
+    // @ 입력 감지
+    const lastAtSymbol = value.lastIndexOf('@');
+    if (lastAtSymbol !== -1) {
+      const rect = replyTextareaRef.current.getBoundingClientRect();
+      const cursorPosition = e.target.selectionStart;
+      const textBeforeCursor = value.substring(0, cursorPosition);
+      const lastAtSymbolInText = textBeforeCursor.lastIndexOf('@');
+      
+      if (lastAtSymbolInText !== -1) {
+        const textAfterAt = textBeforeCursor.substring(lastAtSymbolInText + 1);
+        if (!textAfterAt.includes(' ')) {
+          const textBeforeAt = textBeforeCursor.substring(0, lastAtSymbolInText);
+          const lines = textBeforeAt.split('\n');
+          const currentLine = lines[lines.length - 1];
+          
+          setReplyMentionPosition({
+            top: rect.top + (lines.length * 20) + 30,
+            left: rect.left + (currentLine.length * 8)
+          });
+          
+          setReplySearchTerm(textAfterAt);
+          setReplyShowMention(true);
+          return;
+        }
+      }
+    }
+    setReplyShowMention(false);
+  };
+
+  const handleReplyMentionSelect = (hospital) => {
+    const lastAtSymbol = replyContent.lastIndexOf('@');
+    if (lastAtSymbol !== -1) {
+      const beforeAt = replyContent.substring(0, lastAtSymbol);
+      const afterAt = replyContent.substring(lastAtSymbol);
+      const afterSpace = afterAt.indexOf(' ');
+      const newContent = afterSpace === -1 
+        ? `${beforeAt}@${hospital.name} `
+        : `${beforeAt}@${hospital.name}${afterAt.substring(afterSpace)}`;
+      
+      setReplyContent(newContent);
+      setReplyShowMention(false);
+      
+      if (!replyTaggedHospitals.some(h => h.id === hospital.dbId)) {
+        setReplyTaggedHospitals(prev => [...prev, {
+          id: hospital.dbId,
+          name: hospital.name,
+          typeId: 1
+        }]);
+      }
+    }
+  };
+
+  // 대댓글 작성 함수 수정
+  const handleReplySubmit = async (parentId) => {
+    if (!isLoggedIn) {
+      alert('로그인이 필요합니다.');
+      navigate('/login');
+      return;
+    }
+
+    try {
+      const response = await axios.post(`${getApiUrl()}/api/boards/${id}/comments`, {
+        comment: replyContent,
+        parent_id: parentId,
+        entityTags: replyTaggedHospitals.map(hospital => ({
+          typeId: hospital.typeId,
+          entityId: hospital.id,
+          entityName: hospital.name
+        }))
+      }, { withCredentials: true });
+
+      // 댓글 작성 성공 후 댓글 목록 새로고침
+      await fetchComments();
+      
+      // 입력 폼 초기화
+      setReplyContent('');
+      setReplyingTo(null);
+      setReplyTaggedHospitals([]);
+    } catch (error) {
+      console.error('댓글 작성 실패:', error);
+      if (error.response?.status === 401) {
+        alert('로그인이 필요합니다.');
+        navigate('/login');
+      }
+    }
+  };
+
+  // 대댓글 입력 폼 수정
+  const renderReplyForm = (comment) => {
+    return (
+      <div className="mt-3 ml-4">
+        <div className="relative">
+          <textarea
+            ref={replyTextareaRef}
+            value={replyContent}
+            onChange={handleReplyInput}
+            className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
+            rows="2"
+            placeholder="답글을 입력하세요..."
+          />
+          
+          {/* 태그된 병원 미리보기 */}
+          {replyTaggedHospitals.length > 0 && (
+            <div className="mt-2">
+              <div className="text-xs text-gray-500 mb-1">태그된 병원:</div>
+              <div className="flex flex-wrap gap-2">
+                {replyTaggedHospitals.map(hospital => (
+                  <span
+                    key={hospital.id}
+                    className="px-2 py-1 bg-blue-50 text-blue-600 text-xs rounded-full"
+                  >
+                    @{hospital.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 멘션 제안 */}
+          {replyShowMention && (
+            <div
+              style={{
+                position: 'fixed',
+                top: replyMentionPosition.top,
+                left: replyMentionPosition.left
+              }}
+              className="z-50"
+            >
+              <div className="w-64 bg-white border border-gray-300 rounded-lg shadow-lg">
+                <div className="p-2 border-b">
+                  <input
+                    type="text"
+                    value={replySearchTerm}
+                    onChange={(e) => setReplySearchTerm(e.target.value)}
+                    placeholder="병원 검색..."
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    autoFocus
+                  />
+                </div>
+                
+                <div className="max-h-60 overflow-y-auto">
+                  {replySuggestions.length === 0 ? (
+                    <div className="p-2 text-sm text-gray-500">검색 결과가 없습니다.</div>
+                  ) : (
+                    replySuggestions.map((hospital) => (
+                      <div
+                        key={hospital.id}
+                        onClick={() => handleReplyMentionSelect(hospital)}
+                        className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                      >
+                        <div className="text-sm font-medium text-gray-900">{hospital.name}</div>
+                        <div className="text-xs text-gray-500">{hospital.address}</div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-end space-x-3 mt-2">
+          <button
+            onClick={() => setReplyingTo(null)}
+            className="px-3 py-1 text-xs text-gray-600 hover:text-gray-800 font-medium transition-colors"
+          >
+            취소
+          </button>
+          <button
+            onClick={() => handleReplySubmit(comment.id)}
+            className="px-3 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            답글 작성
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // 댓글 렌더링 부분 수정
   const renderComment = (comment) => {
     const isAuthor = isLoggedIn && (comment.user_id === userId || userRole === 'admin');
     const isEditing = editingComment === comment.id;
@@ -375,63 +585,11 @@ const BoardDetail = () => {
                 </button>
               )}
             </div>
-            {isReplying && (
-              <div className="mt-3 ml-4">
-                <textarea
-                  value={replyContent}
-                  onChange={(e) => setReplyContent(e.target.value)}
-                  className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
-                  rows="2"
-                  placeholder="답글을 입력하세요..."
-                />
-                <div className="flex justify-end space-x-3 mt-2">
-                  <button
-                    onClick={() => setReplyingTo(null)}
-                    className="px-3 py-1 text-xs text-gray-600 hover:text-gray-800 font-medium transition-colors"
-                  >
-                    취소
-                  </button>
-                  <button
-                    onClick={() => handleReplySubmit(comment.id)}
-                    className="px-3 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                  >
-                    답글 작성
-                  </button>
-                </div>
-              </div>
-            )}
+            {isReplying && renderReplyForm(comment)}
           </div>
         </div>
       </div>
     );
-  };
-
-  const handleReplySubmit = async (parentId) => {
-    if (!isLoggedIn) {
-      alert('로그인이 필요합니다.');
-      navigate('/login');
-      return;
-    }
-
-    try {
-      const response = await axios.post(`${getApiUrl()}/api/boards/${id}/comments`, {
-        comment: replyContent,
-        parent_id: parentId
-      }, { withCredentials: true });
-
-      // 댓글 작성 성공 후 댓글 목록 새로고침
-      await fetchComments();
-      
-      // 입력 폼 초기화
-      setReplyContent('');
-      setReplyingTo(null);
-    } catch (error) {
-      console.error('댓글 작성 실패:', error);
-      if (error.response?.status === 401) {
-        alert('로그인이 필요합니다.');
-        navigate('/login');
-      }
-    }
   };
 
   const handleDeleteComment = async (commentId) => {
