@@ -5,6 +5,7 @@ import { fetchHospitals, fetchHospitalDetail } from "../service/api";
 import HospitalMajorList from "../components/HospitalMajorList";
 import OperatingStatus from "../components/OperatingStatus";
 import DistanceInfo from "../components/DistanceInfo";
+import NursingHospitalDetail from '../components/NursingHospitalDetail';
 
 import FilterDropdown from "../components/FilterDropdown";
 
@@ -406,184 +407,197 @@ const HospitalListPage = () => {
 
       {/* 병원 리스트 */}
       <section className="container mx-auto mt-10 p-6 px-4 md:px-40">
-        <div className="flex justify-between items-center mb-6">
-          <div className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-sm font-semibold">
-            총 {totalCount} 개의 병원
+        <div className="flex justify-between items-start gap-6">
+          {/* 왼쪽: 병원 목록 */}
+          <div className="flex-1">
+            <div className="flex justify-between items-center mb-6">
+              <div className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-sm font-semibold">
+                총 {totalCount} 개의 병원
+              </div>
+            </div>
+            
+            {hospitals && hospitals.length > 0 ? (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {hospitals.map((hospital) => (
+                    <div
+                      key={hospital._id}
+                      className="relative bg-white shadow-md hover:shadow-lg rounded-lg overflow-hidden hover:scale-105 transition-transform duration-300"
+                    >
+                      {/* 병원 유형 */}
+                      {hospital.category && (
+                        <div className="absolute top-3 left-3 bg-blue-100 text-blue-700 px-3 py-1 rounded-md text-xs font-semibold">
+                          {hospital.category}
+                        </div>
+                      )}
+
+                      {/* 병원 이미지 (비율 고정) */}
+                      <div className="w-full h-[180px] bg-gray-200 flex items-center justify-center">
+                        {hospital.image ? (
+                          <img
+                            src={hospital.image}
+                            onError={(e) => (e.currentTarget.src = "/image-placeholder.jpg")}
+                            alt={hospital.yadmNm || "병원 이미지"}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-gray-500 text-sm">🖼️ 이미지 준비 중</span>
+                        )}
+                      </div>
+
+                      <div className="p-4">
+                        {/* 병원 이름 */}
+                        <h3 className="text-lg font-bold text-gray-800">{hospital.yadmNm}</h3>
+
+                        {/* 주소 & 지도보기 */}
+                        <div className="flex items-center justify-between text-sm text-gray-500">
+                          <span className="flex-1 truncate">{hospital.addr}</span>
+                          <a
+                            href={`https://map.naver.com/v5/search/${encodeURIComponent(
+                              hospital.addr
+                            )}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="ml-2 px-2 py-1 text-blue-500 border border-blue-300 rounded-md flex items-center gap-x-1 hover:bg-blue-100"
+                          >
+                            지도보기 🗺️
+                          </a>
+                        </div>
+
+                        {/* 거리 정보 */}
+                        <DistanceInfo hospitalLocation={hospital.location} />
+
+                        {/* 진료과 정보 (컴포넌트 사용) */}
+                        <HospitalMajorList majors={hospital.major} />
+
+                        {/* 🕒 영업 여부 */}
+                        <div className="mt-2">
+                          <p className="font-semibold text-gray-700">🕒 영업 여부:</p>
+                          <OperatingStatus schedule={hospital.schedule} />
+                        </div>
+
+                        {/* 📞 전화번호 + 바로 전화 버튼 */}
+                        <div className="mt-2">
+                          <p className="font-semibold text-gray-700">📞 전화번호:</p>
+
+                          {hospital.telno ? (
+                            <div className="flex items-center gap-2 mt-1 bg-gray-100 px-3 py-2 rounded-lg">
+                              <span className="text-blue-600 font-medium">{hospital.telno}</span>
+                              <button
+                                className="ml-auto bg-blue-500 text-white px-2 py-1 text-sm rounded-md hover:bg-blue-600 transition"
+                                onClick={() => window.location.href = `tel:${hospital.telno}`}
+                              >
+                                📞 바로통화
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="px-3 py-1 rounded-md text-sm bg-gray-100 text-gray-500">
+                              전화번호 정보 없음
+                            </div>
+                          )}
+                        </div>
+                        {/* 진료 여부 (야간/주말) */}
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <span
+                            className={`px-3 py-1 rounded-md text-sm ${
+                              hospital.nightCare ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
+                            }`}
+                          >
+                            응급 야간 진료: {hospital.nightCare ? "가능 ✅" : "불가 ❌"}
+                          </span>
+                          <span
+                            className={`px-3 py-1 rounded-md text-sm ${
+                              hospital.weekendCare ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
+                            }`}
+                          >
+                            응급 주말 진료: {hospital.weekendCare ? "가능 ✅" : "불가 ❌"}
+                          </span>
+                        </div>
+                        {/* 🔍 상세보기 버튼 */}
+                        {/*
+                        <button
+                          className="mt-2 bg-blue-500 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-600 transition"
+                          onClick={() => handleDetailClick(hospital._id)}
+                        >
+                          🔍 자세히 보기
+                        </button>
+                        */}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {/* 페이지네이션 UI */}
+                <div className="flex flex-wrap justify-center items-center mt-6 gap-2">
+                  {/* 이전 페이지 버튼 */}
+                  <button
+                    onClick={handlePrevPage}
+                    disabled={currentPage === 1}
+                    className="px-4 py-2 bg-gray-300 rounded disabled:opacity-50"
+                  >
+                    이전
+                  </button>
+
+                  {/* 페이지 번호 (현재 페이지 기준으로 앞뒤 5개만 표시) */}
+                  {Array.from({ length: Math.min(10, totalPages) }, (_, i) => {
+                    const page = Math.max(1, currentPage - 5) + i;
+                    if (page > totalPages) return null; // totalPages 초과 페이지 숨김
+
+                    return (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`px-4 py-2 rounded ${
+                          page === currentPage ? "bg-blue-500 text-white" : "bg-gray-200"
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    );
+                  })}
+
+                  {/* 다음 페이지 버튼 */}
+                  <button
+                    onClick={handleNextPage}
+                    disabled={currentPage === totalPages}
+                    className="px-4 py-2 bg-gray-300 rounded disabled:opacity-50"
+                  >
+                    다음
+                  </button>
+
+                  {/* 페이지당 개수 선택 */}
+                  <select
+                    value={limit}
+                    onChange={(e) => {
+                      setLimit(Number(e.target.value));
+                      setCurrentPage(1); // limit 변경 시 페이지를 1로 초기화
+                    }}
+                    className="ml-4 px-2 py-1 bg-white border rounded"
+                  >
+                    <option value={5}>5개씩</option>
+                    <option value={10}>10개씩</option>
+                    <option value={20}>20개씩</option>
+                    <option value={50}>50개씩</option>
+                  </select>
+                </div>
+              </>
+            ) : (
+              <p className="text-center text-gray-500">
+                선택한 조건에 맞는 병원이 없습니다.
+              </p>
+            )}
+          </div>
+
+          {/* 오른쪽: 요양병원 둘러보기 */}
+          <div className="hidden lg:block w-64">
+            <div className="sticky top-24">
+              <NursingHospitalDetail />
+            </div>
           </div>
         </div>
-        
-        {hospitals && hospitals.length > 0 ? (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {hospitals.map((hospital) => (
-              <div
-                key={hospital._id}
-                className="relative bg-white shadow-md hover:shadow-lg rounded-lg overflow-hidden hover:scale-105 transition-transform duration-300"
-              >
-                {/* 병원 유형 */}
-                {hospital.category && (
-                  <div className="absolute top-3 left-3 bg-blue-100 text-blue-700 px-3 py-1 rounded-md text-xs font-semibold">
-                    {hospital.category}
-                  </div>
-                )}
-
-                {/* 병원 이미지 (비율 고정) */}
-                <div className="w-full h-[180px] bg-gray-200 flex items-center justify-center">
-                  {hospital.image ? (
-                    <img
-                      src={hospital.image}
-                      onError={(e) => (e.currentTarget.src = "/image-placeholder.jpg")}
-                      alt={hospital.yadmNm || "병원 이미지"}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-gray-500 text-sm">🖼️ 이미지 준비 중</span>
-                  )}
-                </div>
-
-                <div className="p-4">
-                  {/* 병원 이름 */}
-                  <h3 className="text-lg font-bold text-gray-800">{hospital.yadmNm}</h3>
-
-                  {/* 주소 & 지도보기 */}
-                  <div className="flex items-center justify-between text-sm text-gray-500">
-                    <span className="flex-1 truncate">{hospital.addr}</span>
-                    <a
-                      href={`https://map.naver.com/v5/search/${encodeURIComponent(
-                        hospital.addr
-                      )}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="ml-2 px-2 py-1 text-blue-500 border border-blue-300 rounded-md flex items-center gap-x-1 hover:bg-blue-100"
-                    >
-                      지도보기 🗺️
-                    </a>
-                  </div>
-
-                  {/* 거리 정보 */}
-                  <DistanceInfo hospitalLocation={hospital.location} />
-
-                  {/* 진료과 정보 (컴포넌트 사용) */}
-                  <HospitalMajorList majors={hospital.major} />
-
-                  {/* 🕒 영업 여부 */}
-                  <div className="mt-2">
-                    <p className="font-semibold text-gray-700">🕒 영업 여부:</p>
-                    <OperatingStatus schedule={hospital.schedule} />
-                  </div>
-
-                  {/* 📞 전화번호 + 바로 전화 버튼 */}
-                  <div className="mt-2">
-                    <p className="font-semibold text-gray-700">📞 전화번호:</p>
-
-                    {hospital.telno ? (
-                      <div className="flex items-center gap-2 mt-1 bg-gray-100 px-3 py-2 rounded-lg">
-                        <span className="text-blue-600 font-medium">{hospital.telno}</span>
-                        <button
-                          className="ml-auto bg-blue-500 text-white px-2 py-1 text-sm rounded-md hover:bg-blue-600 transition"
-                          onClick={() => window.location.href = `tel:${hospital.telno}`}
-                        >
-                          📞 바로통화
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="px-3 py-1 rounded-md text-sm bg-gray-100 text-gray-500">
-                        전화번호 정보 없음
-                      </div>
-                    )}
-                  </div>
-                  {/* 진료 여부 (야간/주말) */}
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <span
-                      className={`px-3 py-1 rounded-md text-sm ${
-                        hospital.nightCare ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
-                      }`}
-                    >
-                      응급 야간 진료: {hospital.nightCare ? "가능 ✅" : "불가 ❌"}
-                    </span>
-                    <span
-                      className={`px-3 py-1 rounded-md text-sm ${
-                        hospital.weekendCare ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
-                      }`}
-                    >
-                      응급 주말 진료: {hospital.weekendCare ? "가능 ✅" : "불가 ❌"}
-                    </span>
-                  </div>
-                  {/* 🔍 상세보기 버튼 */}
-                  {/*
-                  <button
-                    className="mt-2 bg-blue-500 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-600 transition"
-                    onClick={() => handleDetailClick(hospital._id)}
-                  >
-                    🔍 자세히 보기
-                  </button>
-                  */}
-                </div>
-              </div>
-            ))}
-            </div>
-            {/* 페이지네이션 UI */}
-            <div className="flex flex-wrap justify-center items-center mt-6 gap-2">
-              {/* 이전 페이지 버튼 */}
-              <button
-                onClick={handlePrevPage}
-                disabled={currentPage === 1}
-                className="px-4 py-2 bg-gray-300 rounded disabled:opacity-50"
-              >
-                이전
-              </button>
-
-              {/* 페이지 번호 (현재 페이지 기준으로 앞뒤 5개만 표시) */}
-              {Array.from({ length: Math.min(10, totalPages) }, (_, i) => {
-                const page = Math.max(1, currentPage - 5) + i;
-                if (page > totalPages) return null; // totalPages 초과 페이지 숨김
-
-                return (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`px-4 py-2 rounded ${
-                      page === currentPage ? "bg-blue-500 text-white" : "bg-gray-200"
-                    }`}
-                  >
-                    {page}
-                  </button>
-                );
-              })}
-
-              {/* 다음 페이지 버튼 */}
-              <button
-                onClick={handleNextPage}
-                disabled={currentPage === totalPages}
-                className="px-4 py-2 bg-gray-300 rounded disabled:opacity-50"
-              >
-                다음
-              </button>
-
-              {/* 페이지당 개수 선택 */}
-              <select
-                value={limit}
-                onChange={(e) => {
-                  setLimit(Number(e.target.value));
-                  setCurrentPage(1); // limit 변경 시 페이지를 1로 초기화
-                }}
-                className="ml-4 px-2 py-1 bg-white border rounded"
-              >
-                <option value={5}>5개씩</option>
-                <option value={10}>10개씩</option>
-                <option value={20}>20개씩</option>
-                <option value={50}>50개씩</option>
-              </select>
-            </div>
-          </>
-        ) : (
-          <p className="text-center text-gray-500">
-            선택한 조건에 맞는 병원이 없습니다.
-          </p>
-        )}
       </section>
     </div>
   );
 };
 
 export default HospitalListPage;
+

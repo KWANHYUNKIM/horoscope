@@ -214,6 +214,14 @@ const BoardDetail = () => {
         return name;
       });
 
+      // 상태 초기화를 response 확인 전에 먼저 수행
+      setEditingComment(null);
+      setEditContent('');
+      setTaggedHospitals([]);
+      setShowMention(false);
+      setSearchTerm('');
+      setSuggestions([]);
+
       const response = await axios.put(
         `${getApiUrl()}/api/boards/${id}/comments/${commentId}`,
         {
@@ -226,20 +234,16 @@ const BoardDetail = () => {
       if (response.data.success) {
         // 댓글 목록 새로고침
         await fetchComments();
-        
-        // 상태 초기화
-        setEditingComment(null);
-        setEditContent('');
-        setTaggedHospitals([]);
-        setShowMention(false);
-        setSearchTerm('');
-        setSuggestions([]);
       }
     } catch (error) {
       console.error('댓글 수정 실패:', error);
       if (error.response?.status === 401) {
         alert('로그인이 필요합니다.');
         navigate('/login');
+      } else {
+        alert('댓글 수정에 실패했습니다.');
+        // 에러 발생 시 수정 모드 유지
+        setEditingComment(commentId);
       }
     }
   };

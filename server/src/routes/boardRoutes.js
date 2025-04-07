@@ -173,6 +173,48 @@ router.get('/tags', async (req, res) => {
   }
 });
 
+// 태그 검색
+router.get('/tags/search', async (req, res) => {
+  const { name } = req.query;
+  try {
+    const [tags] = await pool.query(
+      'SELECT * FROM hospital_board_tags WHERE name = ?',
+      [name]
+    );
+    res.json(tags);
+  } catch (error) {
+    console.error('태그 검색 오류:', error);
+    res.status(500).json({ error: '태그 검색에 실패했습니다.' });
+  }
+});
+
+// 태그 생성
+router.post('/tags', authenticateToken, async (req, res) => {
+  const { name } = req.body;
+  try {
+    // 이미 존재하는 태그인지 확인
+    const [existingTags] = await pool.query(
+      'SELECT * FROM hospital_board_tags WHERE name = ?',
+      [name]
+    );
+
+    if (existingTags.length > 0) {
+      return res.json({ id: existingTags[0].id });
+    }
+
+    // 새 태그 생성
+    const [result] = await pool.query(
+      'INSERT INTO hospital_board_tags (name) VALUES (?)',
+      [name]
+    );
+
+    res.json({ id: result.insertId });
+  } catch (error) {
+    console.error('태그 생성 오류:', error);
+    res.status(500).json({ error: '태그 생성에 실패했습니다.' });
+  }
+});
+
 // 파일 업로드
 router.post('/upload', upload.array('files'), async (req, res) => {
   try {
