@@ -34,6 +34,30 @@ const BoardDetail = () => {
   const [replySuggestions, setReplySuggestions] = useState([]);
   const [replySearchTerm, setReplySearchTerm] = useState('');
   const replyTextareaRef = useRef(null);
+  const [showMention, setShowMention] = useState(false);
+  const [mentionPosition, setMentionPosition] = useState({ top: 0, left: 0 });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+
+  // 검색어 변경 시 자동 검색
+  useEffect(() => {
+    if (!searchTerm) {
+      setSuggestions([]);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      axios.get(`${getApiUrl()}/api/autocomplete?query=${encodeURIComponent(searchTerm)}`)
+        .then((response) => {
+          setSuggestions(response.data.hospital || []);
+        })
+        .catch(() => {
+          setSuggestions([]);
+        });
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   // 카테고리별 게시글 조회
   const fetchCategoryBoards = async (categoryId) => {
@@ -67,11 +91,12 @@ const BoardDetail = () => {
       // 각 댓글의 @ 태그된 병원 정보 가져오기
       const commentsWithHospitals = await Promise.all(
         commentsData.map(async (comment) => {
-          const matches = comment.comment.match(/@([^\s]+)/g);
+          // @ 태그와 그 뒤의 모든 문자를 포함하는 정규식으로 수정
+          const matches = comment.comment.match(/@[^@\n]+/g);
           if (matches) {
             const hospitals = await Promise.all(
               matches.map(async (match) => {
-                const hospitalName = match.substring(1);
+                const hospitalName = match.substring(1).trim(); // 앞뒤 공백 제거
                 try {
                   const response = await axios.get(`${getApiUrl()}/api/hospitals/autocomplete?query=${encodeURIComponent(hospitalName)}`, { withCredentials: true });
                   return response.data.hospital[0]; // 첫 번째 검색 결과 사용
@@ -171,24 +196,45 @@ const BoardDetail = () => {
   const handleEditClick = (comment) => {
     setEditingComment(comment.id);
     setEditContent(comment.comment);
+    setTaggedHospitals([]);
+    setShowMention(false);
+    setSearchTerm('');
+    setSuggestions([]);
   };
 
-  const handleCommentEdit = async (commentId) => {
-    if (!isLoggedIn) {
-      alert('로그인이 필요합니다.');
-      navigate('/login');
-      return;
-    }
-
+  const handleEditSubmit = async (commentId) => {
     try {
-      await axios.put(`${getApiUrl()}/api/boards/${id}/comments/${commentId}`, {
-        comment: editContent
-      }, { withCredentials: true });
+      const comment = comments.find(c => c.id === commentId);
+      if (!comment) return;
 
-      // 댓글 수정 후 목록 새로고침
-      await fetchComments();
-      setEditingComment(null);
-      setEditContent('');
+      // 병원 멘션 태그 처리
+      const taggedHospitals = [];
+      const content = editContent.replace(/@\[([^\]]+)\]\(([^)]+)\)/g, (match, name, id) => {
+        taggedHospitals.push({ name, id });
+        return name;
+      });
+
+      const response = await axios.put(
+        `${getApiUrl()}/api/boards/${id}/comments/${commentId}`,
+        {
+          comment: content,
+          taggedHospitals: taggedHospitals.length > 0 ? taggedHospitals : null
+        },
+        { withCredentials: true }
+      );
+
+      if (response.data.success) {
+        // 댓글 목록 새로고침
+        await fetchComments();
+        
+        // 상태 초기화
+        setEditingComment(null);
+        setEditContent('');
+        setTaggedHospitals([]);
+        setShowMention(false);
+        setSearchTerm('');
+        setSuggestions([]);
+      }
     } catch (error) {
       console.error('댓글 수정 실패:', error);
       if (error.response?.status === 401) {
@@ -196,6 +242,15 @@ const BoardDetail = () => {
         navigate('/login');
       }
     }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingComment(null);
+    setEditContent('');
+    setTaggedHospitals([]);
+    setShowMention(false);
+    setSearchTerm('');
+    setSuggestions([]);
   };
 
   // 댓글 트리 구조 생성 함수 개선
@@ -265,16 +320,17 @@ const BoardDetail = () => {
   const renderCommentContent = (comment) => {
     if (!comment.comment) return '';
 
-    const parts = comment.comment.split(/(@[^\s]+)/g);
+    // @ 태그와 그 뒤의 모든 문자를 포함하는 정규식으로 수정
+    const parts = comment.comment.split(/(@[^@\n]+)/g);
     return parts.map((part, index) => {
       if (part.startsWith('@')) {
-        const hospitalName = part.substring(1);
-        // hospitals 배열에서 병원 정보 찾기
-        const hospital = comment.hospitals?.find(h => h.name === hospitalName);
+        const hospitalName = part.substring(1).trim(); // 앞뒤 공백 제거
+        // hospitals 배열에서 병원 정보 찾기 (정확한 일치가 아닌 포함 여부로 검사)
+        const hospital = comment.hospitals?.find(h => hospitalName.includes(h.name) || h.name.includes(hospitalName));
         
         if (hospital) {
           return (
-            <span key={index} className="relative group inline-block">
+            <span key={`${comment.id}-${index}-${hospital.id}`} className="relative group inline-block">
               <span 
                 className="text-blue-600 font-medium cursor-pointer hover:bg-blue-50"
                 onClick={() => navigate(`/hospitals?query=${encodeURIComponent(hospitalName)}`)}
@@ -290,13 +346,13 @@ const BoardDetail = () => {
         } else {
           // 병원 정보가 없는 경우에도 @ 태그를 파란색으로 표시
           return (
-            <span key={index} className="text-blue-600 font-medium">
+            <span key={`${comment.id}-${index}`} className="text-blue-600 font-medium">
               {part}
             </span>
           );
         }
       }
-      return <span key={index}>{part}</span>;
+      return <span key={`${comment.id}-${index}`}>{part}</span>;
     });
   };
 
@@ -531,7 +587,7 @@ const BoardDetail = () => {
                     {new Date(comment.created_at).toLocaleString()}
                   </span>
                 </div>
-                {!isDeleted && isAuthor && (
+                {!isDeleted && isAuthor && !isEditing && (
                   <div className="flex space-x-3">
                     <button
                       onClick={() => handleEditClick(comment)}
@@ -550,21 +606,132 @@ const BoardDetail = () => {
               </div>
               {isEditing ? (
                 <div className="mt-3">
-                  <textarea
-                    value={editContent}
-                    onChange={(e) => setEditContent(e.target.value)}
-                    className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
-                    rows="2"
-                  />
+                  <div className="relative">
+                    <textarea
+                      value={editContent}
+                      onChange={(e) => {
+                        setEditContent(e.target.value);
+                        // @ 입력 감지
+                        const lastAtSymbol = e.target.value.lastIndexOf('@');
+                        if (lastAtSymbol !== -1) {
+                          const rect = e.target.getBoundingClientRect();
+                          const cursorPosition = e.target.selectionStart;
+                          const textBeforeCursor = e.target.value.substring(0, cursorPosition);
+                          const lastAtSymbolInText = textBeforeCursor.lastIndexOf('@');
+                          
+                          if (lastAtSymbolInText !== -1) {
+                            const textAfterAt = textBeforeCursor.substring(lastAtSymbolInText + 1);
+                            if (!textAfterAt.includes(' ')) {
+                              const textBeforeAt = textBeforeCursor.substring(0, lastAtSymbolInText);
+                              const lines = textBeforeAt.split('\n');
+                              const currentLine = lines[lines.length - 1];
+                              
+                              setMentionPosition({
+                                top: rect.top + (lines.length * 20) + 30,
+                                left: rect.left + (currentLine.length * 8)
+                              });
+                              
+                              setSearchTerm(textAfterAt);
+                              setShowMention(true);
+                              return;
+                            }
+                          }
+                        }
+                        setShowMention(false);
+                      }}
+                      className="w-full p-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
+                      rows="2"
+                    />
+                    
+                    {/* 태그된 병원 미리보기 */}
+                    {taggedHospitals.length > 0 && (
+                      <div className="mt-2">
+                        <div className="text-xs text-gray-500 mb-1">태그된 병원:</div>
+                        <div className="flex flex-wrap gap-2">
+                          {taggedHospitals.map(hospital => (
+                            <span
+                              key={hospital.id}
+                              className="px-2 py-1 bg-blue-50 text-blue-600 text-xs rounded-full"
+                            >
+                              @{hospital.name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 멘션 제안 */}
+                    {showMention && (
+                      <div
+                        style={{
+                          position: 'fixed',
+                          top: mentionPosition.top,
+                          left: mentionPosition.left
+                        }}
+                        className="z-50"
+                      >
+                        <div className="w-64 bg-white border border-gray-300 rounded-lg shadow-lg">
+                          <div className="p-2 border-b">
+                            <input
+                              type="text"
+                              value={searchTerm}
+                              onChange={(e) => setSearchTerm(e.target.value)}
+                              placeholder="병원 검색..."
+                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              autoFocus
+                            />
+                          </div>
+                          
+                          <div className="max-h-60 overflow-y-auto">
+                            {suggestions.length === 0 ? (
+                              <div className="p-2 text-sm text-gray-500">검색 결과가 없습니다.</div>
+                            ) : (
+                              suggestions.map((hospital) => (
+                                <div
+                                  key={hospital.id}
+                                  onClick={() => {
+                                    const lastAtSymbol = editContent.lastIndexOf('@');
+                                    if (lastAtSymbol !== -1) {
+                                      const beforeAt = editContent.substring(0, lastAtSymbol);
+                                      const afterAt = editContent.substring(lastAtSymbol);
+                                      const afterSpace = afterAt.indexOf(' ');
+                                      const newContent = afterSpace === -1 
+                                        ? `${beforeAt}@${hospital.name} `
+                                        : `${beforeAt}@${hospital.name}${afterAt.substring(afterSpace)}`;
+                                      
+                                      setEditContent(newContent);
+                                      setShowMention(false);
+                                      
+                                      if (!taggedHospitals.some(h => h.id === hospital.dbId)) {
+                                        setTaggedHospitals(prev => [...prev, {
+                                          id: hospital.dbId,
+                                          name: hospital.name,
+                                          typeId: 1
+                                        }]);
+                                      }
+                                    }
+                                  }}
+                                  className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                                >
+                                  <div className="text-sm font-medium text-gray-900">{hospital.name}</div>
+                                  <div className="text-xs text-gray-500">{hospital.address}</div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   <div className="flex justify-end space-x-3 mt-2">
                     <button
-                      onClick={() => setEditingComment(null)}
+                      onClick={handleCancelEdit}
                       className="px-3 py-1 text-xs text-gray-600 hover:text-gray-800 font-medium transition-colors"
                     >
                       취소
                     </button>
                     <button
-                      onClick={() => handleCommentEdit(comment.id)}
+                      onClick={() => handleEditSubmit(comment.id)}
                       className="px-3 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
                     >
                       저장
@@ -576,7 +743,7 @@ const BoardDetail = () => {
                   {isDeleted ? '삭제된 댓글입니다.' : renderCommentContent(comment)}
                 </p>
               )}
-              {!isDeleted && !isReplying && (
+              {!isDeleted && !isReplying && !isEditing && (
                 <button
                   onClick={() => setReplyingTo(comment.id)}
                   className="mt-2 text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
