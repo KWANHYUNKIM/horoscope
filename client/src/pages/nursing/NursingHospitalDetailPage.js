@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Rating } from '@mui/material';
 import HospitalReview from '../../components/HospitalReview';
-import { fetchHospitals } from '../../service/api';
+import { fetchNursingHospitalDetail } from '../../service/api';
 import { IoMdBed } from 'react-icons/io';
 import { FaUserMd, FaUserNurse, FaPhoneAlt, FaMapMarkerAlt, FaStar } from 'react-icons/fa';
 import { MdKeyboardArrowLeft } from 'react-icons/md';
@@ -19,15 +19,10 @@ const NursingHospitalDetailPage = () => {
     const fetchHospital = async () => {
       try {
         setLoading(true);
-        const response = await fetchHospitals({
-          id: id,
-          category: "요양병원"
-        });
-        
-        console.log('Fetched hospital data:', response);
-        
-        if (response && response.data && response.data.length > 0) {
-          setHospital(response.data[0]);
+        const response = await fetchNursingHospitalDetail(id);
+                
+        if (response) {
+          setHospital(response);
         } else {
           throw new Error('병원 정보를 찾을 수 없습니다.');
         }

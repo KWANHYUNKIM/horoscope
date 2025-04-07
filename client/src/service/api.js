@@ -15,6 +15,28 @@ export const fetchHospitals = async (params) => {
   }
 };
 
+// 요양병원 목록 가져오기
+export const fetchNursingHospitals = async (params) => {
+  try {
+    const response = await axios.get(`${baseUrl}/api/nursing-hospitals/search`, { params });
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error fetching nursing hospitals:", error);
+    throw error;
+  }
+};
+
+// 요양병원 상세 정보 가져오기
+export const fetchNursingHospitalDetail = async (id) => {
+  try {
+    const response = await axios.get(`${baseUrl}/api/nursing-hospitals/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Error fetching nursing hospital detail:", error);
+    throw error;
+  }
+};
+
 // 병원 상세 정보 가져오기
 export const fetchHospitalDetail = async (id) => {
   try {

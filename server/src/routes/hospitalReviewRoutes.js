@@ -2,6 +2,47 @@ const express = require('express');
 const router = express.Router();
 const { authenticateToken, isAdmin } = require('./authRoutes');
 const pool = require('../config/mysql');
+const client = require('../config/elasticsearch'); // ✅ Elasticsearch 클라이언트 가져오기
+
+
+
+// 요양병원 상세 정보 조회
+router.get('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('Searching for hospital with ykiho:', id);
+    
+    // Elasticsearch에서 ykiho로 병원 정보 조회
+    const response = await client.search({
+      index: 'hospitals',
+      body: {
+        query: {
+          bool: {
+            must: [
+              { term: { 'ykiho.keyword': id } },
+              { term: { 'category.keyword': '요양병원' } }
+            ]
+          }
+        }
+      }
+    });
+
+    console.log('Elasticsearch response:', JSON.stringify(response, null, 2));
+    const result = (typeof response.body !== 'undefined') ? response.body : response;
+    
+    if (!result.hits.hits.length) {
+      console.log('No hospital found with ykiho:', id);
+      return res.status(404).json({ message: '요양병원을 찾을 수 없습니다.' });
+    }
+
+    const hospital = result.hits.hits[0]._source;
+    console.log('Found hospital:', hospital);
+    res.json(hospital);
+  } catch (error) {
+    console.error('요양병원 정보 조회 중 오류:', error);
+    res.status(500).json({ message: '요양병원 정보 조회 중 오류가 발생했습니다.' });
+  }
+});
 
 // 리뷰 작성
 router.post('/:hospitalId/reviews', authenticateToken, async (req, res) => {

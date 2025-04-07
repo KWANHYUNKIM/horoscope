@@ -106,10 +106,11 @@ app.use('/api/email', emailRouter);
 app.use('/api/admin', adminRoutes);
 app.use('/api/autocomplete', autoCompleteRouter);
 app.use('/api/hospitals', hospitalRoutes);
-app.use('/api/nursing-hospitals', hospitalReviewRoutes);  // 요양병원 리뷰 라우트
 app.use('/api/hospitals/search', hospitalSearchRouter);
 app.use('/api/hospitals/details/search', hospitalDetailSearchRoutes);
 app.use('/api/hospitals/subjects', hospitalSubjectRoutes);
+app.use('/api/nursing-hospitals/search', hospitalSearchRouter);  // 요양병원 검색 라우트
+app.use('/api/nursing-hospitals', hospitalReviewRoutes);  // 요양병원 리뷰 라우트
 app.use('/aip/chat', chatRouter);
 app.use('/api/boards', boardRoutes);
 app.use('/api/origins', hospitalOriginRoutes);
