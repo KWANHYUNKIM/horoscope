@@ -34,6 +34,9 @@ import { AuthProvider } from './contexts/AuthContext';
 import ProfilePage from './pages/profile/ProfilePage';
 import EditBoardPage from './pages/community/EditBoardPage';
 import CategoryTypeManagementPage from './pages/admin/CategoryTypeManagementPage';
+import NursingHospitalList from './components/NursingHospitalList';
+import NursingHospitalDetailPage from "./pages/nursing/NursingHospitalDetailPage";
+import NursingHospitalReviewPage from "./pages/nursing/NursingHospitalReviewPage";
 
 const App = () => {
   const { isLoggedIn, userRole, handleLogout } = useAuth();
@@ -52,6 +55,9 @@ const App = () => {
               <Route path="/" element={<MainPage isLoggedIn={isLoggedIn} userRole={userRole} />} />
               <Route path="/hospitals" element={<HospitalListPage />} />
               <Route path="/hospitals/:id" element={<HospitalDetailPage />} />
+              <Route path="/nursing-hospitals" element={<NursingHospitalList />} />
+              <Route path="/nursing-hospitals/:id" element={<NursingHospitalDetailPage />} />
+              <Route path="/nursing-hospitals/:id/reviews" element={<NursingHospitalReviewPage />} />
               <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
               <Route path="/admin/dashboard" element={<AdminRoute><DashboardPage /></AdminRoute>} />
               <Route path="/admin/hospitals" element={<AdminRoute><HospitalManagementPage /></AdminRoute>} />

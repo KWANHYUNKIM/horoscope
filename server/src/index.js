@@ -9,6 +9,7 @@ const autoCompleteRouter = require('./elastic/autoComplete');
 const chatRouter = require('./routes/chat'); // 채팅 라우터 추가
 const adminRoutes = require('./routes/adminRoutes'); // adminRoutes로 이름 변경
 const boardRoutes = require('./routes/boardRoutes');
+const hospitalReviewRoutes = require('./routes/hospitalReviewRoutes');  // 리뷰 라우터 추가
 //const chatRoutes = require('./routes/chatRoutes');
 //const { reindex } = require('./elastic/elastics'); // reindex 불러오기
 const User = require('./models/User');
@@ -102,9 +103,10 @@ addDefaultOrigins();
 // API 라우트 설정
 app.use('/api/auth', authRouter);
 app.use('/api/email', emailRouter);
-app.use('/api/admin', adminRoutes); // adminRoutes로 변경하고 미들웨어 제거
+app.use('/api/admin', adminRoutes);
 app.use('/api/autocomplete', autoCompleteRouter);
 app.use('/api/hospitals', hospitalRoutes);
+app.use('/api/nursing-hospitals', hospitalReviewRoutes);  // 요양병원 리뷰 라우트
 app.use('/api/hospitals/search', hospitalSearchRouter);
 app.use('/api/hospitals/details/search', hospitalDetailSearchRoutes);
 app.use('/api/hospitals/subjects', hospitalSubjectRoutes);

@@ -1,6 +1,13 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
-const NursingHospitalDetail = () => {
+const NursingHospitalBanner = () => {
+  const navigate = useNavigate();
+
+  const handleViewMore = () => {
+    navigate('/nursing-hospitals');
+  };
+
   return (
     <div className="bg-white rounded-lg overflow-hidden shadow-md border border-gray-100">
       {/* 상단 이미지 섹션 */}
@@ -52,7 +59,10 @@ const NursingHospitalDetail = () => {
         </div>
 
         {/* 시설 둘러보기 버튼 */}
-        <button className="w-full mt-3 bg-blue-500 text-white py-2 rounded-md text-sm font-medium hover:bg-blue-600 transition duration-300 flex items-center justify-center gap-1">
+        <button 
+          onClick={handleViewMore}
+          className="w-full mt-3 bg-blue-500 text-white py-2 rounded-md text-sm font-medium hover:bg-blue-600 transition duration-300 flex items-center justify-center gap-1"
+        >
           자세히 알아보기
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -63,4 +73,4 @@ const NursingHospitalDetail = () => {
   );
 };
 
-export default NursingHospitalDetail; 
+export default NursingHospitalBanner; 

@@ -5,7 +5,7 @@ import { fetchHospitals, fetchHospitalDetail } from "../service/api";
 import HospitalMajorList from "../components/HospitalMajorList";
 import OperatingStatus from "../components/OperatingStatus";
 import DistanceInfo from "../components/DistanceInfo";
-import NursingHospitalDetail from '../components/NursingHospitalDetail';
+import NursingHospitalDetail from '../components/NursingHospitalBanner';
 
 import FilterDropdown from "../components/FilterDropdown";
 
